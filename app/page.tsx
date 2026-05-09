@@ -352,6 +352,76 @@ export default function Home() {
     return () => cancelAnimationFrame(raf);
   }
 
+  function BasicFields() {
+    return (
+      <div className="space-y-5">
+        <div>
+          <label className="mb-2 block text-sm font-bold">
+            👤 Who’s the birthday star?
+          </label>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Enter their name..."
+            className={`w-full rounded-2xl border px-4 py-4 outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
+          />
+        </div>
+
+        <div>
+          <label className="mb-2 block text-sm font-bold">
+            🌍 Choose language
+          </label>
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            className={`w-full rounded-2xl border px-4 py-4 outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
+          >
+            {languages.map((lang) => (
+              <option key={lang} className="text-gray-900">
+                {lang}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="mb-3 block text-sm font-bold">
+            🎵 Pick a genre
+          </label>
+
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+            {genres
+              .filter((item) => !item.includes("Surprise"))
+              .map((item) => (
+                <button
+                  key={item}
+                  onClick={() => setGenre(item)}
+                  className={`rounded-2xl border px-3 py-3 text-sm font-bold transition hover:-translate-y-1 ${
+                    genre === item
+                      ? `border-transparent bg-gradient-to-r ${theme.accent} text-white shadow-lg`
+                      : "border-white/15 bg-white/5 hover:bg-white/10"
+                  }`}
+                >
+                  {item}
+                </button>
+              ))}
+
+            <button
+              onClick={() => setGenre("🎲 Surprise Me")}
+              className={`col-span-2 md:col-span-3 rounded-2xl border border-dashed px-4 py-4 text-base font-extrabold transition hover:-translate-y-1 ${
+                genre === "🎲 Surprise Me"
+                  ? `border-transparent bg-gradient-to-r ${theme.accent} text-white shadow-lg`
+                  : "border-white/30 bg-white/10 hover:bg-white/15"
+              }`}
+            >
+              🎲 Surprise Me!
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <main
       className={`relative min-h-screen overflow-hidden bg-gradient-to-br ${theme.pageBg} ${theme.text} px-4 py-8 transition-all duration-700`}
@@ -431,7 +501,7 @@ export default function Home() {
       </button>
 
       {themeOpen && (
-        <div className="fixed right-5 top-20 z-50 w-72 rounded-3xl border border-white/20 bg-black/70 p-4 text-white shadow-2xl backdrop-blur-2xl">
+        <div className="fixed right-5 top-20 z-50 max-h-[80vh] w-72 overflow-y-auto rounded-3xl border border-white/20 bg-black/70 p-4 text-white shadow-2xl backdrop-blur-2xl">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-lg font-bold">Choose Theme</h3>
             <button onClick={() => setThemeOpen(false)}>✕</button>
@@ -506,99 +576,51 @@ export default function Home() {
           </button>
         </div>
 
-        {tab === "basic" && (
-          <div className="space-y-5">
-            <div>
-              <label className="mb-2 block text-sm font-bold">
-                👤 Who’s the birthday star?
-              </label>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Enter their name..."
-                className={`w-full rounded-2xl border px-4 py-4 outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-bold">
-                🌍 Choose language
-              </label>
-              <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-                className={`w-full rounded-2xl border px-4 py-4 outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
-              >
-                {languages.map((lang) => (
-                  <option key={lang} className="text-gray-900">
-                    {lang}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="mb-3 block text-sm font-bold">
-                🎵 Pick a genre
-              </label>
-
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-  {genres
-    .filter((item) => !item.includes("Surprise"))
-    .map((item) => (
-      <button
-        key={item}
-        onClick={() => setGenre(item)}
-        className={`rounded-2xl border px-3 py-3 text-sm font-bold transition hover:-translate-y-1 ${
-          genre === item
-            ? `border-transparent bg-gradient-to-r ${theme.accent} text-white shadow-lg`
-            : "border-white/15 bg-white/5 hover:bg-white/10"
-        }`}
-      >
-        {item}
-      </button>
-    ))}
-
-  <button
-    onClick={() => setGenre("🎲 Surprise Me")}
-    className={`col-span-2 md:col-span-3 rounded-2xl border border-dashed px-4 py-4 text-base font-extrabold transition hover:-translate-y-1 ${
-      genre === "🎲 Surprise Me"
-        ? `border-transparent bg-gradient-to-r ${theme.accent} text-white shadow-lg`
-        : "border-white/30 bg-white/10 hover:bg-white/15"
-    }`}
-  >
-    🎲 Surprise Me!
-  </button>
-</div>
-            </div>
-          </div>
-        )}
+        {tab === "basic" && <BasicFields />}
 
         {tab === "advanced" && (
-          <div className="space-y-4">
-            {[
-              "Who is this person to you?",
-              "What is a special memory you share?",
-              "How long have you known this person for?",
-              "How old are they turning?",
-              "What is their profession?",
-              "Anything else you want to add?",
-            ].map((placeholder, index) =>
-              index === 1 || index === 5 ? (
+          <div className="space-y-5">
+            <BasicFields />
+
+            <div className="border-t border-white/10 pt-5">
+              <p className="mb-4 text-sm font-bold opacity-80">
+                ✨ Advanced personalization
+              </p>
+
+              <div className="space-y-4">
+                <input
+                  placeholder="Who is this person to you?"
+                  className={`w-full rounded-2xl border px-4 py-4 outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
+                />
+
                 <textarea
-                  key={placeholder}
-                  placeholder={placeholder}
+                  placeholder="What is a special memory you share?"
                   rows={2}
                   className={`w-full resize-none rounded-2xl border px-4 py-4 outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
                 />
-              ) : (
+
                 <input
-                  key={placeholder}
-                  placeholder={placeholder}
+                  placeholder="How long have you known this person for?"
                   className={`w-full rounded-2xl border px-4 py-4 outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
                 />
-              )
-            )}
+
+                <input
+                  placeholder="How old are they turning?"
+                  className={`w-full rounded-2xl border px-4 py-4 outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
+                />
+
+                <input
+                  placeholder="What is their profession?"
+                  className={`w-full rounded-2xl border px-4 py-4 outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
+                />
+
+                <textarea
+                  placeholder="Anything else you want to add?"
+                  rows={3}
+                  className={`w-full resize-none rounded-2xl border px-4 py-4 outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
+                />
+              </div>
+            </div>
           </div>
         )}
 
