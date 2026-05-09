@@ -2,28 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 
-type ThemeKey =
-  | "dark"
-  | "light"
-  | "party"
-  | "pastel"
-  | "luxury"
-  | "confetti"
-  | "balloons"
-  | "bubbles";
-
+type ThemeKey = "dark" | "light" | "party" | "pastel" | "luxury" | "confetti" | "balloons" | "bubbles";
 type TabKey = "basic" | "advanced";
 
-const genres = [
-  "🎤 Pop",
-  "🎷 R&B",
-  "🎸 Rock",
-  "🎹 Jazz",
-  "🎧 Hip-Hop",
-  "🎛️ Electronic",
-  "🎲 Surprise Me",
-];
-
+const genres = ["🎤 Pop", "🎷 R&B", "🎸 Rock", "🎹 Jazz", "🎧 Hip-Hop", "🎛️ Electronic"];
 const languages = ["English", "Turkish", "Spanish", "French", "Arabic", "Hindi"];
 
 const themes = {
@@ -137,7 +119,6 @@ export default function Home() {
   const [tab, setTab] = useState<TabKey>("basic");
   const [themeKey, setThemeKey] = useState<ThemeKey>("dark");
   const [themeOpen, setThemeOpen] = useState(false);
-
   const [name, setName] = useState("");
   const [language, setLanguage] = useState("English");
   const [genre, setGenre] = useState("");
@@ -201,9 +182,8 @@ export default function Home() {
   function runConfetti(canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return () => {};
-
     const colors = ["#f43f5e", "#a855f7", "#3b82f6", "#facc15", "#34d399", "#fb923c"];
-    const pieces = Array.from({ length: 160 }, () => ({
+    const pieces = Array.from({ length: 140 }, () => ({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
       w: Math.random() * 10 + 4,
@@ -212,33 +192,26 @@ export default function Home() {
       rotation: Math.random() * Math.PI * 2,
       speed: Math.random() * 1.4 + 0.6,
     }));
-
     let raf = 0;
-
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
       pieces.forEach((p) => {
         ctx.save();
         ctx.translate(p.x, p.y);
         ctx.rotate(p.rotation);
         ctx.fillStyle = p.color;
-        ctx.globalAlpha = 0.75;
+        ctx.globalAlpha = 0.7;
         ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
         ctx.restore();
-
         p.y += p.speed;
         p.rotation += 0.03;
-
         if (p.y > canvas.height + 20) {
           p.y = -20;
           p.x = Math.random() * canvas.width;
         }
       });
-
       raf = requestAnimationFrame(draw);
     };
-
     draw();
     return () => cancelAnimationFrame(raf);
   }
@@ -246,57 +219,41 @@ export default function Home() {
   function runBalloons(canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return () => {};
-
     const colors = ["#f43f5e", "#a855f7", "#3b82f6", "#facc15", "#fb923c"];
-    const balloons = Array.from({ length: 24 }, () => ({
+    const balloons = Array.from({ length: 20 }, () => ({
       x: Math.random() * canvas.width,
       y: canvas.height + Math.random() * canvas.height,
-      r: Math.random() * 28 + 18,
+      r: Math.random() * 26 + 18,
       color: colors[Math.floor(Math.random() * colors.length)],
       speed: Math.random() * 0.7 + 0.3,
       sway: Math.random() * Math.PI * 2,
     }));
-
     let raf = 0;
-
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
       balloons.forEach((b) => {
         b.sway += 0.015;
         b.y -= b.speed;
         b.x += Math.sin(b.sway) * 0.5;
-
         if (b.y < -100) {
           b.y = canvas.height + 100;
           b.x = Math.random() * canvas.width;
         }
-
         ctx.save();
         ctx.globalAlpha = 0.45;
-
         ctx.beginPath();
         ctx.ellipse(b.x, b.y, b.r * 0.8, b.r, 0, 0, Math.PI * 2);
         ctx.fillStyle = b.color;
         ctx.fill();
-
-        ctx.beginPath();
-        ctx.ellipse(b.x - b.r * 0.25, b.y - b.r * 0.3, b.r * 0.18, b.r * 0.24, -0.5, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(255,255,255,0.35)";
-        ctx.fill();
-
         ctx.beginPath();
         ctx.moveTo(b.x, b.y + b.r);
         ctx.bezierCurveTo(b.x + 8, b.y + b.r + 25, b.x - 8, b.y + b.r + 45, b.x, b.y + b.r + 65);
         ctx.strokeStyle = "rgba(255,255,255,0.35)";
         ctx.stroke();
-
         ctx.restore();
       });
-
       raf = requestAnimationFrame(draw);
     };
-
     draw();
     return () => cancelAnimationFrame(raf);
   }
@@ -304,129 +261,114 @@ export default function Home() {
   function runBubbles(canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return () => {};
-
-    const bubbles = Array.from({ length: 44 }, () => ({
+    const bubbles = Array.from({ length: 36 }, () => ({
       x: Math.random() * canvas.width,
       y: canvas.height + Math.random() * canvas.height,
       r: Math.random() * 28 + 10,
       speed: Math.random() * 0.6 + 0.2,
       sway: Math.random() * Math.PI * 2,
     }));
-
     let raf = 0;
-
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
       bubbles.forEach((b) => {
         b.sway += 0.012;
         b.y -= b.speed;
         b.x += Math.sin(b.sway) * 0.4;
-
         if (b.y < -70) {
           b.y = canvas.height + 70;
           b.x = Math.random() * canvas.width;
         }
-
         ctx.save();
-        ctx.globalAlpha = 0.28;
-
+        ctx.globalAlpha = 0.25;
         ctx.beginPath();
         ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
         ctx.strokeStyle = "rgba(255,255,255,0.8)";
         ctx.lineWidth = 1.2;
         ctx.stroke();
-
-        ctx.beginPath();
-        ctx.arc(b.x - b.r * 0.3, b.y - b.r * 0.3, b.r * 0.18, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(255,255,255,0.55)";
-        ctx.fill();
-
         ctx.restore();
       });
-
       raf = requestAnimationFrame(draw);
     };
-
     draw();
     return () => cancelAnimationFrame(raf);
   }
 
-  function BasicFields() {
-    return (
-      <div className="space-y-5">
-        <div>
-          <label className="mb-2 block text-sm font-bold">
-            👤 Who’s the birthday star?
-          </label>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Enter their name..."
-            className={`w-full rounded-2xl border px-4 py-4 outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
-          />
-        </div>
+  const basicFields = (
+    <div className="space-y-4 sm:space-y-5">
+      <div>
+        <label className="mb-2 block text-[clamp(12px,2.5vw,14px)] font-bold">
+          👤 Who’s the birthday star?
+        </label>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Enter their name..."
+          className={`w-full rounded-2xl border px-4 py-3.5 text-[clamp(14px,3vw,16px)] outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
+        />
+      </div>
 
-        <div>
-          <label className="mb-2 block text-sm font-bold">
-            🌍 Choose language
-          </label>
-          <select
-            value={language}
-            onChange={(e) => setLanguage(e.target.value)}
-            className={`w-full rounded-2xl border px-4 py-4 outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
-          >
-            {languages.map((lang) => (
-              <option key={lang} className="text-gray-900">
-                {lang}
-              </option>
-            ))}
-          </select>
-        </div>
+      <div>
+        <label className="mb-2 block text-[clamp(12px,2.5vw,14px)] font-bold">
+          🌍 Choose language
+        </label>
+        <select
+          value={language}
+          onChange={(e) => setLanguage(e.target.value)}
+          className={`w-full rounded-2xl border px-4 py-3.5 text-[clamp(14px,3vw,16px)] outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
+        >
+          {languages.map((lang) => (
+            <option key={lang} className="text-gray-900">
+              {lang}
+            </option>
+          ))}
+        </select>
+      </div>
 
-        <div>
-          <label className="mb-3 block text-sm font-bold">
-            🎵 Pick a genre
-          </label>
+      <div>
+        <label className="mb-3 block text-[clamp(12px,2.5vw,14px)] font-bold">
+          🎵 Pick a genre
+        </label>
 
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-            {genres
-              .filter((item) => !item.includes("Surprise"))
-              .map((item) => (
-                <button
-                  key={item}
-                  onClick={() => setGenre(item)}
-                  className={`rounded-2xl border px-3 py-3 text-sm font-bold transition hover:-translate-y-1 ${
-                    genre === item
-                      ? `border-transparent bg-gradient-to-r ${theme.accent} text-white shadow-lg`
-                      : "border-white/15 bg-white/5 hover:bg-white/10"
-                  }`}
-                >
-                  {item}
-                </button>
-              ))}
-
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-3">
+          {genres.map((item) => (
             <button
-              onClick={() => setGenre("🎲 Surprise Me")}
-              className={`col-span-2 md:col-span-3 rounded-2xl border border-dashed px-4 py-4 text-base font-extrabold transition hover:-translate-y-1 ${
-                genre === "🎲 Surprise Me"
+              key={item}
+              type="button"
+              onClick={() => setGenre(item)}
+              className={`rounded-2xl border px-3 py-3 text-[clamp(12px,2.7vw,14px)] font-bold transition hover:-translate-y-1 ${
+                genre === item
                   ? `border-transparent bg-gradient-to-r ${theme.accent} text-white shadow-lg`
-                  : "border-white/30 bg-white/10 hover:bg-white/15"
+                  : "border-white/15 bg-white/5 hover:bg-white/10"
               }`}
             >
-              🎲 Surprise Me!
+              {item}
             </button>
-          </div>
+          ))}
+
+          <button
+            type="button"
+            onClick={() => setGenre("🎲 Surprise Me")}
+            className={`col-span-2 md:col-span-3 rounded-2xl border border-dashed px-4 py-3.5 text-[clamp(14px,3vw,16px)] font-extrabold transition hover:-translate-y-1 ${
+              genre === "🎲 Surprise Me"
+                ? `border-transparent bg-gradient-to-r ${theme.accent} text-white shadow-lg`
+                : "border-white/30 bg-white/10 hover:bg-white/15"
+            }`}
+          >
+            🎲 Surprise Me!
+          </button>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
 
   return (
     <main
-      className={`relative min-h-screen overflow-hidden bg-gradient-to-br ${theme.pageBg} ${theme.text} px-4 py-8 transition-all duration-700`}
+      className={`relative min-h-screen overflow-x-hidden overflow-y-auto bg-gradient-to-br ${theme.pageBg} ${theme.text} px-4 py-6 sm:py-8 transition-all duration-700`}
     >
       <style>{`
+        * { scrollbar-width: none; }
+        *::-webkit-scrollbar { display: none; }
         @keyframes floatOne {
           0%, 100% { transform: translateY(0px) rotate(0deg) scale(1); }
           50% { transform: translateY(-32px) rotate(8deg) scale(1.08); }
@@ -444,34 +386,21 @@ export default function Home() {
           background-size: 350% 350%;
           animation: bgMove 16s ease infinite;
         }
-        .float-one {
-          animation: floatOne 9s ease-in-out infinite;
-        }
-        .float-two {
-          animation: floatTwo 12s ease-in-out infinite;
-        }
+        .float-one { animation: floatOne 9s ease-in-out infinite; }
+        .float-two { animation: floatTwo 12s ease-in-out infinite; }
       `}</style>
 
-      <div className={`absolute inset-0 bg-gradient-to-br ${theme.pageBg} moving-bg`} />
+      <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${theme.pageBg} moving-bg`} />
 
-      <canvas ref={canvasRef} className="pointer-events-none fixed inset-0 z-[1]" />
+      <canvas ref={canvasRef} className="fixed inset-0 z-[1] pointer-events-none select-none" />
 
       {theme.effect === "emoji" && (
-        <div className="pointer-events-none absolute inset-0 z-[2]">
+        <div className="absolute inset-0 z-[2] pointer-events-none select-none">
           {theme.emojis.map((emoji, index) => {
             const positions = [
-              ["8%", "5%"],
-              ["14%", "82%"],
-              ["28%", "9%"],
-              ["35%", "88%"],
-              ["54%", "6%"],
-              ["62%", "86%"],
-              ["78%", "12%"],
-              ["82%", "76%"],
-              ["20%", "23%"],
-              ["72%", "28%"],
-              ["18%", "65%"],
-              ["50%", "70%"],
+              ["8%", "5%"], ["14%", "82%"], ["28%", "9%"], ["35%", "88%"],
+              ["54%", "6%"], ["62%", "86%"], ["78%", "12%"], ["82%", "76%"],
+              ["20%", "23%"], ["72%", "28%"], ["18%", "65%"], ["50%", "70%"],
             ];
 
             return (
@@ -494,23 +423,25 @@ export default function Home() {
       )}
 
       <button
+        type="button"
         onClick={() => setThemeOpen(!themeOpen)}
-        className="fixed right-5 top-5 z-50 rounded-2xl border border-white/20 bg-white/15 px-5 py-3 font-bold shadow-2xl backdrop-blur-xl"
+        className="fixed right-4 top-4 z-[999] rounded-2xl border border-white/20 bg-white/15 px-4 py-2.5 text-sm font-bold shadow-2xl backdrop-blur-xl"
       >
         🎨 Theme
       </button>
 
       {themeOpen && (
-        <div className="fixed right-5 top-20 z-50 max-h-[80vh] w-72 overflow-y-auto rounded-3xl border border-white/20 bg-black/70 p-4 text-white shadow-2xl backdrop-blur-2xl">
+        <div className="fixed right-4 top-16 z-[999] max-h-[75vh] w-72 overflow-y-auto rounded-3xl border border-white/20 bg-black/80 p-4 text-white shadow-2xl backdrop-blur-2xl">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-lg font-bold">Choose Theme</h3>
-            <button onClick={() => setThemeOpen(false)}>✕</button>
+            <button type="button" onClick={() => setThemeOpen(false)}>✕</button>
           </div>
 
           <div className="space-y-3">
             {Object.entries(themes).map(([key, item]) => (
               <button
                 key={key}
+                type="button"
                 onClick={() => {
                   setThemeKey(key as ThemeKey);
                   setThemeOpen(false);
@@ -533,29 +464,30 @@ export default function Home() {
         </div>
       )}
 
-      <header className="relative z-10 mx-auto mb-8 max-w-5xl text-center">
-        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-5 py-2 text-sm font-semibold backdrop-blur">
+      <header className="relative z-20 mx-auto mb-6 max-w-5xl text-center">
+        <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-semibold backdrop-blur sm:text-sm">
           ✨ AI-Powered
         </div>
 
         <h1
-          className={`bg-gradient-to-r ${theme.title} bg-clip-text pb-4 text-5xl font-extrabold leading-[1.18] text-transparent md:text-7xl`}
+          className={`bg-gradient-to-r ${theme.title} bg-clip-text pb-3 text-[clamp(36px,8vw,72px)] font-extrabold leading-[1.15] text-transparent`}
         >
           Birthday Song Generator
         </h1>
 
-        <p className={`text-lg ${theme.sub}`}>
+        <p className={`text-[clamp(14px,3vw,18px)] ${theme.sub}`}>
           Create a personalized birthday song in seconds
         </p>
       </header>
 
       <section
-        className={`relative z-10 mx-auto max-w-xl rounded-[2rem] border ${theme.card} p-6 shadow-2xl backdrop-blur-2xl md:p-8`}
+        className={`relative z-20 mx-auto max-w-xl rounded-[2rem] border ${theme.card} p-[clamp(18px,4vw,32px)] shadow-2xl backdrop-blur-2xl`}
       >
-        <div className="mb-6 flex gap-3">
+        <div className="mb-5 flex gap-3">
           <button
+            type="button"
             onClick={() => setTab("basic")}
-            className={`flex-1 rounded-2xl border py-3 font-bold transition ${
+            className={`flex-1 rounded-2xl border py-3 text-[clamp(13px,3vw,16px)] font-bold transition ${
               tab === "basic"
                 ? `border-transparent bg-gradient-to-r ${theme.accent} text-white shadow-lg`
                 : "border-white/15 bg-white/5 opacity-75"
@@ -565,8 +497,9 @@ export default function Home() {
           </button>
 
           <button
+            type="button"
             onClick={() => setTab("advanced")}
-            className={`flex-1 rounded-2xl border py-3 font-bold transition ${
+            className={`flex-1 rounded-2xl border py-3 text-[clamp(13px,3vw,16px)] font-bold transition ${
               tab === "advanced"
                 ? `border-transparent bg-gradient-to-r ${theme.accent} text-white shadow-lg`
                 : "border-white/15 bg-white/5 opacity-75"
@@ -576,11 +509,11 @@ export default function Home() {
           </button>
         </div>
 
-        {tab === "basic" && <BasicFields />}
+        {tab === "basic" && basicFields}
 
         {tab === "advanced" && (
           <div className="space-y-5">
-            <BasicFields />
+            {basicFields}
 
             <div className="border-t border-white/10 pt-5">
               <p className="mb-4 text-sm font-bold opacity-80">
@@ -588,46 +521,27 @@ export default function Home() {
               </p>
 
               <div className="space-y-4">
-                <input
-                  placeholder="Who is this person to you?"
-                  className={`w-full rounded-2xl border px-4 py-4 outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
-                />
+                {[
+                  "Who is this person to you?",
+                  "How old are they turning?",
+                  "What is their profession?",
+                ].map((p) => (
+                  <input key={p} placeholder={p} className={`w-full rounded-2xl border px-4 py-3.5 text-sm outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`} />
+                ))}
 
-                <textarea
-                  placeholder="What is a special memory you share?"
-                  rows={2}
-                  className={`w-full resize-none rounded-2xl border px-4 py-4 outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
-                />
+                <textarea placeholder="What is a special memory you share?" rows={2} className={`w-full resize-none rounded-2xl border px-4 py-3.5 text-sm outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`} />
 
-                <input
-                  placeholder="How long have you known this person for?"
-                  className={`w-full rounded-2xl border px-4 py-4 outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
-                />
-
-                <input
-                  placeholder="How old are they turning?"
-                  className={`w-full rounded-2xl border px-4 py-4 outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
-                />
-
-                <input
-                  placeholder="What is their profession?"
-                  className={`w-full rounded-2xl border px-4 py-4 outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
-                />
-
-                <textarea
-                  placeholder="Anything else you want to add?"
-                  rows={3}
-                  className={`w-full resize-none rounded-2xl border px-4 py-4 outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
-                />
+                <textarea placeholder="Anything else you want to add?" rows={3} className={`w-full resize-none rounded-2xl border px-4 py-3.5 text-sm outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`} />
               </div>
             </div>
           </div>
         )}
 
         <button
+          type="button"
           onClick={generateSong}
           disabled={!canGenerate || loading}
-          className={`mt-6 w-full rounded-2xl bg-gradient-to-r ${theme.accent} py-5 text-lg font-extrabold text-white shadow-xl transition hover:-translate-y-1 disabled:cursor-not-allowed disabled:opacity-40`}
+          className={`mt-6 w-full rounded-2xl bg-gradient-to-r ${theme.accent} py-4 text-[clamp(15px,3vw,18px)] font-extrabold text-white shadow-xl transition hover:-translate-y-1 disabled:cursor-not-allowed disabled:opacity-40`}
         >
           {loading ? "Generating..." : "✨ Generate Song"}
         </button>
@@ -639,69 +553,20 @@ export default function Home() {
               <span>{progress}%</span>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-white/20">
-              <div
-                className={`h-full bg-gradient-to-r ${theme.accent} transition-all`}
-                style={{ width: `${progress}%` }}
-              />
+              <div className={`h-full bg-gradient-to-r ${theme.accent} transition-all`} style={{ width: `${progress}%` }} />
             </div>
           </div>
         )}
       </section>
 
       {ready && (
-        <section
-          className={`relative z-10 mx-auto mt-6 max-w-xl rounded-[2rem] border ${theme.card} p-6 shadow-2xl backdrop-blur-2xl`}
-        >
-          <div className="mb-5 flex items-center gap-4">
-            <div
-              className={`flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${theme.accent} text-2xl`}
-            >
-              🎂
-            </div>
-
-            <div>
-              <h2 className="text-xl font-bold">Happy Birthday, {name}!</h2>
-              <p className="text-sm opacity-70">
-                {language} • {genre} • Frontend demo
-              </p>
-            </div>
-          </div>
-
-          <div className="mb-4 rounded-2xl bg-white/10 p-4">
-            <div className="flex items-center gap-4">
-              <button
-                className={`h-12 w-12 rounded-full bg-gradient-to-r ${theme.accent}`}
-              >
-                ▶
-              </button>
-
-              <div className="flex-1">
-                <div className="h-2 overflow-hidden rounded-full bg-white/20">
-                  <div
-                    className={`h-full w-1/3 bg-gradient-to-r ${theme.accent}`}
-                  />
-                </div>
-
-                <div className="mt-1 flex justify-between text-xs opacity-60">
-                  <span>0:24</span>
-                  <span>3:24</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex gap-3">
-            <button className="flex-1 rounded-xl border border-white/20 py-3 font-bold hover:bg-white/10">
-              Download
-            </button>
-            <button className="flex-1 rounded-xl border border-white/20 py-3 font-bold hover:bg-white/10">
-              Share
-            </button>
-          </div>
+        <section className={`relative z-20 mx-auto mt-6 max-w-xl rounded-[2rem] border ${theme.card} p-6 shadow-2xl backdrop-blur-2xl`}>
+          <h2 className="text-xl font-bold">Happy Birthday, {name}!</h2>
+          <p className="text-sm opacity-70">{language} • {genre} • Frontend demo</p>
         </section>
       )}
 
-      <footer className="relative z-10 mt-8 text-center text-xs opacity-70">
+      <footer className="relative z-20 mt-8 text-center text-xs opacity-70">
         Made with 💜 for birthday celebrations
       </footer>
     </main>
