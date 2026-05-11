@@ -1,9 +1,20 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type {
+  GenerateSongRequest,
+  GenerateSongResponse,
+  Language,
+  Lyrics,
+  SongStatusResponse,
+} from "@/lib/api-types";
 
 type ThemeKey = "dark" | "light" | "party" | "pastel" | "luxury" | "confetti" | "balloons" | "bubbles";
 type TabKey = "basic" | "advanced";
+
+const POLL_INTERVAL_MS = 4_000;
+const LONG_WAIT_HINT_MS = 90_000;
+const GENERATION_TIMEOUT_MS = 180_000;
 
 const genres = ["🎤 Pop", "🎷 R&B", "🎸 Rock", "🎹 Jazz", "🎧 Hip-Hop", "🎛️ Electronic"];
 const languages = ["English", "Turkish", "Spanish", "French", "Arabic", "Hindi"];
@@ -120,11 +131,22 @@ export default function Home() {
   const [themeKey, setThemeKey] = useState<ThemeKey>("dark");
   const [themeOpen, setThemeOpen] = useState(false);
   const [name, setName] = useState("");
-  const [language, setLanguage] = useState("English");
+  const [language, setLanguage] = useState<Language>("English");
   const [genre, setGenre] = useState("");
+  const [relationship, setRelationship] = useState("");
+  const [age, setAge] = useState("");
+  const [profession, setProfession] = useState("");
+  const [memory, setMemory] = useState("");
+  const [extras, setExtras] = useState("");
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [lyrics, setLyrics] = useState<Lyrics | null>(null);
+  const [resolvedGenre, setResolvedGenre] = useState<string | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [longWaitHint, setLongWaitHint] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const cleanupRef = useRef<null | (() => void)>(null);
@@ -157,26 +179,127 @@ export default function Home() {
     };
   }, [theme.effect]);
 
-  function generateSong() {
-    if (!canGenerate) return;
+  useEffect(() => {
+    if (!jobId) return;
+
+    const startedAt = Date.now();
+    let cancelled = false;
+    let consecutiveFailures = 0;
+
+    const tick = async () => {
+      if (cancelled) return;
+
+      const elapsed = Date.now() - startedAt;
+      if (elapsed > GENERATION_TIMEOUT_MS) {
+        setErrorMsg("Song generation took too long. Please try again.");
+        setLoading(false);
+        setJobId(null);
+        return;
+      }
+      if (elapsed > LONG_WAIT_HINT_MS) {
+        setLongWaitHint(true);
+      }
+
+      try {
+        const res = await fetch(`/api/song-status?jobId=${encodeURIComponent(jobId)}`, { cache: "no-store" });
+        if (!res.ok) throw new Error(`status ${res.status}`);
+        const data = (await res.json()) as SongStatusResponse;
+        consecutiveFailures = 0;
+
+        if (data.status === "complete") {
+          if (cancelled) return;
+          setAudioUrl(data.audioUrl);
+          setProgress(100);
+          setReady(true);
+          setLoading(false);
+          setJobId(null);
+          return;
+        }
+        if (data.status === "failed") {
+          if (cancelled) return;
+          setErrorMsg(data.error || "Music service couldn't complete the song.");
+          setLoading(false);
+          setJobId(null);
+          return;
+        }
+
+        if (typeof data.progress === "number") {
+          setProgress(Math.min(90, Math.max(10, data.progress)));
+        } else {
+          setProgress((p) => Math.min(90, p + 5));
+        }
+      } catch {
+        consecutiveFailures += 1;
+        if (consecutiveFailures >= 3) {
+          setErrorMsg("Connection lost while waiting for your song. Please try again.");
+          setLoading(false);
+          setJobId(null);
+        }
+      }
+    };
+
+    void tick();
+    const interval = setInterval(tick, POLL_INTERVAL_MS);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [jobId]);
+
+  async function generateSong() {
+    if (!canGenerate || loading) return;
 
     setLoading(true);
     setReady(false);
     setProgress(0);
+    setErrorMsg(null);
+    setAudioUrl(null);
+    setLyrics(null);
+    setResolvedGenre(null);
+    setJobId(null);
+    setLongWaitHint(false);
 
-    let value = 0;
-    const interval = setInterval(() => {
-      value += 10;
-      setProgress(value);
+    const payload: GenerateSongRequest = {
+      name: name.trim(),
+      language,
+      genre: genre as GenerateSongRequest["genre"],
+      relationship: relationship.trim() || undefined,
+      age: age.trim() || undefined,
+      profession: profession.trim() || undefined,
+      memory: memory.trim() || undefined,
+      extras: extras.trim() || undefined,
+    };
 
-      if (value >= 100) {
-        clearInterval(interval);
-        setTimeout(() => {
-          setLoading(false);
-          setReady(true);
-        }, 400);
+    try {
+      const res = await fetch("/api/generate-song", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMsg(data?.error?.message ?? "Couldn't generate your song. Please try again.");
+        setLoading(false);
+        return;
       }
-    }, 250);
+      const ok = data as GenerateSongResponse;
+      setLyrics(ok.lyrics);
+      setResolvedGenre(ok.resolvedGenre);
+      setJobId(ok.jobId);
+      setProgress(10);
+    } catch {
+      setErrorMsg("Couldn't reach the server. Please check your connection and try again.");
+      setLoading(false);
+    }
+  }
+
+  function resetForRetry() {
+    setErrorMsg(null);
+    setLoading(false);
+    setJobId(null);
+    setLongWaitHint(false);
+    setProgress(0);
   }
 
   function runConfetti(canvas: HTMLCanvasElement) {
@@ -314,7 +437,7 @@ export default function Home() {
         </label>
         <select
           value={language}
-          onChange={(e) => setLanguage(e.target.value)}
+          onChange={(e) => setLanguage(e.target.value as Language)}
           className={`w-full rounded-2xl border px-4 py-3.5 text-[clamp(14px,3vw,16px)] outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
         >
           {languages.map((lang) => (
@@ -521,17 +644,38 @@ export default function Home() {
               </p>
 
               <div className="space-y-4">
-                {[
-                  "Who is this person to you?",
-                  "How old are they turning?",
-                  "What is their profession?",
-                ].map((p) => (
-                  <input key={p} placeholder={p} className={`w-full rounded-2xl border px-4 py-3.5 text-sm outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`} />
-                ))}
-
-                <textarea placeholder="What is a special memory you share?" rows={2} className={`w-full resize-none rounded-2xl border px-4 py-3.5 text-sm outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`} />
-
-                <textarea placeholder="Anything else you want to add?" rows={3} className={`w-full resize-none rounded-2xl border px-4 py-3.5 text-sm outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`} />
+                <input
+                  value={relationship}
+                  onChange={(e) => setRelationship(e.target.value)}
+                  placeholder="Who is this person to you?"
+                  className={`w-full rounded-2xl border px-4 py-3.5 text-sm outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
+                />
+                <input
+                  value={age}
+                  onChange={(e) => setAge(e.target.value)}
+                  placeholder="How old are they turning?"
+                  className={`w-full rounded-2xl border px-4 py-3.5 text-sm outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
+                />
+                <input
+                  value={profession}
+                  onChange={(e) => setProfession(e.target.value)}
+                  placeholder="What is their profession?"
+                  className={`w-full rounded-2xl border px-4 py-3.5 text-sm outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
+                />
+                <textarea
+                  value={memory}
+                  onChange={(e) => setMemory(e.target.value)}
+                  placeholder="What is a special memory you share?"
+                  rows={2}
+                  className={`w-full resize-none rounded-2xl border px-4 py-3.5 text-sm outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
+                />
+                <textarea
+                  value={extras}
+                  onChange={(e) => setExtras(e.target.value)}
+                  placeholder="Anything else you want to add?"
+                  rows={3}
+                  className={`w-full resize-none rounded-2xl border px-4 py-3.5 text-sm outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
+                />
               </div>
             </div>
           </div>
@@ -549,7 +693,7 @@ export default function Home() {
         {loading && (
           <div className="mt-5">
             <div className="mb-2 flex justify-between text-xs opacity-70">
-              <span>Composing your song...</span>
+              <span>{longWaitHint ? "Still working — this is taking longer than usual..." : "Composing your song..."}</span>
               <span>{progress}%</span>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-white/20">
@@ -559,10 +703,62 @@ export default function Home() {
         )}
       </section>
 
-      {ready && (
+      {errorMsg && (
+        <section className={`relative z-20 mx-auto mt-6 max-w-xl rounded-[2rem] border ${theme.card} p-6 shadow-2xl backdrop-blur-2xl`}>
+          <h2 className="text-lg font-bold">Something went wrong</h2>
+          <p className="mt-2 text-sm opacity-80">{errorMsg}</p>
+          <button
+            type="button"
+            onClick={resetForRetry}
+            className={`mt-4 rounded-2xl bg-gradient-to-r ${theme.accent} px-5 py-2.5 text-sm font-bold text-white shadow-lg transition hover:-translate-y-0.5`}
+          >
+            Try again
+          </button>
+        </section>
+      )}
+
+      {lyrics && (
         <section className={`relative z-20 mx-auto mt-6 max-w-xl rounded-[2rem] border ${theme.card} p-6 shadow-2xl backdrop-blur-2xl`}>
           <h2 className="text-xl font-bold">Happy Birthday, {name}!</h2>
-          <p className="text-sm opacity-70">{language} • {genre} • Frontend demo</p>
+          <p className="text-sm opacity-70">
+            {language} • {resolvedGenre ?? genre} • {lyrics.title}
+          </p>
+
+          {audioUrl ? (
+            <div className="mt-4 space-y-2">
+              <audio controls src={audioUrl} className="w-full" />
+              <a
+                href={audioUrl}
+                download
+                className="inline-block text-xs opacity-70 underline-offset-2 hover:underline"
+              >
+                Download audio
+              </a>
+            </div>
+          ) : (
+            <div className="mt-4 rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm opacity-80">
+              🎵 {ready ? "Audio is ready." : longWaitHint ? "Music is still rendering — almost there..." : "Music is rendering..."}
+            </div>
+          )}
+
+          <div
+            dir={language === "Arabic" ? "rtl" : "ltr"}
+            style={language === "Hindi" ? { fontFamily: '"Noto Sans Devanagari", "Mangal", system-ui, sans-serif' } : undefined}
+            className="mt-5 space-y-4"
+          >
+            {lyrics.sections.map((section, idx) => (
+              <div key={idx}>
+                <div className="mb-1 text-xs font-bold uppercase tracking-wide opacity-60">
+                  [{section.tag}]
+                </div>
+                {section.lines.map((line, lineIdx) => (
+                  <p key={lineIdx} className="text-sm leading-relaxed">
+                    {line}
+                  </p>
+                ))}
+              </div>
+            ))}
+          </div>
         </section>
       )}
 
