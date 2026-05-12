@@ -21,6 +21,7 @@ const SYSTEM_PROMPT = `You are a professional birthday song lyricist who writes 
 - French: "Joyeux Anniversaire" structure.
 - Arabic: "كل عام وأنت بخير" / "سنة حلوة يا جميل" sensibility; use Modern Standard Arabic unless the genre calls for dialect.
 - Hindi: "Janam Din Mubarak ho" / "Bar bar din ye aaye" feel; Devanagari script.
+- Russian: "С днём рождения" warmth; the wistful celebratory mood of Krokodil Gena's birthday song ("Пусть бегут неуклюже...") is a welcome reference. Use Cyrillic script.
 - English: modern singable; do NOT reuse the "Happy Birthday to You" copyrighted melody/lyrics.
 
 You match the requested genre's lyrical conventions (Hip-Hop = rhyme density and flow, Jazz = imagery and intimacy, Pop = hooks and repetition, Rock = energy and anthems, R&B = emotion and groove, Electronic = chant-friendly and rhythmic).
@@ -61,9 +62,9 @@ Output a JSON object exactly matching this schema:
 }
 
 Constraints:
-- Total length: ≈ 1 verse + 1 chorus + 1 verse + 1 chorus + 1 bridge + 1 outro (or shorter for Hip-Hop's 16-bar conventions).
-- Use ${input.name} in at least the chorus.
-- Reference advanced fields naturally if provided; do not force-fit irrelevant ones.
+- Total length: keep it short, this is a birthday song not a pop single. One verse + one chorus only. Maximum ~8 short lines total.
+- Use ${input.name} in the chorus and ideally in the verse too.
+- Reference advanced fields naturally if provided.
 - Never include English placeholder text in non-English lyrics.`;
 }
 
@@ -119,7 +120,57 @@ function validateAndNormalize(parsed: ClaudeRaw): { title: string; sections: Lyr
   return { title: parsed.title.trim(), sections, style: parsed.style.trim() };
 }
 
-function buildRawLyrics(sections: LyricSection[]): string {
+const ALLOWED_TAGS: LyricSectionTag[] = ["Verse", "Chorus", "Bridge", "Outro"];
+
+export function normalizeClientLyrics(raw: unknown): Lyrics {
+  if (!raw || typeof raw !== "object") {
+    throw new Error("lyrics must be an object");
+  }
+  const obj = raw as Partial<Lyrics>;
+
+  if (typeof obj.title !== "string" || !obj.title.trim()) {
+    throw new Error("lyrics.title is required");
+  }
+  if (typeof obj.style !== "string" || !obj.style.trim()) {
+    throw new Error("lyrics.style is required");
+  }
+  if (typeof obj.language !== "string" || !obj.language.trim()) {
+    throw new Error("lyrics.language is required");
+  }
+  if (!Array.isArray(obj.sections) || obj.sections.length === 0) {
+    throw new Error("lyrics.sections must be a non-empty array");
+  }
+
+  const sections: LyricSection[] = obj.sections.map((section, idx) => {
+    if (!section || typeof section !== "object") {
+      throw new Error(`lyrics.sections[${idx}] must be an object`);
+    }
+    const s = section as { tag?: unknown; lines?: unknown };
+    if (typeof s.tag !== "string" || !ALLOWED_TAGS.includes(s.tag as LyricSectionTag)) {
+      throw new Error(`lyrics.sections[${idx}].tag is invalid`);
+    }
+    if (!Array.isArray(s.lines)) {
+      throw new Error(`lyrics.sections[${idx}].lines must be an array`);
+    }
+    const lines = s.lines
+      .map((line) => (typeof line === "string" ? line.trim() : ""))
+      .filter((line) => line.length > 0);
+    if (lines.length === 0) {
+      throw new Error(`lyrics.sections[${idx}] has no non-empty lines`);
+    }
+    return { tag: s.tag as LyricSectionTag, lines };
+  });
+
+  return {
+    title: obj.title.trim(),
+    style: obj.style.trim(),
+    language: obj.language.trim(),
+    sections,
+    raw: buildRawLyrics(sections),
+  };
+}
+
+export function buildRawLyrics(sections: LyricSection[]): string {
   const counters: Record<LyricSectionTag, number> = { Verse: 0, Chorus: 0, Bridge: 0, Outro: 0 };
   const totals: Record<LyricSectionTag, number> = { Verse: 0, Chorus: 0, Bridge: 0, Outro: 0 };
   for (const s of sections) totals[s.tag] += 1;
@@ -137,7 +188,7 @@ function buildRawLyrics(sections: LyricSection[]): string {
 async function callClaude(client: Anthropic, userMessage: string, extraSystem?: string): Promise<string> {
   const result = await client.messages.create({
     model: env.anthropicModel,
-    max_tokens: 1500,
+    max_tokens: 500,
     temperature: 0.9,
     system: extraSystem ? `${SYSTEM_PROMPT}\n\n${extraSystem}` : SYSTEM_PROMPT,
     messages: [{ role: "user", content: userMessage }],

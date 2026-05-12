@@ -16,7 +16,7 @@ export const env = {
     return required("ANTHROPIC_API_KEY");
   },
   get anthropicModel(): string {
-    return optional("ANTHROPIC_MODEL", "claude-sonnet-4-6");
+    return optional("ANTHROPIC_MODEL", "claude-haiku-4-5-20251001");
   },
   get sunoApiKey(): string {
     return required("SUNO_API_KEY");
