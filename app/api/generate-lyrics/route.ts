@@ -3,17 +3,16 @@ import {
   ApiError,
   ApiErrorCode,
   GENRES,
+  GenerateLyricsResponse,
   GenerateSongRequest,
-  GenerateSongResponse,
   Genre,
   LANGUAGES,
   Language,
   SURPRISE_GENRE,
 } from "@/lib/api-types";
-import { submitGeneration } from "@/lib/suno";
 
 export const runtime = "nodejs";
-export const maxDuration = 30;
+export const maxDuration = 15;
 
 const MAX_NAME_LEN = 80;
 const MAX_ADVANCED_LEN = 500;
@@ -79,9 +78,10 @@ export async function POST(request: Request): Promise<Response> {
     extras: sanitizeAdvanced(body.extras),
   };
 
-  let lyrics;
   try {
-    lyrics = await generateLyrics(lyricsInput);
+    const lyrics = await generateLyrics(lyricsInput);
+    const response: GenerateLyricsResponse = { lyrics, resolvedGenre };
+    return Response.json(response);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown lyric generation error";
     if (/timeout|aborted/i.test(message)) {
@@ -90,26 +90,7 @@ export async function POST(request: Request): Promise<Response> {
     if (/429|rate.?limit/i.test(message)) {
       return errorResponse("RATE_LIMITED", "Lyric service is busy. Please wait a moment.", 429);
     }
-    console.error("[generate-song] lyrics failed:", message);
+    console.error("[generate-lyrics] failed:", message);
     return errorResponse("LYRICS_FAILED", "Couldn't write lyrics. Please try again.", 502);
   }
-
-  let jobId: string;
-  try {
-    jobId = await submitGeneration({
-      lyrics: lyrics.raw,
-      style: lyrics.style,
-      title: lyrics.title,
-    });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown music submit error";
-    if (/429|rate.?limit/i.test(message)) {
-      return errorResponse("RATE_LIMITED", "Music service is busy. Please wait a moment.", 429);
-    }
-    console.error("[generate-song] music submit failed:", message);
-    return errorResponse("MUSIC_SUBMIT_FAILED", "Couldn't start music generation. Please try again.", 502);
-  }
-
-  const response: GenerateSongResponse = { jobId, lyrics, resolvedGenre };
-  return Response.json(response);
 }

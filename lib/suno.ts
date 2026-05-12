@@ -57,6 +57,8 @@ export async function submitGeneration(input: SunoSubmitInput): Promise<string> 
     callBackUrl: env.sunoCallbackUrl || CALLBACK_PLACEHOLDER,
   };
 
+  console.log("[suno-submit] sending to Suno:", JSON.stringify(body, null, 2));
+
   const res = await fetch(`${env.sunoApiBaseUrl}/api/v1/generate`, {
     method: "POST",
     headers: authHeaders(),
@@ -85,12 +87,11 @@ export async function submitGeneration(input: SunoSubmitInput): Promise<string> 
 const PENDING_STATUSES = new Set([
   "PENDING",
   "TEXT_SUCCESS",
-  "FIRST_SUCCESS",
   "PROCESSING",
   "QUEUED",
 ]);
 
-const COMPLETE_STATUSES = new Set(["SUCCESS"]);
+const COMPLETE_STATUSES = new Set(["FIRST_SUCCESS", "SUCCESS"]);
 
 const FAILED_STATUSES = new Set([
   "CREATE_TASK_FAILED",
@@ -143,9 +144,12 @@ export async function checkStatus(jobId: string): Promise<SunoStatus> {
   }
 
   if (FAILED_STATUSES.has(upperStatus)) {
+    console.error("[suno-status] FAILED for jobId", jobId);
+    console.error("[suno-status] raw Suno response:", JSON.stringify(envelope, null, 2));
+    const sunoError = data.errorMessage || envelope.msg || "Music generation failed";
     return {
       status: "failed",
-      error: data.errorMessage ?? `Generation failed (${upperStatus})`,
+      error: sunoError,
     };
   }
 

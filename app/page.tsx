@@ -2,22 +2,38 @@
 
 import { useEffect, useRef, useState } from "react";
 import type {
+  GenerateLyricsResponse,
+  GenerateMusicRequest,
+  GenerateMusicResponse,
   GenerateSongRequest,
-  GenerateSongResponse,
   Language,
+  LyricSectionTag,
   Lyrics,
+  ShareCreateRequest,
+  ShareCreateResponse,
+  ShareTemplate,
   SongStatusResponse,
 } from "@/lib/api-types";
+import { SHARE_TEMPLATES } from "@/lib/api-types";
+
+type EditableSection = { tag: LyricSectionTag; text: string };
+
+const TEMPLATE_LABELS: Record<ShareTemplate, { name: string; desc: string }> = {
+  classic: { name: "Classic", desc: "Clean & timeless" },
+  neon: { name: "Neon", desc: "Vibrant & glowing" },
+  elegant: { name: "Elegant", desc: "Refined & golden" },
+  playful: { name: "Playful", desc: "Fun & colorful" },
+};
 
 type ThemeKey = "dark" | "light" | "party" | "pastel" | "luxury" | "confetti" | "balloons" | "bubbles";
 type TabKey = "basic" | "advanced";
 
-const POLL_INTERVAL_MS = 4_000;
+const POLL_INTERVAL_MS = 2_000;
 const LONG_WAIT_HINT_MS = 90_000;
 const GENERATION_TIMEOUT_MS = 180_000;
 
 const genres = ["🎤 Pop", "🎷 R&B", "🎸 Rock", "🎹 Jazz", "🎧 Hip-Hop", "🎛️ Electronic"];
-const languages = ["English", "Turkish", "Spanish", "French", "Arabic", "Hindi"];
+const languages = ["English", "Turkish", "Spanish", "French", "Arabic", "Hindi", "Russian"];
 
 const themes = {
   dark: {
@@ -138,21 +154,31 @@ export default function Home() {
   const [profession, setProfession] = useState("");
   const [memory, setMemory] = useState("");
   const [extras, setExtras] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loadingLyrics, setLoadingLyrics] = useState(false);
+  const [loadingMusic, setLoadingMusic] = useState(false);
   const [ready, setReady] = useState(false);
   const [progress, setProgress] = useState(0);
   const [jobId, setJobId] = useState<string | null>(null);
   const [lyrics, setLyrics] = useState<Lyrics | null>(null);
+  const [editableSections, setEditableSections] = useState<EditableSection[]>([]);
   const [resolvedGenre, setResolvedGenre] = useState<string | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [longWaitHint, setLongWaitHint] = useState(false);
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const [shareTemplate, setShareTemplate] = useState<ShareTemplate>("classic");
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [creatingShare, setCreatingShare] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const cleanupRef = useRef<null | (() => void)>(null);
+  const completeDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const theme = themes[themeKey];
   const canGenerate = name.trim() && genre;
+  const musicLocked = loadingMusic || jobId !== null || audioUrl !== null;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -192,7 +218,7 @@ export default function Home() {
       const elapsed = Date.now() - startedAt;
       if (elapsed > GENERATION_TIMEOUT_MS) {
         setErrorMsg("Song generation took too long. Please try again.");
-        setLoading(false);
+        setLoadingMusic(false);
         setJobId(null);
         return;
       }
@@ -211,14 +237,18 @@ export default function Home() {
           setAudioUrl(data.audioUrl);
           setProgress(100);
           setReady(true);
-          setLoading(false);
           setJobId(null);
+          if (completeDelayRef.current) clearTimeout(completeDelayRef.current);
+          completeDelayRef.current = setTimeout(() => {
+            setLoadingMusic(false);
+            completeDelayRef.current = null;
+          }, 800);
           return;
         }
         if (data.status === "failed") {
           if (cancelled) return;
           setErrorMsg(data.error || "Music service couldn't complete the song.");
-          setLoading(false);
+          setLoadingMusic(false);
           setJobId(null);
           return;
         }
@@ -232,7 +262,7 @@ export default function Home() {
         consecutiveFailures += 1;
         if (consecutiveFailures >= 3) {
           setErrorMsg("Connection lost while waiting for your song. Please try again.");
-          setLoading(false);
+          setLoadingMusic(false);
           setJobId(null);
         }
       }
@@ -247,18 +277,37 @@ export default function Home() {
     };
   }, [jobId]);
 
-  async function generateSong() {
-    if (!canGenerate || loading) return;
+  useEffect(() => {
+    if (!loadingLyrics && !loadingMusic) return;
+    const startedAt = Date.now();
+    setElapsedMs(0);
+    const tick = () => setElapsedMs(Date.now() - startedAt);
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [loadingLyrics, loadingMusic]);
 
-    setLoading(true);
+  async function generateLyricsHandler() {
+    if (!canGenerate || loadingLyrics || loadingMusic) return;
+
+    if (completeDelayRef.current) {
+      clearTimeout(completeDelayRef.current);
+      completeDelayRef.current = null;
+    }
+
+    setLoadingLyrics(true);
     setReady(false);
     setProgress(0);
     setErrorMsg(null);
     setAudioUrl(null);
     setLyrics(null);
+    setEditableSections([]);
     setResolvedGenre(null);
     setJobId(null);
     setLongWaitHint(false);
+    setElapsedMs(0);
+    setShareUrl(null);
+    setShareError(null);
+    setCopied(false);
 
     const payload: GenerateSongRequest = {
       name: name.trim(),
@@ -272,34 +321,176 @@ export default function Home() {
     };
 
     try {
-      const res = await fetch("/api/generate-song", {
+      const res = await fetch("/api/generate-lyrics", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) {
-        setErrorMsg(data?.error?.message ?? "Couldn't generate your song. Please try again.");
-        setLoading(false);
+        setErrorMsg(data?.error?.message ?? "Couldn't write lyrics. Please try again.");
+        setLoadingLyrics(false);
         return;
       }
-      const ok = data as GenerateSongResponse;
+      const ok = data as GenerateLyricsResponse;
       setLyrics(ok.lyrics);
+      setEditableSections(
+        ok.lyrics.sections.map((s) => ({ tag: s.tag, text: s.lines.join("\n") })),
+      );
       setResolvedGenre(ok.resolvedGenre);
+      setLoadingLyrics(false);
+    } catch {
+      setErrorMsg("Couldn't reach the server. Please check your connection and try again.");
+      setLoadingLyrics(false);
+    }
+  }
+
+  async function generateMusicHandler() {
+    if (!lyrics || loadingLyrics || loadingMusic) return;
+
+    if (completeDelayRef.current) {
+      clearTimeout(completeDelayRef.current);
+      completeDelayRef.current = null;
+    }
+
+    setLoadingMusic(true);
+    setReady(false);
+    setProgress(0);
+    setErrorMsg(null);
+    setAudioUrl(null);
+    setJobId(null);
+    setLongWaitHint(false);
+    setElapsedMs(0);
+    setShareUrl(null);
+    setShareError(null);
+    setCopied(false);
+
+    const editedSections = editableSections
+      .map((s) => ({
+        tag: s.tag,
+        lines: s.text
+          .split("\n")
+          .map((l) => l.trim())
+          .filter((l) => l.length > 0),
+      }))
+      .filter((s) => s.lines.length > 0);
+
+    if (editedSections.length === 0) {
+      setErrorMsg("Lyrics can't be empty. Please add at least one line.");
+      setLoadingMusic(false);
+      return;
+    }
+
+    const payload: GenerateMusicRequest = {
+      lyrics: { ...lyrics, sections: editedSections },
+      name: name.trim(),
+      genre: resolvedGenre ?? genre,
+      language,
+    };
+
+    try {
+      const res = await fetch("/api/generate-music", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMsg(data?.error?.message ?? "Couldn't start music generation. Please try again.");
+        setLoadingMusic(false);
+        return;
+      }
+      const ok = data as GenerateMusicResponse;
       setJobId(ok.jobId);
       setProgress(10);
     } catch {
       setErrorMsg("Couldn't reach the server. Please check your connection and try again.");
-      setLoading(false);
+      setLoadingMusic(false);
     }
   }
 
   function resetForRetry() {
     setErrorMsg(null);
-    setLoading(false);
+    setLoadingLyrics(false);
+    setLoadingMusic(false);
     setJobId(null);
     setLongWaitHint(false);
     setProgress(0);
+  }
+
+  function updateSectionText(index: number, text: string) {
+    setEditableSections((prev) => prev.map((s, i) => (i === index ? { ...s, text } : s)));
+  }
+
+  function buildLyricsFromEditable(): Lyrics | null {
+    if (!lyrics) return null;
+    const sections = editableSections
+      .map((s) => ({
+        tag: s.tag,
+        lines: s.text
+          .split("\n")
+          .map((l) => l.trim())
+          .filter((l) => l.length > 0),
+      }))
+      .filter((s) => s.lines.length > 0);
+    if (sections.length === 0) return null;
+    return { ...lyrics, sections };
+  }
+
+  async function createShareLink() {
+    if (!lyrics || !audioUrl || creatingShare) return;
+    const editedLyrics = buildLyricsFromEditable();
+    if (!editedLyrics) {
+      setShareError("Lyrics can't be empty.");
+      return;
+    }
+
+    setCreatingShare(true);
+    setShareError(null);
+    setShareUrl(null);
+    setCopied(false);
+
+    const payload: ShareCreateRequest = {
+      name: name.trim(),
+      language,
+      genre: resolvedGenre ?? genre,
+      lyrics: editedLyrics,
+      audioUrl,
+      template: shareTemplate,
+    };
+
+    try {
+      const res = await fetch("/api/share", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setShareError(data?.error?.message ?? "Couldn't create share link.");
+        return;
+      }
+      const ok = data as ShareCreateResponse;
+      const absolute = typeof window !== "undefined"
+        ? new URL(ok.shareUrl, window.location.origin).toString()
+        : ok.shareUrl;
+      setShareUrl(absolute);
+    } catch {
+      setShareError("Couldn't reach the server. Please try again.");
+    } finally {
+      setCreatingShare(false);
+    }
+  }
+
+  async function copyShareUrl() {
+    if (!shareUrl) return;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setShareError("Couldn't copy to clipboard. Please copy the link manually.");
+    }
   }
 
   function runConfetti(canvas: HTMLCanvasElement) {
@@ -683,17 +874,38 @@ export default function Home() {
 
         <button
           type="button"
-          onClick={generateSong}
-          disabled={!canGenerate || loading}
+          onClick={generateLyricsHandler}
+          disabled={!canGenerate || loadingLyrics || loadingMusic}
           className={`mt-6 w-full rounded-2xl bg-gradient-to-r ${theme.accent} py-4 text-[clamp(15px,3vw,18px)] font-extrabold text-white shadow-xl transition hover:-translate-y-1 disabled:cursor-not-allowed disabled:opacity-40`}
         >
-          {loading ? "Generating..." : "✨ Generate Song"}
+          {loadingLyrics ? "Writing lyrics..." : "✨ Write Lyrics"}
         </button>
 
-        {loading && (
+        {loadingLyrics && (
           <div className="mt-5">
             <div className="mb-2 flex justify-between text-xs opacity-70">
-              <span>{longWaitHint ? "Still working — this is taking longer than usual..." : "Composing your song..."}</span>
+              <span>Writing lyrics...</span>
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-white/20">
+              <div className={`h-full animate-pulse bg-gradient-to-r ${theme.accent}`} style={{ width: "100%" }} />
+            </div>
+          </div>
+        )}
+
+        {loadingMusic && (
+          <div className="mt-5">
+            <div className="mb-2 flex justify-between text-xs opacity-70">
+              <span>
+                {audioUrl
+                  ? "Done"
+                  : elapsedMs < 15_000
+                    ? "Sending to studio..."
+                    : elapsedMs < 45_000
+                      ? "Composing music..."
+                      : elapsedMs < 90_000
+                        ? "Adding vocals..."
+                        : "Mastering, almost ready..."}
+              </span>
               <span>{progress}%</span>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-white/20">
@@ -735,10 +947,14 @@ export default function Home() {
                 Download audio
               </a>
             </div>
-          ) : (
+          ) : loadingMusic ? (
             <div className="mt-4 rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm opacity-80">
               🎵 {ready ? "Audio is ready." : longWaitHint ? "Music is still rendering — almost there..." : "Music is rendering..."}
             </div>
+          ) : (
+            <p className="mt-3 text-xs opacity-70">
+              Edit any section below, then generate the music.
+            </p>
           )}
 
           <div
@@ -746,19 +962,116 @@ export default function Home() {
             style={language === "Hindi" ? { fontFamily: '"Noto Sans Devanagari", "Mangal", system-ui, sans-serif' } : undefined}
             className="mt-5 space-y-4"
           >
-            {lyrics.sections.map((section, idx) => (
+            {editableSections.map((section, idx) => (
               <div key={idx}>
-                <div className="mb-1 text-xs font-bold uppercase tracking-wide opacity-60">
+                <label className="mb-1 block text-xs font-bold uppercase tracking-wide opacity-60">
                   [{section.tag}]
-                </div>
-                {section.lines.map((line, lineIdx) => (
-                  <p key={lineIdx} className="text-sm leading-relaxed">
-                    {line}
-                  </p>
-                ))}
+                </label>
+                <textarea
+                  value={section.text}
+                  onChange={(e) => updateSectionText(idx, e.target.value)}
+                  disabled={musicLocked}
+                  rows={Math.max(2, section.text.split("\n").length)}
+                  dir={language === "Arabic" ? "rtl" : "ltr"}
+                  className={`w-full resize-none rounded-2xl border px-4 py-3 text-sm leading-relaxed outline-none transition focus:ring-2 focus:ring-purple-400 disabled:opacity-70 ${theme.input}`}
+                />
               </div>
             ))}
           </div>
+
+          {!audioUrl && (
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+              <button
+                type="button"
+                onClick={generateMusicHandler}
+                disabled={loadingLyrics || loadingMusic}
+                className={`flex-1 rounded-2xl bg-gradient-to-r ${theme.accent} py-3.5 text-sm font-extrabold text-white shadow-xl transition hover:-translate-y-1 disabled:cursor-not-allowed disabled:opacity-40`}
+              >
+                {loadingMusic ? "Generating music..." : "🎵 Generate music"}
+              </button>
+              <button
+                type="button"
+                onClick={generateLyricsHandler}
+                disabled={loadingLyrics || loadingMusic}
+                className="flex-1 rounded-2xl border border-white/20 bg-white/10 py-3.5 text-sm font-bold transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {loadingLyrics ? "Writing..." : "🔄 Regenerate lyrics"}
+              </button>
+            </div>
+          )}
+        </section>
+      )}
+
+      {audioUrl && lyrics && (
+        <section className={`relative z-20 mx-auto mt-6 max-w-xl rounded-[2rem] border ${theme.card} p-6 shadow-2xl backdrop-blur-2xl`}>
+          <h2 className="text-lg font-bold">🔗 Share this song</h2>
+          <p className="mt-1 text-sm opacity-70">Pick a template and create a link to send.</p>
+
+          <div className="mt-4 grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-4">
+            {SHARE_TEMPLATES.map((key) => {
+              const meta = TEMPLATE_LABELS[key];
+              const selected = shareTemplate === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setShareTemplate(key)}
+                  disabled={creatingShare}
+                  className={`rounded-2xl border px-3 py-3 text-left transition hover:-translate-y-1 disabled:cursor-not-allowed disabled:opacity-50 ${
+                    selected
+                      ? `border-transparent bg-gradient-to-r ${theme.accent} text-white shadow-lg`
+                      : "border-white/15 bg-white/5 hover:bg-white/10"
+                  }`}
+                >
+                  <p className="text-sm font-bold">{meta.name}</p>
+                  <p className="mt-0.5 text-[11px] opacity-80">{meta.desc}</p>
+                </button>
+              );
+            })}
+          </div>
+
+          {!shareUrl && (
+            <button
+              type="button"
+              onClick={createShareLink}
+              disabled={creatingShare}
+              className={`mt-5 w-full rounded-2xl bg-gradient-to-r ${theme.accent} py-3.5 text-sm font-extrabold text-white shadow-xl transition hover:-translate-y-1 disabled:cursor-not-allowed disabled:opacity-40`}
+            >
+              {creatingShare ? "Creating link..." : "🔗 Create share link"}
+            </button>
+          )}
+
+          {shareUrl && (
+            <div className="mt-5 space-y-3">
+              <div className="flex items-stretch gap-2">
+                <input
+                  readOnly
+                  value={shareUrl}
+                  onFocus={(e) => e.currentTarget.select()}
+                  className={`flex-1 rounded-2xl border px-4 py-3 text-sm outline-none ${theme.input}`}
+                />
+                <button
+                  type="button"
+                  onClick={copyShareUrl}
+                  className={`rounded-2xl bg-gradient-to-r ${theme.accent} px-4 py-3 text-sm font-bold text-white shadow-lg transition hover:-translate-y-0.5`}
+                >
+                  {copied ? "✓ Copied" : "Copy link"}
+                </button>
+              </div>
+              <a
+                href={shareUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block text-xs opacity-70 underline-offset-2 hover:underline"
+              >
+                Open share page ↗
+              </a>
+            </div>
+          )}
+
+          {shareError && (
+            <p className="mt-3 text-sm text-rose-300">{shareError}</p>
+          )}
         </section>
       )}
 
