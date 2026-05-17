@@ -52,8 +52,10 @@ export const TEMPLATE_TYPOGRAPHY: Record<ShareTemplate, TemplateTypography> = {
   },
 };
 
-export const TEMPLATE_VIDEO_DIR = path.join(process.cwd(), "public", "video-templates");
 
-export function templateVideoPath(template: ShareTemplate): string {
-  return path.join(TEMPLATE_VIDEO_DIR, `${template}.mp4`);
+
+const BIRTHDAY_VIDEO_BLOB_URL = "https://ulpgsagutpauz0vr.public.blob.vercel-storage.com/Happy%20Birthday%20To%20You%20__%20Best%20Happy%20Birthday%20To%20You%20_%20Happy%20Birthday%20Songs%201%20Hour.mp4";
+
+export function templateVideoPath(_template: ShareTemplate): string {
+  return BIRTHDAY_VIDEO_BLOB_URL;
 }
