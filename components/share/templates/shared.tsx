@@ -7,13 +7,24 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
         {song.language} • {song.genre} • {song.lyrics.title}
       </p>
 
-      <audio
-        controls
-        autoPlay
-        loop={false}
-        src={song.audioUrl}
-        className="mt-6 w-full"
-      />
+      {song.videoUrl ? (
+        <video
+          controls
+          autoPlay
+          playsInline
+          src={song.videoUrl}
+          poster=""
+          className="mt-6 w-full rounded-2xl bg-black shadow-lg"
+        />
+      ) : (
+        <audio
+          controls
+          autoPlay
+          loop={false}
+          src={song.audioUrl}
+          className="mt-6 w-full"
+        />
+      )}
 
       <div
         dir={song.language === "Arabic" ? "rtl" : "ltr"}
