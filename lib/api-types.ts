@@ -54,6 +54,24 @@ export type GenerateMusicResponse = {
   jobId: string;
 };
 
+export type GenerateVideoRequest = {
+  name: string;
+  language: string;
+  genre: string;
+  relationship?: string;
+  age?: string;
+  profession?: string;
+  memory?: string;
+  extras?: string;
+  lyricsTitle?: string;
+};
+
+export type GenerateVideoResponse = {
+  videoJobId: string;
+};
+
+
+
 export const SHARE_TEMPLATES = ["classic", "neon", "elegant", "playful"] as const;
 export type ShareTemplate = (typeof SHARE_TEMPLATES)[number];
 

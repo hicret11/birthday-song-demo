@@ -678,7 +678,7 @@ export default function Home() {
 
   return (
     <main
-      className={`relative min-h-screen overflow-x-hidden overflow-y-auto bg-gradient-to-br ${theme.pageBg} ${theme.text} px-4 py-6 sm:py-8 transition-all duration-700`}
+      className={`relative min-h-screen overflow-x-hidden bg-gradient-to-br ${theme.pageBg} ${theme.text} px-4 py-6 sm:py-8 transition-all duration-700`}
     >
       <style>{`
         * { scrollbar-width: none; }
@@ -736,51 +736,55 @@ export default function Home() {
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={() => setThemeOpen(!themeOpen)}
-        className="fixed right-4 top-4 z-[999] rounded-2xl border border-white/20 bg-white/15 px-4 py-2.5 text-sm font-bold shadow-2xl backdrop-blur-xl"
-      >
-        🎨 Theme
-      </button>
-
-      {themeOpen && (
-        <div className="fixed right-4 top-16 z-[999] max-h-[75vh] w-72 overflow-y-auto rounded-3xl border border-white/20 bg-black/80 p-4 text-white shadow-2xl backdrop-blur-2xl">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-lg font-bold">Choose Theme</h3>
-            <button type="button" onClick={() => setThemeOpen(false)}>✕</button>
-          </div>
-
-          <div className="space-y-3">
-            {Object.entries(themes).map(([key, item]) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => {
-                  setThemeKey(key as ThemeKey);
-                  setThemeOpen(false);
-                }}
-                className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition ${
-                  themeKey === key
-                    ? "border-purple-400 bg-purple-500/30"
-                    : "border-white/10 bg-white/5 hover:bg-white/10"
-                }`}
-              >
-                <div className={`h-12 w-16 rounded-xl bg-gradient-to-br ${item.pageBg}`} />
-                <div>
-                  <p className="font-bold">{item.name}</p>
-                  <p className="text-xs text-gray-300">{item.desc}</p>
-                </div>
-                {themeKey === key && <span className="ml-auto">✓</span>}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       <header className="relative z-20 mx-auto mb-6 max-w-5xl text-center">
-        <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-semibold backdrop-blur sm:text-sm">
-          ✨ AI-Powered
+        <div className="mb-3 flex items-center justify-center gap-2 sm:gap-3">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-semibold backdrop-blur sm:text-sm">
+            ✨ AI-Powered
+          </div>
+
+          <div className="relative inline-flex">
+            <button
+              type="button"
+              onClick={() => setThemeOpen(!themeOpen)}
+              className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-bold shadow-xl backdrop-blur transition hover:bg-white/15 sm:text-sm"
+            >
+              🎨 Theme
+            </button>
+
+            {themeOpen && (
+              <div className="fixed left-1/2 top-16 z-[9999] max-h-[80vh] w-[92vw] max-w-sm -translate-x-1/2 overflow-y-auto rounded-3xl border border-white/20 bg-black/90 p-4 text-white shadow-2xl backdrop-blur-2xl">
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-lg font-bold">Choose Theme</h3>
+                  <button type="button" onClick={() => setThemeOpen(false)}>✕</button>
+                </div>
+
+                <div className="space-y-3">
+                  {Object.entries(themes).map(([key, item]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => {
+                        setThemeKey(key as ThemeKey);
+                        setThemeOpen(false);
+                      }}
+                      className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition ${
+                        themeKey === key
+                          ? "border-purple-400 bg-purple-500/30"
+                          : "border-white/10 bg-white/5 hover:bg-white/10"
+                      }`}
+                    >
+                      <div className={`h-12 w-16 shrink-0 rounded-xl bg-gradient-to-br ${item.pageBg}`} />
+                      <div>
+                        <p className="font-bold">{item.name}</p>
+                        <p className="text-xs text-gray-300">{item.desc}</p>
+                      </div>
+                      {themeKey === key && <span className="ml-auto">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <h1
@@ -795,7 +799,7 @@ export default function Home() {
       </header>
 
       <section
-        className={`relative z-20 mx-auto max-w-xl rounded-[2rem] border ${theme.card} p-[clamp(18px,4vw,32px)] shadow-2xl backdrop-blur-2xl`}
+        className={`relative z-10 mx-auto max-w-xl rounded-[2rem] border ${theme.card} p-[clamp(18px,4vw,32px)] shadow-2xl backdrop-blur-2xl`}
       >
         <div className="mb-5 flex gap-3">
           <button
