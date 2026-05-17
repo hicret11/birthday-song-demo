@@ -82,6 +82,7 @@ export type SharedSong = {
   genre: string;
   lyrics: Lyrics;
   audioUrl: string;
+  videoUrl?: string;
   template: ShareTemplate;
   createdAt: number;
 };
@@ -98,6 +99,7 @@ export type ShareCreateRequest = {
 export type ShareCreateResponse = {
   id: string;
   shareUrl: string;
+  videoUrl?: string;
 };
 
 export type SongStatusResponse =
@@ -115,7 +117,8 @@ export type ApiErrorCode =
   | "RATE_LIMITED"
   | "INTERNAL"
   | "NOT_FOUND"
-  | "SHARE_STORE_FAILED";
+  | "SHARE_STORE_FAILED"
+  | "VIDEO_RENDER_FAILED";
 
 export type ApiError = {
   error: {

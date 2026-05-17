@@ -1,3 +1,4 @@
+import { put } from "@vercel/blob";
 import { normalizeClientLyrics } from "@/lib/anthropic";
 import {
   ApiError,
@@ -9,9 +10,10 @@ import {
   SharedSong,
 } from "@/lib/api-types";
 import { generateShareId, saveSharedSong } from "@/lib/share";
+import { renderShareVideo } from "@/lib/video";
 
 export const runtime = "nodejs";
-export const maxDuration = 10;
+export const maxDuration = 60;
 
 const MAX_NAME_LEN = 80;
 const MAX_GENRE_LEN = 60;
@@ -77,6 +79,29 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const id = generateShareId();
+
+  let videoUrl: string | undefined;
+  try {
+    const rendered = await renderShareVideo({
+      audioUrl: body.audioUrl,
+      name,
+      template: body.template,
+    });
+    console.log(
+      `[share-create] rendered mp4 for ${id} template=${body.template} duration=${rendered.durationSec.toFixed(2)}s bytes=${rendered.mp4.length}`,
+    );
+    const blob = await put(`shares/${id}.mp4`, rendered.mp4, {
+      access: "public",
+      contentType: "video/mp4",
+      addRandomSuffix: false,
+    });
+    videoUrl = blob.url;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown video render error";
+    console.error("[share-create] video pipeline failed:", message);
+    // Fall through: persist share with raw audio fallback only.
+  }
+
   const song: SharedSong = {
     id,
     name,
@@ -84,6 +109,7 @@ export async function POST(request: Request): Promise<Response> {
     genre,
     lyrics,
     audioUrl: body.audioUrl,
+    videoUrl,
     template: body.template,
     createdAt: Date.now(),
   };
@@ -92,10 +118,10 @@ export async function POST(request: Request): Promise<Response> {
     await saveSharedSong(song);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown share storage error";
-    console.error("[share-create] failed:", message);
+    console.error("[share-create] kv save failed:", message);
     return errorResponse("SHARE_STORE_FAILED", "Couldn't save share link. Please try again.", 502);
   }
 
-  const response: ShareCreateResponse = { id, shareUrl: `/share/${id}` };
+  const response: ShareCreateResponse = { id, shareUrl: `/share/${id}`, videoUrl };
   return Response.json(response);
 }
