@@ -15,6 +15,10 @@ export const MAX_VIDEO_SECONDS = 60;
 
 const FETCH_TIMEOUT_MS = 25_000;
 
+// 1 saatlik video için son 10 dakikaya çok yaklaşmasın diye
+// ilk 50 dakika içinden random başlangıç seçiyoruz.
+const RANDOM_START_MAX_SECONDS = 50 * 60;
+
 export type RenderVideoInput = {
   audioUrl: string;
   name: string;
@@ -55,8 +59,14 @@ function runFfmpeg(args: {
   outputPath: string;
 }): Promise<void> {
   return new Promise((resolve, reject) => {
+    const randomStart = Math.floor(Math.random() * RANDOM_START_MAX_SECONDS);
+
     ffmpeg()
       .input(args.templatePath)
+      .inputOptions([
+        "-ss",
+        String(randomStart),
+      ])
       .input(args.audioPath)
       .outputOptions([
         "-map", "0:v",
