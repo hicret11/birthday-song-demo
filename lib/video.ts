@@ -53,7 +53,7 @@ async function downloadToTemp(url: string, dest: string): Promise<void> {
 }
 
 function runFfmpeg(args: {
-  templatePath: string;
+  templateUrl: string;
   audioPath: string;
   outputPath: string;
 }): Promise<void> {
@@ -61,7 +61,7 @@ function runFfmpeg(args: {
     const randomStart = Math.floor(Math.random() * RANDOM_START_MAX_SECONDS);
 
     ffmpeg()
-      .input(args.templatePath)
+      .input(args.templateUrl)
       .inputOptions([
         "-ss",
         String(randomStart),
@@ -73,10 +73,7 @@ function runFfmpeg(args: {
       .outputOptions([
         "-map", "0:v",
         "-map", "[a]",
-        "-c:v", "libx264",
-        "-preset", "veryfast",
-        "-crf", "24",
-        "-pix_fmt", "yuv420p",
+        "-c:v", "copy",
         "-c:a", "aac",
         "-b:a", "128k",
         "-shortest",
@@ -109,17 +106,15 @@ export async function renderShareVideo(input: RenderVideoInput): Promise<RenderV
   const workDir = await mkdtemp(path.join(tmpdir(), `bday-video-${randomUUID()}-`));
 
   const audioPath = path.join(workDir, "audio.mp3");
-  const videoPath = path.join(workDir, "template.mp4");
   const outputPath = path.join(workDir, "out.mp4");
 
-  const templatePath = templateVideoPath(input.template);
+  const templateUrl = templateVideoPath(input.template);
 
   try {
     await downloadToTemp(input.audioUrl, audioPath);
-    await downloadToTemp(templatePath, videoPath);
 
     await runFfmpeg({
-      templatePath: videoPath,
+      templateUrl,
       audioPath,
       outputPath,
     });
