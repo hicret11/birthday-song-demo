@@ -86,14 +86,18 @@ export async function POST(request: Request): Promise<Response> {
       audioUrl: body.audioUrl,
       name,
       template: body.template,
+      language,
+      logId: id,
     });
     console.log(
       `[share-create] rendered mp4 for ${id} template=${body.template} duration=${rendered.durationSec.toFixed(2)}s bytes=${rendered.mp4.length}`,
     );
+    const uploadStart = Date.now();
     videoUrl = await uploadToR2(`shares/${id}.mp4`, rendered.mp4, "video/mp4");
+    console.log(`[share-create:r2-upload] took ${Date.now() - uploadStart}ms id=${id} bytes=${rendered.mp4.length}`);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown video render error";
-    console.error("[share-create] video pipeline failed:", message);
+    console.error(`[share-create:render-failed] id=${id} msg=${message}`);
     // Fall through: persist share with raw audio fallback only.
   }
 
@@ -109,11 +113,13 @@ export async function POST(request: Request): Promise<Response> {
     createdAt: Date.now(),
   };
 
+  const kvStart = Date.now();
   try {
     await saveSharedSong(song);
+    console.log(`[share-create:kv-write] took ${Date.now() - kvStart}ms id=${id}`);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown share storage error";
-    console.error("[share-create] kv save failed:", message);
+    console.error(`[share-create:kv-write-failed] id=${id} tookMs=${Date.now() - kvStart} msg=${message}`);
     return errorResponse("SHARE_STORE_FAILED", "Couldn't save share link. Please try again.", 502);
   }
 

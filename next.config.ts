@@ -7,8 +7,6 @@ const nextConfig: NextConfig = {
   ],
   outputFileTracingIncludes: {
     "/api/share": [
-      "./public/video-templates/**/*",
-      "./public/video-fonts/**/*",
       "./node_modules/@ffmpeg-installer/**/*",
     ],
   },
