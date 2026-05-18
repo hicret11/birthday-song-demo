@@ -15,6 +15,7 @@ import type {
   SongStatusResponse,
 } from "@/lib/api-types";
 import { SHARE_TEMPLATES } from "@/lib/api-types";
+import { toAudioProxyUrl } from "@/lib/audio-proxy";
 
 type EditableSection = { tag: LyricSectionTag; text: string };
 
@@ -179,6 +180,7 @@ export default function Home() {
   const theme = themes[themeKey];
   const canGenerate = name.trim() && genre;
   const musicLocked = loadingMusic || jobId !== null || audioUrl !== null;
+  const audioProxyUrl = audioUrl ? toAudioProxyUrl(audioUrl) : null;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -942,9 +944,9 @@ export default function Home() {
 
           {audioUrl ? (
             <div className="mt-4 space-y-2">
-              <audio controls src={audioUrl} className="w-full" />
+              <audio controls src={audioProxyUrl ?? audioUrl} className="w-full" />
               <a
-                href={audioUrl}
+                href={audioProxyUrl ?? audioUrl}
                 download
                 className="inline-block text-xs opacity-70 underline-offset-2 hover:underline"
               >

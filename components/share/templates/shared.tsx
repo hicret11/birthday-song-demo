@@ -1,4 +1,5 @@
 import type { SharedSong } from "@/lib/api-types";
+import { toAudioProxyUrl } from "@/lib/audio-proxy";
 
 export function SharedSongBody({ song, className }: { song: SharedSong; className?: string }) {
   return (
@@ -21,7 +22,7 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
           controls
           autoPlay
           loop={false}
-          src={song.audioUrl}
+          src={toAudioProxyUrl(song.audioUrl)}
           className="mt-6 w-full"
         />
       )}
