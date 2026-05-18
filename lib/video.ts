@@ -97,10 +97,13 @@ function runFfmpeg(args: {
     ffmpeg()
       .input(args.templatePath)
       .input(args.audioPath)
-      .complexFilter([`[0:v]${drawtext}[v]`])
+      .complexFilter([
+        `[0:v]${drawtext}[v]`,
+        `[1:a]afade=t=out:st=59.5:d=0.5[a]`,
+      ])
       .outputOptions([
         "-map", "[v]",
-        "-map", "1:a",
+        "-map", "[a]",
         "-c:v", "libx264",
         "-preset", "veryfast",
         "-crf", "24",
