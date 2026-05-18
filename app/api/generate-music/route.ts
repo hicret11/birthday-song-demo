@@ -45,7 +45,7 @@ export async function POST(request: Request): Promise<Response> {
   try {
      const lengthDirective =
       "short complete song, around 30 to 45 seconds, with a natural ending and a brief instrumental outro";
-    const pinnedStyle = `${lengthDirective}, arranged as ${lyrics.style}`;
+    const pinnedStyle = "short cheerful birthday pop song, 30 to 45 seconds, simple vocals, natural ending";
     
     const jobId = await submitGeneration({
       lyrics: lyrics.raw,
