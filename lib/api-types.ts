@@ -102,6 +102,16 @@ export type ShareCreateResponse = {
   videoUrl?: string;
 };
 
+export type RenderPreviewRequest = {
+  audioUrl: string;
+  name: string;
+  template: ShareTemplate;
+};
+
+export type RenderPreviewResponse = {
+  videoUrl: string;
+};
+
 export type SongStatusResponse =
   | { status: "pending"; progress?: number }
   | { status: "complete"; audioUrl: string; durationSec?: number }

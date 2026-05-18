@@ -9,6 +9,7 @@ import type {
   Language,
   LyricSectionTag,
   Lyrics,
+  RenderPreviewRequest,
   ShareCreateRequest,
   ShareCreateResponse,
   ShareTemplate,
@@ -245,6 +246,26 @@ export default function Home() {
             setLoadingMusic(false);
             completeDelayRef.current = null;
           }, 800);
+
+          // Warm the share-video cache in the background; UI keeps the
+          // <audio> element throughout. /api/share later reuses this blob
+          // when the user shares with the same template.
+          void (async () => {
+            try {
+              const payload: RenderPreviewRequest = {
+                audioUrl: data.audioUrl,
+                name: name.trim(),
+                template: "classic",
+              };
+              await fetch("/api/render-preview", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              });
+            } catch (err) {
+              console.error("[preview] background render failed:", err);
+            }
+          })();
           return;
         }
         if (data.status === "failed") {

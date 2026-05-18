@@ -9,6 +9,7 @@ import {
   ShareTemplate,
   SharedSong,
 } from "@/lib/api-types";
+import { getCachedPreviewUrl } from "@/lib/preview";
 import { generateShareId, saveSharedSong } from "@/lib/share";
 import { renderShareVideo } from "@/lib/video";
 
@@ -81,25 +82,31 @@ export async function POST(request: Request): Promise<Response> {
   const id = generateShareId();
 
   let videoUrl: string | undefined;
-  try {
-    const rendered = await renderShareVideo({
-      audioUrl: body.audioUrl,
-      name,
-      template: body.template,
-    });
-    console.log(
-      `[share-create] rendered mp4 for ${id} template=${body.template} duration=${rendered.durationSec.toFixed(2)}s bytes=${rendered.mp4.length}`,
-    );
-    const blob = await put(`shares/${id}.mp4`, rendered.mp4, {
-      access: "public",
-      contentType: "video/mp4",
-      addRandomSuffix: false,
-    });
-    videoUrl = blob.url;
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown video render error";
-    console.error("[share-create] video pipeline failed:", message);
-    // Fall through: persist share with raw audio fallback only.
+  const cachedPreview = await getCachedPreviewUrl(body.audioUrl, body.template).catch(() => null);
+  if (cachedPreview) {
+    console.log(`[share-create] reusing preview blob for ${id} template=${body.template}`);
+    videoUrl = cachedPreview;
+  } else {
+    try {
+      const rendered = await renderShareVideo({
+        audioUrl: body.audioUrl,
+        name,
+        template: body.template,
+      });
+      console.log(
+        `[share-create] rendered mp4 for ${id} template=${body.template} duration=${rendered.durationSec.toFixed(2)}s bytes=${rendered.mp4.length}`,
+      );
+      const blob = await put(`shares/${id}.mp4`, rendered.mp4, {
+        access: "public",
+        contentType: "video/mp4",
+        addRandomSuffix: false,
+      });
+      videoUrl = blob.url;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown video render error";
+      console.error("[share-create] video pipeline failed:", message);
+      // Fall through: persist share with raw audio fallback only.
+    }
   }
 
   const song: SharedSong = {
