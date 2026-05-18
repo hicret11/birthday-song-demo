@@ -54,8 +54,8 @@ export const TEMPLATE_TYPOGRAPHY: Record<ShareTemplate, TemplateTypography> = {
 
 
 
-const BIRTHDAY_VIDEO_BLOB_URL = "https://ulpgsagutpauz0vr.public.blob.vercel-storage.com/Happy%20Birthday%20To%20You%20__%20Best%20Happy%20Birthday%20To%20You%20_%20Happy%20Birthday%20Songs%201%20Hour.mp4";
+const BIRTHDAY_VIDEO_R2_URL = "https://pub-4a5a0d0e9e504b74a6c9751524055c49.r2.dev/templates/birthday-background.mp4";
 
 export function templateVideoPath(_template: ShareTemplate): string {
-  return BIRTHDAY_VIDEO_BLOB_URL;
+  return BIRTHDAY_VIDEO_R2_URL;
 }

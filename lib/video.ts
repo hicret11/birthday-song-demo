@@ -14,7 +14,9 @@ ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 export const MAX_VIDEO_SECONDS = 60;
 
 const FETCH_TIMEOUT_MS = 25_000;
-const RANDOM_START_MAX_SECONDS = 50 * 60;
+// Bounded by current template length (~60s on R2). Restore a larger value
+// only if the template MP4 is replaced with a longer source.
+const RANDOM_START_MAX_SECONDS = 0;
 
 export type RenderVideoInput = {
   audioUrl: string;
