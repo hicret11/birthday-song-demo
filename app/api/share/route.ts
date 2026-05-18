@@ -1,4 +1,3 @@
-import { put } from "@vercel/blob";
 import { normalizeClientLyrics } from "@/lib/anthropic";
 import {
   ApiError,
@@ -9,6 +8,7 @@ import {
   ShareTemplate,
   SharedSong,
 } from "@/lib/api-types";
+import { uploadToR2 } from "@/lib/r2";
 import { generateShareId, saveSharedSong } from "@/lib/share";
 import { renderShareVideo } from "@/lib/video";
 
@@ -90,12 +90,7 @@ export async function POST(request: Request): Promise<Response> {
     console.log(
       `[share-create] rendered mp4 for ${id} template=${body.template} duration=${rendered.durationSec.toFixed(2)}s bytes=${rendered.mp4.length}`,
     );
-    const blob = await put(`shares/${id}.mp4`, rendered.mp4, {
-      access: "public",
-      contentType: "video/mp4",
-      addRandomSuffix: false,
-    });
-    videoUrl = blob.url;
+    videoUrl = await uploadToR2(`shares/${id}.mp4`, rendered.mp4, "video/mp4");
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown video render error";
     console.error("[share-create] video pipeline failed:", message);
