@@ -7,7 +7,8 @@ import { randomUUID } from "node:crypto";
 import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
 import ffmpeg from "fluent-ffmpeg";
 import type { ShareTemplate } from "./api-types";
-import { templateVideoPath } from "./video-style";
+import { greetingFor } from "./greetings";
+import { templateVideoPath, TEMPLATE_TYPOGRAPHY, type TemplateTypography } from "./video-style";
 
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
@@ -22,6 +23,7 @@ export type RenderVideoInput = {
   audioUrl: string;
   name: string;
   template: ShareTemplate;
+  language: string;
 };
 
 export type RenderVideoResult = {
@@ -52,10 +54,33 @@ async function downloadToTemp(url: string, dest: string): Promise<void> {
   }
 }
 
+function buildDrawtextFilter(typography: TemplateTypography, textPath: string): string {
+  const parts: string[] = [
+    `textfile='${textPath}'`,
+    `fontfile='${typography.fontPath}'`,
+    `fontsize=${typography.fontSize}`,
+    `fontcolor=${typography.fontColor}`,
+  ];
+  if (typography.borderColor && typography.borderWidth) {
+    parts.push(`bordercolor=${typography.borderColor}`);
+    parts.push(`borderw=${typography.borderWidth}`);
+  }
+  if (typography.shadowColor) {
+    parts.push(`shadowcolor=${typography.shadowColor}`);
+    parts.push(`shadowx=${typography.shadowX ?? 0}`);
+    parts.push(`shadowy=${typography.shadowY ?? 0}`);
+  }
+  parts.push("x=(w-text_w)/2");
+  parts.push("y=h-150");
+  return `[0:v]drawtext=${parts.join(":")}[v]`;
+}
+
 function runFfmpeg(args: {
   templatePath: string;
   audioPath: string;
   outputPath: string;
+  textPath: string;
+  typography: TemplateTypography;
 }): Promise<void> {
   return new Promise((resolve, reject) => {
     const randomStart = Math.floor(Math.random() * RANDOM_START_MAX_SECONDS);
@@ -68,10 +93,11 @@ function runFfmpeg(args: {
       ])
       .input(args.audioPath)
       .complexFilter([
+        buildDrawtextFilter(args.typography, args.textPath),
         "[1:a]afade=t=out:st=59.5:d=0.5[a]",
       ])
       .outputOptions([
-        "-map", "0:v",
+        "-map", "[v]",
         "-map", "[a]",
         "-c:v", "libx264",
         "-preset", "veryfast",
@@ -111,10 +137,14 @@ export async function renderShareVideo(input: RenderVideoInput): Promise<RenderV
   const audioPath = path.join(workDir, "audio.mp3");
   const videoPath = path.join(workDir, "template.mp4");
   const outputPath = path.join(workDir, "out.mp4");
+  const textPath = path.join(workDir, "greeting.txt");
 
   const templatePath = templateVideoPath(input.template);
+  const typography = TEMPLATE_TYPOGRAPHY[input.template];
+  const greeting = greetingFor(input.language, input.name);
 
   try {
+    await writeFile(textPath, greeting, "utf8");
     await downloadToTemp(input.audioUrl, audioPath);
     await downloadToTemp(templatePath, videoPath);
 
@@ -122,6 +152,8 @@ export async function renderShareVideo(input: RenderVideoInput): Promise<RenderV
       templatePath: videoPath,
       audioPath,
       outputPath,
+      textPath,
+      typography,
     });
 
     const [mp4, durationSec] = await Promise.all([

@@ -86,6 +86,7 @@ export async function POST(request: Request): Promise<Response> {
       audioUrl: body.audioUrl,
       name,
       template: body.template,
+      language,
     });
     console.log(
       `[share-create] rendered mp4 for ${id} template=${body.template} duration=${rendered.durationSec.toFixed(2)}s bytes=${rendered.mp4.length}`,
