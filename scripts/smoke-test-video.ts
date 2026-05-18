@@ -42,7 +42,7 @@ async function main(): Promise<void> {
     const started = Date.now();
     let result;
     try {
-      result = await renderShareVideo({ audioUrl, name: c.name, template: c.template });
+      result = await renderShareVideo({ audioUrl, name: c.name, template: c.template, language: "English" });
     } catch (err) {
       console.error(`[smoke] FAIL ${c.template} / ${c.name}: ${(err as Error).message}`);
       continue;
