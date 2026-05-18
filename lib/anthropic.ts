@@ -62,7 +62,7 @@ Output a JSON object exactly matching this schema:
 }
 
 Constraints:
-- Total length: keep it short, this is a birthday song not a pop single. One verse + one chorus only. Maximum ~8 short lines total.
+- Total length: Exactly 4 short lines total, structured to feel complete in a 30 to 45 second song. Use the traditional birthday repetition pattern: 2 lines of verse, then 2 lines that resolve to the birthday person's name. No intro, no outro, no additional verses.
 - Use ${input.name} in the chorus and ideally in the verse too.
 - Reference advanced fields naturally if provided.
 - Never include English placeholder text in non-English lyrics.`;

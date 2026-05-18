@@ -14,9 +14,6 @@ ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 export const MAX_VIDEO_SECONDS = 60;
 
 const FETCH_TIMEOUT_MS = 25_000;
-
-// 1 saatlik video için son 10 dakikaya çok yaklaşmasın diye
-// ilk 50 dakika içinden random başlangıç seçiyoruz.
 const RANDOM_START_MAX_SECONDS = 50 * 60;
 
 export type RenderVideoInput = {
@@ -68,9 +65,12 @@ function runFfmpeg(args: {
         String(randomStart),
       ])
       .input(args.audioPath)
+      .complexFilter([
+        "[1:a]afade=t=out:st=59.5:d=0.5[a]",
+      ])
       .outputOptions([
         "-map", "0:v",
-        "-map", "1:a",
+        "-map", "[a]",
         "-c:v", "libx264",
         "-preset", "veryfast",
         "-crf", "24",
