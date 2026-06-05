@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { ShareTemplateView } from "@/components/share/templates";
 import { loadSharedSong } from "@/lib/share";
+import TrackShareView from "./TrackShareView";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,5 +30,10 @@ export default async function SharePage({
   const song = await loadSharedSong(id);
   if (!song) notFound();
 
-  return <ShareTemplateView song={song} />;
+  return (
+    <>
+      <TrackShareView venue_slug={song.venueSlug ?? null} />
+      <ShareTemplateView song={song} />
+    </>
+  );
 }

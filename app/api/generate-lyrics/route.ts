@@ -10,6 +10,14 @@ import {
   Language,
   SURPRISE_GENRE,
 } from "@/lib/api-types";
+import { alertSpendCapExceeded } from "@/lib/ops-alerts";
+import { checkCapStatus, recordSpendCents } from "@/lib/spend-cap";
+
+// Cost per lyrics generation, in cents. Claude Haiku at ~500 input + 500 output
+// tokens ≈ $0.0024/call. Tracking with the next-higher integer cent keeps the
+// daily counter conservative (we'd rather hit the cap a few requests early than
+// run over).
+const ANTHROPIC_COST_PER_LYRICS_CENTS = 1;
 
 export const runtime = "nodejs";
 export const maxDuration = 15;
@@ -42,6 +50,18 @@ function sanitizeAdvanced(value: unknown): string | undefined {
 }
 
 export async function POST(request: Request): Promise<Response> {
+  const cap = await checkCapStatus("anthropic");
+  if (cap.overCap) {
+    if (cap.shouldAlert) {
+      void alertSpendCapExceeded("anthropic", cap.spentCents, cap.capCents);
+    }
+    return errorResponse(
+      "RATE_LIMITED",
+      "We're at capacity for today. Please try again tomorrow.",
+      503,
+    );
+  }
+
   let body: Partial<GenerateSongRequest>;
   try {
     body = (await request.json()) as Partial<GenerateSongRequest>;
@@ -76,10 +96,16 @@ export async function POST(request: Request): Promise<Response> {
     profession: sanitizeAdvanced(body.profession),
     memory: sanitizeAdvanced(body.memory),
     extras: sanitizeAdvanced(body.extras),
+    styleNotes: sanitizeAdvanced(body.style_notes),
   };
+  // pronunciation_hint is intentionally NOT passed to the lyric generator.
+  // The displayed lyrics must keep the original name spelling. The hint is
+  // applied as a post-process substitution on the Suno-bound copy in
+  // /api/generate-music (see applyPronunciationHint).
 
   try {
     const lyrics = await generateLyrics(lyricsInput);
+    void recordSpendCents("anthropic", ANTHROPIC_COST_PER_LYRICS_CENTS);
     const response: GenerateLyricsResponse = { lyrics, resolvedGenre };
     return Response.json(response);
   } catch (err) {
