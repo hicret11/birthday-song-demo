@@ -1,4 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { createHash } from "node:crypto";
+import { kv } from "@vercel/kv";
 import { env } from "./env";
 import type { LyricSection, LyricSectionTag, Lyrics } from "./api-types";
 
@@ -13,6 +15,8 @@ export type LyricsInput = {
   profession?: string;
   memory?: string;
   extras?: string;
+  /** Free-text style descriptor — guides lyric tone/energy/vocabulary. */
+  styleNotes?: string;
 };
 
 const SYSTEM_PROMPT = `You are a professional birthday song lyricist who writes warm, personal, and singable lyrics in any language. You write lyrics natively in the target language — never translate from English. You respect cultural birthday traditions:
@@ -45,11 +49,21 @@ function buildUserMessage(input: LyricsInput): string {
 
   const advancedBlock = advancedLines.length > 0 ? `\n${advancedLines.join("\n")}` : "";
 
+  const styleNotesLine = input.styleNotes?.trim()
+    ? `\n- Style notes: ${input.styleNotes.trim()} (let this guide the lyrics' tone, energy, and vocabulary — match the requested mood)`
+    : "";
+
+  // NOTE: No pronunciation instruction is included in the lyric prompt.
+  // Claude always writes the name using its original spelling. The
+  // pronunciation form is applied as a post-process string substitution
+  // ONLY on the Suno-bound copy (see applyPronunciationHint below) so the
+  // displayed lyrics on /share/[id] never show the phonetic form.
+
   return `Write a personalized birthday song with these inputs:
 
 - Name: ${input.name}
 - Language: ${input.language} (write all lyrics in this language)
-- Genre: ${genreClean}${advancedBlock}
+- Genre: ${genreClean}${styleNotesLine}${advancedBlock}
 
 Output a JSON object exactly matching this schema:
 
@@ -185,6 +199,40 @@ export function buildRawLyrics(sections: LyricSection[]): string {
     .join("\n\n");
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Build a Suno-bound copy of a lyric text by replacing every occurrence of
+ * the recipient's name with the user-supplied pronunciation hint. The
+ * substitution is case-insensitive and word-boundary anchored — "Kamila"
+ * matches "Kamila!" and "Kamila's" but not the middle of an unrelated word.
+ *
+ * The output is sent to Suno's lyric tokenizer only; the displayed lyrics
+ * on /share/[id] continue to use the original spelling. This is the fix
+ * for the bug where lyrics rendered "kuh-MEE-luh" everywhere instead of
+ * the user-typed "Kamila".
+ *
+ * Returns the input text unchanged when either argument is empty/blank, or
+ * when the name doesn't appear in the text (e.g., Cyrillic-script lyric
+ * where Claude transliterated the Latin name — we don't try to match
+ * across scripts, the original Suno request just goes through as-is).
+ */
+export function applyPronunciationHint(args: {
+  text: string;
+  name: string;
+  hint?: string | null;
+}): string {
+  if (!args.text) return args.text;
+  const name = args.name?.trim();
+  const hint = args.hint?.trim();
+  if (!name || !hint) return args.text;
+  if (name.toLowerCase() === hint.toLowerCase()) return args.text;
+  const pattern = new RegExp(`\\b${escapeRegExp(name)}\\b`, "gi");
+  return args.text.replace(pattern, hint);
+}
+
 async function callClaude(client: Anthropic, userMessage: string, extraSystem?: string): Promise<string> {
   const result = await client.messages.create({
     model: env.anthropicModel,
@@ -198,6 +246,174 @@ async function callClaude(client: Anthropic, userMessage: string, extraSystem?: 
     throw new Error("Claude returned no text content");
   }
   return block.text;
+}
+
+/**
+ * Translate the user's free-text "style notes" into a precise Suno style
+ * descriptor. Claude Haiku interprets references like "Afro house like Palm
+ * Monkey's AWGAZI" into something Suno can match — specific subgenre, BPM,
+ * mood, and instrumentation. When the user names something Claude doesn't
+ * recognize from training, it can fire up to two web searches to pull real
+ * metadata instead of guessing from name vibes.
+ *
+ * Latency budget: ~3s end-to-end (one search round-trip). Hard timeout 8s.
+ * Cost: ~$0.0004 per call without search, ~$0.011 per call with one search.
+ * KV cache makes the second hit on the same notes essentially free.
+ *
+ * Callers are responsible for the empty-input guard and the
+ * fall-back-on-error pattern. This function itself throws on any failure so
+ * the caller can decide whether to surface the error or degrade silently.
+ */
+export type RefineStyleInput = {
+  genre: string;
+  styleNotes: string;
+  recipientName: string;
+};
+
+const REFINE_MAX_TOKENS = 250;
+const REFINE_OUTPUT_MAX_CHARS = 180;
+const REFINE_TIMEOUT_MS = 8_000;
+const REFINE_WEB_SEARCH_MAX_USES = 2;
+const REFINE_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
+
+// Cache key built from the genre + normalized notes. Same notes against a
+// different primary genre is meaningfully different (the prompt anchors on
+// the genre), so both go into the hash.
+function refineCacheKey(genre: string, styleNotes: string): string {
+  const cleanGenre = stripEmojiPrefix(genre).toLowerCase().trim();
+  const normalizedNotes = styleNotes
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/\s+/g, " ")
+    .trim();
+  const hash = createHash("sha256")
+    .update(`${cleanGenre}|${normalizedNotes}`)
+    .digest("hex")
+    .slice(0, 32);
+  return `cache:style:${hash}`;
+}
+
+function tidyDescriptor(raw: string): string {
+  return raw
+    .trim()
+    // Strip leading/trailing matched quotes if the model ignored the instruction.
+    .replace(/^["'`]+/, "")
+    .replace(/["'`]+$/, "")
+    // Collapse newlines — Suno expects a single descriptor line.
+    .replace(/\s*\n+\s*/g, " ")
+    .trim()
+    .slice(0, REFINE_OUTPUT_MAX_CHARS);
+}
+
+export async function refineStyleForSuno(input: RefineStyleInput): Promise<string> {
+  const cleanGenre = stripEmojiPrefix(input.genre);
+  const userNotes = input.styleNotes.trim();
+  if (!userNotes) {
+    throw new Error("refineStyleForSuno requires non-empty styleNotes");
+  }
+
+  // KV cache check first. A cache hit serves a previously-refined descriptor
+  // (no Claude call, no search) in sub-100ms — meaningful for trendy artist
+  // names that lots of users type into the form.
+  const cacheKey = refineCacheKey(input.genre, userNotes);
+  try {
+    const cached = await kv.get<string>(cacheKey);
+    if (cached && typeof cached === "string" && cached.length > 0) {
+      console.log(`[refine-style] cache hit key=${cacheKey.slice(0, 24)}…`);
+      return cached;
+    }
+  } catch (err) {
+    // KV unreachable — fall through to live call. We never want the cache
+    // layer to be the blocker that takes refinement down.
+    console.warn("[refine-style] cache read failed; falling through:", err);
+  }
+
+  const prompt = `You are translating a music request into a precise prompt for the Suno API.
+
+Primary genre: ${cleanGenre}
+User's style notes: "${userNotes}"
+
+Translate the user's intent into a concise Suno style descriptor (max ${REFINE_OUTPUT_MAX_CHARS} chars).
+
+If the user references a specific song, artist, or niche subgenre:
+- If you recognize it from training, use that knowledge directly.
+- If you don't recognize it, use the web_search tool ONCE to look it up
+  (e.g., query: "{name} genre BPM tempo").
+- Read the search results to identify the actual genre, subgenre, tempo, and mood.
+
+Otherwise (just generic mood/genre words), skip search — reply from training knowledge.
+
+Output ONLY the descriptor string. Format guideline:
+"{subgenre}, ~{bpm} BPM, {mood/energy}, {1-2 instrumental hints}, {artist style if applicable}"
+
+No preamble, no quotes, no explanation.`;
+
+  // Hard timeout so a slow/unreachable web_search backend can't pin the
+  // generate-music route at the function ceiling. Caller's fallback to
+  // buildSunoStyle() takes over if we abort.
+  const abort = new AbortController();
+  const timeout = setTimeout(() => abort.abort(), REFINE_TIMEOUT_MS);
+
+  let usedWebSearch = false;
+  let descriptor: string;
+  try {
+    const client = new Anthropic({ apiKey: env.anthropicApiKey });
+    const result = await client.messages.create(
+      {
+        model: env.anthropicModel,
+        max_tokens: REFINE_MAX_TOKENS,
+        temperature: 0.4,
+        tools: [
+          {
+            type: "web_search_20250305",
+            name: "web_search",
+            max_uses: REFINE_WEB_SEARCH_MAX_USES,
+          },
+        ],
+        messages: [{ role: "user", content: prompt }],
+      },
+      { signal: abort.signal },
+    );
+
+    // The response contains interleaved blocks when web_search runs:
+    // server_tool_use → web_search_tool_result → … → text. The descriptor
+    // is the FINAL text block. Walk in reverse so we land on the model's
+    // post-search synthesis rather than any pre-search planning text.
+    let finalText: string | null = null;
+    for (let i = result.content.length - 1; i >= 0; i -= 1) {
+      const block = result.content[i];
+      if (block.type === "text" && block.text.trim()) {
+        finalText = block.text;
+        break;
+      }
+    }
+    if (!finalText) {
+      throw new Error("Claude refine returned no text block");
+    }
+    usedWebSearch = result.content.some(
+      (block) => block.type === "server_tool_use" && block.name === "web_search",
+    );
+    descriptor = tidyDescriptor(finalText);
+    if (!descriptor) {
+      throw new Error("Claude refine returned empty descriptor");
+    }
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  console.log(
+    `[refine-style] refined web_search=${usedWebSearch} key=${cacheKey.slice(0, 24)}…`,
+  );
+
+  // Write-through cache. Failure here is non-fatal — we already have the
+  // descriptor; future requests will just re-run the live call.
+  try {
+    await kv.set(cacheKey, descriptor, { ex: REFINE_CACHE_TTL_SECONDS });
+  } catch (err) {
+    console.warn("[refine-style] cache write failed:", err);
+  }
+
+  return descriptor;
 }
 
 export async function generateLyrics(input: LyricsInput): Promise<Lyrics> {

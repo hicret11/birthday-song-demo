@@ -3,11 +3,20 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Brand additions — warm gradient on top of the existing dark base. */
+  --brand-pink: #ec4899;
+  --brand-purple: #a855f7;
+  --brand-amber: #f59e0b;
+  --brand-gradient: linear-gradient(135deg, #ec4899 0%, #a855f7 50%, #f59e0b 100%);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-brand-pink: var(--brand-pink);
+  --color-brand-purple: var(--brand-purple);
+  --color-brand-amber: var(--brand-amber);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -23,4 +32,73 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Reusable brand-gradient text fill + background utilities. */
+.bg-brand {
+  background-image: var(--brand-gradient);
+}
+.text-brand-gradient {
+  background-image: var(--brand-gradient);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+/* Slow floating drift for music-note flourishes on the landing hero. */
+@keyframes drift-up {
+  0%   { transform: translateY(0) rotate(-4deg); opacity: 0.0; }
+  10%  { opacity: 0.35; }
+  90%  { opacity: 0.35; }
+  100% { transform: translateY(-120px) rotate(8deg); opacity: 0.0; }
+}
+.animate-drift {
+  animation: drift-up 14s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+/* Mic-recording waveform bars — vertical pulse animation. */
+@keyframes pulse-bar {
+  0%, 100% { transform: scaleY(0.25); }
+  50%      { transform: scaleY(1); }
+}
+.animate-pulse-bar {
+  transform-origin: center;
+  animation: pulse-bar 0.7s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* Simulated generation progress. Linear fill over 75s, holds at 95% if Suno
+   runs long. React overrides to width:100% when the audio actually arrives. */
+@keyframes progress-fill {
+  0%   { width: 0%; }
+  100% { width: 95%; }
+}
+.animate-progress {
+  animation: progress-fill 75s linear forwards;
+  will-change: width;
+}
+
+/* Confetti burst for song-ready celebration. Pure CSS — zero deps. */
+@keyframes confetti-fall {
+  0%   { transform: translate3d(0, -10vh, 0) rotate(0deg);   opacity: 1; }
+  100% { transform: translate3d(var(--cx, 0px), 110vh, 0) rotate(var(--cr, 720deg)); opacity: 0; }
+}
+.confetti-piece {
+  position: absolute;
+  top: -10vh;
+  width: 10px;
+  height: 14px;
+  border-radius: 2px;
+  animation: confetti-fall 2.8s cubic-bezier(0.25, 0.55, 0.4, 1) forwards;
+  will-change: transform, opacity;
+}
+
+/* Slide + fade for the share card when the artifact lands. */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fade-in 0.5s cubic-bezier(0.2, 0.65, 0.3, 1) both;
 }

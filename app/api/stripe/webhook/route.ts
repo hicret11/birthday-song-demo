@@ -1,0 +1,162 @@
+import { headers } from "next/headers";
+import type Stripe from "stripe";
+import { mintPortalToken } from "@/lib/portal-tokens";
+import { sendDunningEmail } from "@/lib/resend";
+import { getStripe } from "@/lib/stripe";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://singmybirthday.com";
+const DUNNING_TOKEN_TTL_SECONDS = 24 * 60 * 60;
+
+export const runtime = "nodejs";
+
+const RELEVANT: Set<string> = new Set([
+  "customer.subscription.created",
+  "customer.subscription.updated",
+  "customer.subscription.deleted",
+  "invoice.payment_failed",
+]);
+
+export async function POST(request: Request): Promise<Response> {
+  const secret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!secret) {
+    console.error("[stripe-webhook] STRIPE_WEBHOOK_SECRET not set");
+    return new Response("webhook secret not configured", { status: 500 });
+  }
+
+  const sig = (await headers()).get("stripe-signature");
+  if (!sig) return new Response("missing stripe-signature", { status: 400 });
+
+  const rawBody = await request.text();
+  const stripe = getStripe();
+
+  let event: Stripe.Event;
+  try {
+    event = await stripe.webhooks.constructEventAsync(rawBody, sig, secret);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "invalid signature";
+    console.error("[stripe-webhook] signature verification failed:", message);
+    return new Response(`Webhook Error: ${message}`, { status: 400 });
+  }
+
+  if (!RELEVANT.has(event.type)) {
+    return Response.json({ received: true, ignored: event.type });
+  }
+
+  try {
+    await handleEvent(event, stripe);
+    return Response.json({ received: true, type: event.type });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "handler failed";
+    console.error(`[stripe-webhook] handler failed for ${event.type}:`, message);
+    return new Response(`handler error: ${message}`, { status: 500 });
+  }
+}
+
+function readPeriodEnd(sub: Stripe.Subscription): string | null {
+  const subWithLegacy = sub as Stripe.Subscription & { current_period_end?: number | null };
+  const item = sub.items.data[0] as (Stripe.SubscriptionItem & { current_period_end?: number | null }) | undefined;
+  const unix = subWithLegacy.current_period_end ?? item?.current_period_end ?? null;
+  return unix ? new Date(unix * 1000).toISOString() : null;
+}
+
+async function handleEvent(event: Stripe.Event, stripe: Stripe): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const nowIso = new Date().toISOString();
+
+  if (event.type === "customer.subscription.created" || event.type === "customer.subscription.updated") {
+    const sub = event.data.object as Stripe.Subscription;
+    const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
+
+    const customer = await stripe.customers.retrieve(customerId);
+    if (customer.deleted) return;
+    const email = customer.email ?? null;
+
+    const priceId = sub.items.data[0]?.price.id ?? null;
+
+    const payload: Record<string, unknown> = {
+      stripe_customer_id: customerId,
+      stripe_subscription_id: sub.id,
+      stripe_price_id: priceId,
+      subscription_status: sub.status,
+      current_period_end: readPeriodEnd(sub),
+      cancel_at_period_end: sub.cancel_at_period_end ?? false,
+      updated_at: nowIso,
+    };
+    if (email) payload.email = email;
+    // Clear past-due markers if the subscription has recovered.
+    if (sub.status === "active" || sub.status === "trialing") {
+      payload.past_due_since = null;
+    }
+
+    const { error } = await supabase
+      .from("venues")
+      .upsert(payload, { onConflict: "stripe_customer_id" });
+    if (error) throw new Error(error.message);
+    return;
+  }
+
+  if (event.type === "customer.subscription.deleted") {
+    const sub = event.data.object as Stripe.Subscription;
+    const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
+    const { error } = await supabase
+      .from("venues")
+      .update({
+        subscription_status: "canceled",
+        cancel_at_period_end: sub.cancel_at_period_end ?? false,
+        updated_at: nowIso,
+      })
+      .eq("stripe_customer_id", customerId);
+    if (error) throw new Error(error.message);
+    return;
+  }
+
+  if (event.type === "invoice.payment_failed") {
+    const invoice = event.data.object as Stripe.Invoice;
+    const customerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id ?? null;
+    if (!customerId) return;
+
+    // Read the existing row first so we (a) preserve the first past_due_since
+    // when the customer is already in dunning, and (b) have venue.email / slug
+    // for the recovery message.
+    const { data: existing, error: readErr } = await supabase
+      .from("venues")
+      .select("email, venue_name, share_slug, past_due_since")
+      .eq("stripe_customer_id", customerId)
+      .maybeSingle();
+    if (readErr) throw new Error(readErr.message);
+    if (!existing) return; // unknown customer — nothing to do
+
+    const pastDueSince = existing.past_due_since ?? nowIso;
+    const { error } = await supabase
+      .from("venues")
+      .update({
+        subscription_status: "past_due",
+        past_due_since: pastDueSince,
+        updated_at: nowIso,
+      })
+      .eq("stripe_customer_id", customerId);
+    if (error) throw new Error(error.message);
+
+    // Recovery hook: mint a 24-hour magic-link token and email it to the
+    // venue's stored address. Best-effort, never throws.
+    if (existing.email && existing.share_slug) {
+      try {
+        const token = await mintPortalToken(
+          { stripe_customer_id: customerId, slug: existing.share_slug },
+          DUNNING_TOKEN_TTL_SECONDS,
+        );
+        const portalUrl = `${SITE_URL}/api/venue/portal-session?token=${token}`;
+        await sendDunningEmail({
+          to: existing.email,
+          venueName: existing.venue_name ?? "your venue",
+          shareSlug: existing.share_slug,
+          portalUrl,
+        });
+      } catch (err) {
+        console.error("[stripe-webhook] dunning dispatch failed", err);
+      }
+    }
+    return;
+  }
+}
