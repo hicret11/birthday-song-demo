@@ -1,8 +1,10 @@
+import { after } from "next/server";
 import {
   applyPronunciationHint,
   normalizeClientLyrics,
   refineStyleForSuno,
 } from "@/lib/anthropic";
+import { logGenerationEvent } from "@/lib/events";
 import {
   ApiError,
   ApiErrorCode,
@@ -211,6 +213,15 @@ export async function POST(request: Request): Promise<Response> {
       title: sunoTitle,
     });
     void noteProviderSuccess(provider.name);
+    // Best-effort durable event — never blocks the response.
+    after(
+      logGenerationEvent("music_submitted", request, {
+        recipientName: body.name,
+        language: body.language,
+        genre: body.genre,
+        metadata: { job_id: jobId },
+      }),
+    );
     const response: GenerateMusicResponse = refinedStyle ? { jobId, refinedStyle } : { jobId };
     return Response.json(response);
   } catch (err) {

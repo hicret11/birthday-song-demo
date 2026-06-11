@@ -31,6 +31,7 @@ import {
 import { toAudioProxyUrl } from "@/lib/audio-proxy";
 import Confetti from "@/components/Confetti";
 import { track } from "@vercel/analytics";
+import { getAnonId, logClientEvent } from "@/lib/client-events";
 
 const LOADING_MESSAGES = [
   "Sprinkling the candles…",
@@ -523,6 +524,9 @@ export default function GeneratorClient({ venue }: Props) {
   const [ageInput, setAgeInput] = useState("");
   const [emailInput, setEmailInput] = useState("");
   const [attested, setAttested] = useState(false);
+  // Optional opt-in for birthday reminders / occasional offers. Never shown or
+  // sent on a child-recipient flow (see the gate below).
+  const [marketingConsent, setMarketingConsent] = useState(false);
   const [captureError, setCaptureError] = useState<string | null>(null);
 
   // Hydrate the recipient age from any prior session capture so returning
@@ -582,6 +586,10 @@ export default function GeneratorClient({ venue }: Props) {
   // whenever new lyrics arrive (so re-generates start the animation fresh).
   const [lyricRevealChars, setLyricRevealChars] = useState(0);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
+  // Optional promotional-use permission, offered only after a song is shareable
+  // and never on minor-recipient flows. Best-effort; never blocks anything.
+  const [promoGranted, setPromoGranted] = useState(false);
+  const [promoSaved, setPromoSaved] = useState(false);
   const [creatingShare, setCreatingShare] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -713,6 +721,15 @@ export default function GeneratorClient({ venue }: Props) {
           is_adult: attested,
           parental_consent_given: recipientIsMinor ? attested : undefined,
           venue_slug: venue?.slug,
+          // Phase 3: structured capture from the values the form already holds.
+          // All optional server-side — sent only when present.
+          recipient_name: name.trim() || undefined,
+          language,
+          genre: genre.trim() || undefined,
+          relationship: relationship.trim() || undefined,
+          // Reminder/marketing consent is suppressed entirely for minors; the
+          // server independently forces it false on child-recipient flows.
+          marketing_reminder_consent: recipientIsMinor ? false : marketingConsent,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -1141,9 +1158,45 @@ export default function GeneratorClient({ venue }: Props) {
     }
   }
 
+  // Optional promo-use permission. Fire-and-forget — failure must never affect
+  // the share UI. The server also forces granted=false for minor recipients.
+  function submitPromoPermission(granted: boolean) {
+    setPromoGranted(granted);
+    setPromoSaved(false);
+    try {
+      void fetch("/api/promo-permission", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        keepalive: true,
+        body: JSON.stringify({
+          granted,
+          email: emailInput.trim() || undefined,
+          anonymous_id: getAnonId(),
+          share_id: shareUrl ? shareUrl.split("/").pop() : undefined,
+          recipient_name: name.trim() || undefined,
+          is_minor_recipient: recipientIsMinor,
+        }),
+      })
+        .then((res) => {
+          if (res.ok) setPromoSaved(true);
+        })
+        .catch(() => {});
+    } catch {
+      // Never throw into the UI.
+    }
+  }
+
   async function openShareUi() {
     if (!shareUrl) return;
     track("share_click", { venue_slug: venue?.slug ?? "none" });
+    // Durable first-party audit event (independent of analytics consent).
+    logClientEvent("share_click", {
+      share_id: shareUrl.split("/").pop() ?? null,
+      venue_slug: venue?.slug ?? null,
+      recipient_name: name.trim() || null,
+      language,
+      genre: genre.trim() || null,
+    });
     const text = senderName.trim()
       ? `${senderName.trim()} made you a birthday song \u{1F382}`
       : `A birthday song for ${name.trim() || "you"} \u{1F382}`;
@@ -1707,6 +1760,22 @@ export default function GeneratorClient({ venue }: Props) {
               : "I am 18 or older."}
           </span>
         </label>
+
+        {/* Optional reminder/marketing opt-in. Hidden on child-recipient flows
+            so we never solicit marketing in a child-directed session. */}
+        {!recipientIsMinor && (
+          <label className="mt-3 flex items-start gap-3 text-sm">
+            <input
+              type="checkbox"
+              checked={marketingConsent}
+              onChange={(e) => setMarketingConsent(e.target.checked)}
+              className="mt-1 h-4 w-4 shrink-0 rounded border-white/30 bg-white/10 accent-purple-500"
+            />
+            <span className="opacity-70">
+              Email me a birthday reminder next year and the occasional offer. (Optional)
+            </span>
+          </label>
+        )}
 
         <button
           type="button"
@@ -2273,6 +2342,25 @@ export default function GeneratorClient({ venue }: Props) {
                   {copied ? "✓ Copied" : "Copy link"}
                 </button>
               </div>
+
+              {/* Optional promotional-use permission. Shown only after the song
+                  is shareable, and never on minor-recipient flows. Compact and
+                  fully optional — it does not gate the share CTA above. */}
+              {!recipientIsMinor && (
+                <label className="flex items-start gap-2.5 pt-1 text-xs opacity-70">
+                  <input
+                    type="checkbox"
+                    checked={promoGranted}
+                    onChange={(e) => submitPromoPermission(e.target.checked)}
+                    className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border-white/30 bg-white/10 accent-purple-500"
+                  />
+                  <span>
+                    I give Sing My Birthday permission to feature this song,
+                    testimonial, or story in promotional material.
+                    {promoSaved && <span className="ml-1 text-emerald-300">Saved ✓</span>}
+                  </span>
+                </label>
+              )}
             </div>
           )}
 

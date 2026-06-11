@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import type { ShareTemplate, SharedSong } from "@/lib/api-types";
 import { toAudioProxyUrl } from "@/lib/audio-proxy";
+import { logClientEvent } from "@/lib/client-events";
 import { greetingFor } from "@/lib/greetings";
 
 const MAX_RETRIES = 2;
@@ -45,6 +46,23 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
 
   const [toast, setToast] = useState<string | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Fire playback_started at most once per page view (ignores pause/seek/replay).
+  const playbackLoggedRef = useRef(false);
+
+  // Shared context for durable events on this share page.
+  const eventCtx = {
+    share_id: song.id,
+    venue_slug: song.venueSlug ?? null,
+    recipient_name: song.name,
+    language: song.language,
+    genre: song.genre,
+  };
+
+  function handlePlay(): void {
+    if (playbackLoggedRef.current) return;
+    playbackLoggedRef.current = true;
+    logClientEvent("playback_started", eventCtx);
+  }
 
   function flashToast(message: string): void {
     setToast(message);
@@ -55,6 +73,7 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
   async function openShareSheet(): Promise<void> {
     const url = typeof window !== "undefined" ? window.location.href : "";
     if (!url) return;
+    logClientEvent("share_click", eventCtx);
     const text = `Listen to this birthday song for ${song.name}`;
     const nav = typeof navigator !== "undefined" ? navigator : undefined;
     if (nav && typeof nav.share === "function") {
@@ -143,6 +162,7 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
             controls
             autoPlay
             playsInline
+            onPlay={handlePlay}
             src={currentVideo}
             poster=""
             className="w-full rounded-2xl bg-black shadow-lg"
@@ -160,6 +180,7 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
           controls
           autoPlay
           loop={false}
+          onPlay={handlePlay}
           src={toAudioProxyUrl(currentAudio)}
           className="mt-6 w-full"
         />

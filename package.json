@@ -10,7 +10,9 @@
     "db:migrate": "node scripts/apply-migrations.mjs",
     "db:migrate:check": "npx --yes supabase db push --dry-run --linked",
     "discovery:batch": "tsx scripts/discovery/generate-batch.ts",
-    "build:cake-assets": "node scripts/build_cake_assets.mjs"
+    "build:cake-assets": "node scripts/build_cake_assets.mjs",
+    "privacy:export": "tsx scripts/privacy/export-user-data.ts",
+    "privacy:plan-delete": "tsx scripts/privacy/export-user-data.ts --mode=plan-delete"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.95.2",

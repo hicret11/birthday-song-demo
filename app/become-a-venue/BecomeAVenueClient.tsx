@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 export default function BecomeAVenueClient() {
@@ -57,6 +58,18 @@ export default function BecomeAVenueClient() {
         >
           {loading ? "Redirecting…" : "Become a founding venue"}
         </button>
+
+        <p className="mt-3 text-center text-xs text-gray-400">
+          By continuing, you agree to the{" "}
+          <Link href="/terms" className="underline underline-offset-2 hover:text-gray-200">
+            Terms of Service
+          </Link>{" "}
+          and acknowledge the{" "}
+          <Link href="/privacy" className="underline underline-offset-2 hover:text-gray-200">
+            Privacy Policy
+          </Link>
+          .
+        </p>
 
         {error && (
           <p role="alert" className="mt-3 text-sm text-rose-300">{error}</p>

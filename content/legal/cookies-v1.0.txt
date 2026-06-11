@@ -1,0 +1,431 @@
+  03 / LEGAL
+
+
+
+  Cookie Policy
+  How Sing My Birthday uses cookies, local storage, device identifiers, pixels, tags, and similar
+  technologies on singmybirthday.com and related Sing My Birthday surfaces.
+VERSION                        EFFECTIVE                 ISSUING ENTITY               FRAMEWORKS
+
+
+                                                                                      PECR, ePrivacy, GDPR,
+V1.0                           Friday, May 29, 2026      glomotec, Inc.               CCPA / CPRA, UAE PDPL,
+                                                                                      COPPA-aware design
+
+
+
+
+At a glance — key provisions in plain terms
+Essential cookies only without consent. We use strictly necessary cookies and storage to operate the service,
+remember your privacy choices, protect checkout, secure accounts, and deliver requested features. Everything
+else is subject to consent where required.
+Analytics and marketing are consent-based where required. We may use analytics tools, advertising pixels,
+referral tags, and similar technologies to measure usage, improve funnels, and run remarketing, but these are
+only loaded where permitted by law and your consent choices.
+Adaptive pricing needs country and device signals. We may use approximate location, billing country,
+language, device, and referral signals to display regional pricing, prevent abuse, and measure conversion.
+You can change your choices. You can accept all, reject non-essential technologies, or manage category-level
+preferences through the cookie banner or preferences control.
+Children need protection. Sing My Birthday is not for direct use by children under 13. Where child-related
+birthday content is created by an adult, cookie and tracking choices must still be managed by the adult
+account holder.
+Specific items are listed. We maintain an inventory of cookies, storage items, and major third-party tools
+below, and update it as the product changes.
+
+
+
+How Sing My Birthday uses cookies and similar technologies
+This Cookie Policy explains how glomotec, Inc. and Sing My Birthday use cookies, local storage, session
+storage, pixels, SDKs, tags, device identifiers, and similar technologies to operate singmybirthday.com, the
+Sing My Birthday application, checkout, account flows, music/video generation, delivery pages, venue flows,
+raffles, analytics, and marketing systems.
+This Cookie Policy supplements the Sing My Birthday Privacy Policy and Terms of Service. It is written to satisfy
+cookie and tracking requirements under the United Kingdom Privacy and Electronic Communications
+Regulations 2003, the European Union ePrivacy Directive and national implementing laws, the California
+Consumer Privacy Act and California Privacy Rights Act, the UAE Personal Data Protection Law, and applicable
+laws in other jurisdictions.
+Where mandatory law grants you broader rights or stricter consent requirements than described here, those
+mandatory provisions apply and your statutory rights are preserved.
+
+
+
+
+   1. Who sets these cookies
+   This Cookie Policy is issued by glomotec, Inc., a corporation incorporated in the State of Delaware,
+   United States of America, with registered office at 131 Continental Drive, Suite 305, Newark, DE 19713,
+   United States, as the issuing entity and operator of record for Sing My Birthday during its glomotec Labs
+   incubation period.
+
+   References to “Sing My Birthday,” “glomotec,” “we,” “us,” and “our” mean glomotec, Inc. acting in
+   connection with Sing My Birthday, together with affiliates, service providers, processors, and successors
+   where the context permits.
+
+   Questions about this Cookie Policy should be sent to support@singmybirthday.com.
+
+
+
+   2. About this Cookie Policy
+   2.1 Who and what this covers
+   This Cookie Policy applies to singmybirthday.com, Sing My Birthday account and checkout flows, song
+   and video generation surfaces, delivery pages, venue dashboards, referral links, raffle or voucher pages,
+   embedded media, and any related surface that loads cookies or comparable storage under the Sing My
+   Birthday brand.
+
+   2.2 Relationship to other documents
+   This Cookie Policy supplements the Privacy Policy and Terms of Service. The Privacy Policy explains how
+   we process personal data more generally. This Cookie Policy focuses on browser and device
+   technologies. If there is a conflict between this Cookie Policy and the Privacy Policy on cookie-specific
+   matters, this Cookie Policy controls.
+
+   2.3 Controllers and processors
+   For consumer users, glomotec, Inc. is generally the controller for cookie and tracking choices. For venue
+   customers, the venue may act as controller for certain guest data while Sing My Birthday acts as
+   processor under the Venue Agreement and any applicable Data Processing Agreement.
+
+
+
+   3. Definitions
+Term                                                       Meaning
+
+Cookie                                                     A small text file placed on your device by a website to store
+                                                           information that can be read on later visits.
+Similar technologies                                       Local storage, session storage, IndexedDB, web beacons, pixels,
+                                                           tags, SDKs, device identifiers, fingerprinting technologies, and
+                                                           other mechanisms that store or read information from your
+                                                            device or recognise you across sessions.
+First-party cookie                                          A cookie set by the domain you are visiting, such as
+                                                            singmybirthday.com.
+Third-party cookie                                          A cookie set by a domain other than the one you are visiting,
+                                                            such as a payment, analytics, social media, advertising, or
+                                                            embedded-content provider.
+Persistent cookie                                           A cookie or storage item that remains on your device until it
+                                                            expires or is deleted.
+Session cookie                                              A cookie or storage item that is deleted when you close your
+                                                            browser or end the session.
+Essential cookie                                            A cookie or similar technology strictly necessary to provide the
+                                                            service you requested or to protect security, consent records,
+                                                            checkout, or account integrity.
+Non-essential cookie                                        Any cookie or similar technology that is not strictly necessary,
+                                                            including analytics, functionality, personalisation, marketing,
+                                                            remarketing, and advertising technologies.
+
+
+
+
+   4. Why we use cookies and similar technologies
+   Sing My Birthday uses cookies and similar technologies for the following purposes:
+
+       To operate the service. To authenticate users, maintain sessions, prevent cross-site request forgery,
+        route traffic, remember consent choices, support checkout, deliver songs or videos, and keep the
+        service reliable.
+       To remember preferences. To remember language, region, pricing tier, account settings,
+        accessibility choices, and other interface preferences.
+       To secure the service. To detect fraud, abuse, bot activity, suspicious generation patterns, payment
+        abuse, and security incidents.
+       To measure usage and improve the product. To understand visits, generation events, loading time,
+        playback, downloads, shares, checkout drop-off, support events, conversion, retention, and pricing
+        performance.
+       To support adaptive pricing. To infer country, region, currency, billing territory, and purchasing-
+        power tier, and to reduce abuse from inconsistent billing or location signals.
+       To run marketing and remarketing. To measure campaigns, build audiences, show relevant Sing My
+        Birthday offers, retarget visitors, attribute referrals, and test creative, pricing, and landing pages,
+        where permitted by law and consent choices.
+       To support raffles, reminders, and gifting mechanics. To recognise participation, avoid duplicate
+        entries where appropriate, remember reminder choices, and support voucher delivery.
+       To deliver third-party services. To integrate Stripe, Supabase, Resend, Vercel, Cloudflare, Google
+        Analytics, Google sign-in where used, Meta/TikTok pixels, embedded YouTube/TikTok content,
+        Anthropic, fal.ai, music-generation providers, and other infrastructure or product providers.
+  5. Categories of cookies and similar technologies
+  We classify cookies and similar technologies into the categories below. Essential technologies may be
+  loaded without consent where permitted by law. Non-essential technologies are loaded only where
+  permitted by law and your cookie choices.
+
+  5.1 Essential / strictly necessary
+  These are required for Sing My Birthday to function and cannot be disabled through our preference
+  centre. They include technologies used for session security, account login, checkout, fraud prevention,
+  consent records, rate limiting, delivery of requested songs and videos, payment processing, and
+  infrastructure protection.
+
+  5.2 Functional / preferences
+  These remember choices such as language, region, currency, theme, pricing display, account settings,
+  viewed legal documents, and product preferences. If disabled, parts of the product may become less
+  personalised or may require repeated input.
+
+  5.3 Analytics / performance
+  These help us understand how Sing My Birthday is used, including visits, funnels, generation events,
+  playback, downloads, shares, checkout steps, page performance, errors, and conversion. We may use
+  Vercel Analytics, Google Analytics, privacy-preserving analytics, or equivalent tools.
+
+  5.4 Marketing / remarketing
+  These help us measure and improve marketing campaigns, build audiences, retarget visitors, attribute
+  referrals, and show relevant Sing My Birthday offers. They may include Meta Pixel, TikTok Pixel, Google
+  advertising tags, social platform pixels, affiliate/referral tags, and similar technologies.
+
+  5.5 Embedded media and social content
+  Where we embed YouTube, TikTok, Instagram, or other external content, the third-party provider may
+  set cookies or collect device information under its own terms. We minimise unnecessary embeds and,
+  where required, load embedded content only after consent or user interaction.
+
+
+
+  6. Cookies and storage we set
+  The inventory below describes the cookies and storage items currently expected for Sing My Birthday.
+  Product implementation may change. Where we add a non-essential cookie or similar technology, we
+  update this inventory and obtain consent where required.
+
+  6.1 singmybirthday.com
+Name                    Category               Purpose                  Storage                  Duration
+
+smb_consent             Essential              Stores your cookie       First-party cookie       Up to 365 days
+                                               consent choices so we
+                                               do not ask again on
+                                               every visit.
+smb_terms_reviewed_v1   Functional             Records which sections   localStorage             Until cleared
+                                                  of the Terms of Service
+                                                  you have marked as
+                                                  reviewed in this
+                                                  browser, where that
+                                                  feature is used.
+smb_privacy_reviewed_v   Functional               Records which sections    localStorage             Until cleared
+1                                                 of the Privacy Policy
+                                                  you have marked as
+                                                  reviewed in this
+                                                  browser, where that
+                                                  feature is used.
+smb_cookies_reviewed_    Functional               Records which sections    localStorage             Until cleared
+v1                                                of this Cookie Policy
+                                                  you have marked as
+                                                  reviewed in this
+                                                  browser, where that
+                                                  feature is used.
+smb_language             Functional               Stores your selected      First-party cookie or    Up to 365 days
+                                                  language or locale.       localStorage
+smb_region               Functional / essential   Stores approximate        First-party cookie or    Up to 365 days
+                         for pricing display      region or pricing tier    localStorage
+                                                  used to display
+                                                  localised prices and
+                                                  reduce repeated
+                                                  geolocation requests.
+smb_ref                  Analytics / marketing    Stores referral or        First-party cookie or    Up to 90 days
+                                                  campaign source           localStorage
+                                                  where permitted by
+                                                  consent choices.
+smb_raffle_seen          Functional               Remembers that you        First-party cookie or    Up to 90 days
+                                                  have seen or dismissed    localStorage
+                                                  a raffle, voucher, or
+                                                  reminder prompt.
+
+
+
+
+     6.2 Account, authentication, and database services
+Name                     Category                 Purpose                   Vendor                   Duration
+
+sb-access-token          Essential                Authenticates your        Supabase or equivalent   Session or up to 1 hour
+                                                  signed-in session
+                                                  where Supabase or
+                                                  equivalent
+                                                  authentication is used.
+sb-refresh-token         Essential                Refreshes your            Supabase or equivalent   Up to 30 days
+                                                  authentication token
+                                                  without requiring
+                                                  repeated login.
+sb-provider-token        Essential                Stores federated sign-    Supabase / identity      Session
+                                                  in token if you choose    provider
+                                                  Google or another
+                                                  identity provider.
+session / csrf tokens   Essential             Protect account, form,   Sing My Birthday /     Session
+                                              checkout, and API        hosting stack
+                                              requests from misuse.
+
+
+
+
+   6.3 Payments and checkout
+   Where you purchase a song, video bundle, venue subscription, trial, or other paid product, Stripe and its
+   affiliates may set cookies or similar technologies for checkout, fraud prevention, payment
+   authentication, dispute handling, billing, and security. Stripe controls some of these technologies under
+   its own policies. These technologies are essential to provide the payment service you request.
+
+   6.4 Transactional email and delivery
+   Resend or an equivalent provider may process delivery events, open/click events where enabled,
+   message metadata, bounce data, and suppression lists for transactional emails, order confirmations,
+   song delivery, account notifications, raffle communications, and support notices. Where email tracking is
+   non-essential, it is governed by applicable consent and email-marketing rules.
+
+   6.5 Analytics
+   We may use Vercel Analytics, Google Analytics, privacy-preserving analytics tools, or equivalent services
+   to measure usage, performance, and funnel behaviour. In jurisdictions where analytics cookies or scripts
+   require consent, we load them only after consent.
+
+   6.6 Marketing and social pixels
+   We may use Meta Pixel, TikTok Pixel, Google Ads tags, affiliate/referral tags, and similar tools to measure
+   campaign performance, build audiences, run remarketing, and improve advertising. These are non-
+   essential and require consent where applicable.
+
+   6.7 Anti-abuse and security
+   Where Sing My Birthday is protected by Cloudflare, Vercel, Stripe Radar, reCAPTCHA, bot-management,
+   or equivalent providers, short-lived cookies or device signals may be set for bot management, fraud
+   prevention, rate limiting, abuse detection, and security. These are generally essential.
+
+   6.8 AI generation and media providers
+   Anthropic, fal.ai, music-generation providers, video-rendering providers, storage/CDN providers, and
+   related infrastructure may receive technical, usage, or request metadata necessary to generate, store,
+   and deliver songs, videos, images, or related media. These providers generally do not need to set
+   browser cookies for normal generation, but their APIs and hosted delivery pages may process technical
+   identifiers.
+
+   6.9 Future additions
+   We update this inventory when we add or change a material cookie, pixel, storage item, or similar
+   technology. Where a new non-essential technology is added, consent is required before it is set where
+   applicable law requires consent.
+7. Third-party cookies
+Third-party cookies and similar technologies may be set by service providers that help us operate,
+secure, analyse, monetise, or market Sing My Birthday. These providers may include Stripe, Supabase,
+Vercel, Cloudflare, Google, Meta, TikTok, YouTube, Instagram, Resend, analytics providers, and other
+service providers named in our Privacy Policy.
+
+We do not control third-party cookies once loaded by the third-party provider. Your use of those services
+may be subject to the provider's own policies. We use consent controls and provider settings to limit
+third-party tracking where required by law.
+
+
+
+8. Local storage and similar non-cookie technologies
+In addition to cookies, Sing My Birthday may use local storage, session storage, IndexedDB, pixels, tags,
+beacons, device identifiers, and other similar technologies. These may store information on your
+browser or device, read information from your browser or device, or recognise your browser across
+sessions.
+
+Examples include storing your legal-document review state, language, pricing region, generation draft,
+consent choices, account session state, campaign attribution, or dismissed prompts. Local storage and
+similar technologies are subject to similar consent rules to cookies where they store or access
+information on your device.
+
+
+
+9. How we obtain your consent
+9.1 Cookie consent banner
+The first time you visit Sing My Birthday, or when our cookie practices materially change, we present a
+cookie banner or equivalent preference tool. The banner allows you to:
+
+   Accept all cookies and similar technologies.
+   Reject all non-essential cookies.
+   Open preferences and select category by category.
+We present acceptance and rejection choices with comparable prominence and do not use design
+patterns intended to coerce consent.
+
+9.2 Granularity
+You may accept or reject each non-essential category independently, including Functional, Analytics, and
+Marketing where those categories are presented. Essential technologies cannot be disabled through our
+preference centre because they are necessary to provide the service.
+
+9.3 Records of consent
+We retain a record of your consent or rejection choice, including the version of the policy and consent
+interface in force at the time, to demonstrate compliance. The consent record itself is treated as
+essential.
+9.4 Children and consent
+Sing My Birthday is not for direct use by children under 13. We do not knowingly seek cookie or
+marketing consent from children under 13. Where an adult creates a song for a child recipient, the adult
+account holder is responsible for managing cookie choices and consent preferences.
+
+
+
+10. Managing cookies through your browser
+You can manage cookies and similar technologies through your browser, in addition to the Sing My
+Birthday cookie preferences control. Browser controls allow you to delete cookies you already have,
+block cookies before they are set, and configure how cookies behave per site or globally.
+
+Blocking essential cookies may impair core features such as account login, checkout, consent records,
+generation, delivery, and form submission. Blocking analytics or marketing cookies should not affect
+core product use.
+
+
+
+11. Do Not Track and Global Privacy Control
+11.1 Do Not Track
+Some browsers transmit a Do Not Track signal. There is no universal legal or technical standard for how
+websites should respond to DNT, and many browsers have deprecated the feature. We do not currently
+change behaviour in response to DNT alone.
+
+11.2 Global Privacy Control
+Global Privacy Control is treated as a valid opt-out signal where applicable law requires us to honour it,
+including for sale or sharing under California privacy law. Where your browser transmits a valid GPC
+signal, we treat it as an opt-out from sale or sharing of personal data for cross-context behavioural
+advertising to the extent required by applicable law.
+
+11.3 Other signals
+Where future technical mechanisms become recognised standards for privacy preferences, we will
+assess and adopt them where legally required or commercially appropriate.
+
+
+
+12. Changing or withdrawing your consent
+12.1 Cookie preferences control
+You can change your consent at any time through the cookie preferences control on the site. The control
+allows you to update your selections at category level. Changes take effect as soon as technically
+possible.
+
+12.2 Clearing cookies
+Clearing cookies for singmybirthday.com in your browser will remove the consent record we store. On
+your next visit, the consent banner may be shown again.
+12.3 Withdrawal in writing
+You may also withdraw consent or restrict processing by writing to support@singmybirthday.com. We
+respond in accordance with the Privacy Policy and applicable law.
+
+12.4 Effect of withdrawal
+Withdrawal of consent does not affect processing carried out before withdrawal. After withdrawal, we
+stop the future use of affected non-essential technologies except where another lawful basis applies,
+such as legal obligation, legitimate interests, security, contract performance, or fraud prevention.
+
+
+
+13. Children and consent
+Sing My Birthday is not directed to children under 13 and children under 13 may not create accounts or
+use the service directly. The age at which a child can validly consent to cookies or similar technologies
+varies by jurisdiction, including under the EU ePrivacy regime, EU GDPR, UK GDPR, and COPPA.
+
+Where a parent, guardian, or authorised adult creates a song for a child recipient, that adult must
+manage cookie choices, account settings, marketing choices, and consent preferences. We do not
+knowingly use non-essential cookies to profile or market directly to children.
+
+
+
+14. International users
+14.1 United Kingdom
+Under the United Kingdom Privacy and Electronic Communications Regulations, non-essential cookies
+and similar technologies are generally set only after consent.
+
+14.2 European Union
+Under the ePrivacy Directive and national implementing laws, non-essential cookies and similar
+technologies are generally set only after consent. Where a Member State requires additional notice,
+consent, or withdrawal procedures, we comply.
+
+14.3 United Arab Emirates
+The UAE Personal Data Protection Law applies to personal data processed through cookies where
+applicable. Where consent is required, we obtain it through the platform. Where the platform is accessed
+from the Dubai International Financial Centre or Abu Dhabi Global Market, additional local data
+protection laws may apply.
+
+14.4 California and United States privacy laws
+California residents and users protected by similar state privacy laws may have rights to opt out of sale
+or sharing of personal information, including cross-context behavioural advertising. We honour valid
+Global Privacy Control signals where required.
+
+14.5 Other jurisdictions
+Where the law of your jurisdiction grants additional rights or requires additional consent procedures for
+cookies, similar technologies, analytics, or advertising, we comply where those laws apply.
+15. Updates and contact
+15.1 Changes to this Cookie Policy
+We may update this Cookie Policy from time to time to reflect changes in technology, consent tools,
+providers, advertising practices, analytics, product features, law, or regulatory guidance. The current
+version is identified at the top of this policy.
+
+15.2 Contact
+For questions about cookies, consent choices, or privacy rights, contact support@singmybirthday.com or
+write to glomotec, Inc., 131 Continental Drive, Suite 305, Newark, DE 19713, United States.
+
+By accessing Sing My Birthday and selecting a consent option, you confirm that you have had the
+opportunity to read this Cookie Policy and understand how we use cookies and similar technologies. You
+may withdraw consent or change preferences at any time.
+

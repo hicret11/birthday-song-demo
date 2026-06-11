@@ -1,4 +1,6 @@
+import { after } from "next/server";
 import { generateLyrics } from "@/lib/anthropic";
+import { logGenerationEvent } from "@/lib/events";
 import {
   ApiError,
   ApiErrorCode,
@@ -106,6 +108,14 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const lyrics = await generateLyrics(lyricsInput);
     void recordSpendCents("anthropic", ANTHROPIC_COST_PER_LYRICS_CENTS);
+    // Best-effort durable event — never blocks the response.
+    after(
+      logGenerationEvent("generation_started", request, {
+        recipientName: name,
+        language: body.language,
+        genre: resolvedGenre,
+      }),
+    );
     const response: GenerateLyricsResponse = { lyrics, resolvedGenre };
     return Response.json(response);
   } catch (err) {
