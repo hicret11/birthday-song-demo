@@ -23,6 +23,7 @@ import { resolveTier } from "@/lib/pricing-tiers";
 import { uploadToR2 } from "@/lib/r2";
 import { getClientIp, rateLimitFixedWindow } from "@/lib/rate-limit";
 import { sendSongReadyEmail } from "@/lib/resend";
+import { logGenerationEvent } from "@/lib/events";
 import { generateShareId, saveSharedSong } from "@/lib/share";
 import { renderShareVideo } from "@/lib/video";
 import { loadActiveVenue } from "@/lib/venues";
@@ -361,6 +362,18 @@ export async function POST(request: Request): Promise<Response> {
       }),
     );
   }
+
+  // Best-effort durable event — the richly-joinable row (email ↔ share_id).
+  after(
+    logGenerationEvent("share_created", request, {
+      email: toEmail ?? undefined,
+      shareId: id,
+      venueSlug: venueFields?.venueSlug,
+      recipientName: name,
+      language,
+      genre,
+    }),
+  );
 
   const response: ShareCreateResponse = {
     id,

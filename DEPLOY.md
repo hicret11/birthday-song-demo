@@ -16,6 +16,14 @@ So the entire deploy flow is:
 branch → open PR → review → merge to main → Vercel auto-builds & deploys production
 ```
 
+> **Legal/compliance launch?** The Phases 1–7 legal/consent work (legal pages,
+> cookie consent, Stripe legal acceptance, capture/child-recipient handling,
+> event logging, promo permission, raffle readiness, privacy tooling) has its own
+> step-by-step runbook: **[`DEPLOY-COMPLIANCE.md`](./DEPLOY-COMPLIANCE.md)** —
+> pre-deploy checks, the migration verification SQL, and the post-deploy live
+> checklist. The deploy path is unchanged: **branch → PR → merge to `main`**, not
+> laptop `vercel --prod`.
+
 ## Why not `vercel --prod`?
 
 Laptop CLI deploys are how this project drifted into an outage:

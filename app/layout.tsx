@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { Analytics } from "@vercel/analytics/next";
+import CookieConsent from "@/components/CookieConsent";
+import SiteFooter from "@/components/SiteFooter";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -72,7 +73,10 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         {children}
-        <Analytics />
+        <SiteFooter />
+        {/* Vercel Analytics is mounted inside CookieConsent, behind the
+            Analytics consent category — never before consent. */}
+        <CookieConsent />
       </body>
     </html>
   );

@@ -60,6 +60,59 @@ function readPeriodEnd(sub: Stripe.Subscription): string | null {
   return unix ? new Date(unix * 1000).toISOString() : null;
 }
 
+// Record purchase-time legal acceptance evidence. The acceptance was captured at
+// checkout (the "By continuing, you agree…" notice on /become-a-venue) and
+// stamped onto the subscription's metadata there. Append-only and deduped by
+// (stripe_subscription_id, acceptance_version) so repeat subscription.updated
+// events are harmless. Best-effort: any failure is logged, never thrown, so it
+// cannot affect the venue subscription upsert or the webhook acknowledgement.
+async function persistLegalAcceptance(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  args: {
+    sub: Stripe.Subscription;
+    customerId: string;
+    email: string | null;
+    priceId: string | null;
+  },
+): Promise<void> {
+  const md = args.sub.metadata ?? {};
+  const termsVersion = md.terms_version;
+  // Only record when the instrumented checkout stamped acceptance. Legacy or
+  // un-instrumented subscriptions never showed the acceptance notice.
+  if (!termsVersion) return;
+
+  const acceptanceVersion = md.acceptance_version || termsVersion;
+  const acceptedAtRaw = md.accepted_at;
+  const acceptedAt =
+    acceptedAtRaw && !Number.isNaN(Date.parse(acceptedAtRaw))
+      ? new Date(acceptedAtRaw).toISOString()
+      : null;
+
+  const row = {
+    accepted_at: acceptedAt,
+    email: args.email,
+    terms_version: termsVersion,
+    privacy_version: md.privacy_version || termsVersion,
+    acceptance_surface: md.acceptance_surface || "checkout",
+    acceptance_version: acceptanceVersion,
+    stripe_customer_id: args.customerId,
+    stripe_subscription_id: args.sub.id,
+    stripe_price_id: args.priceId,
+    country: md.accept_country ?? null,
+    region: md.accept_region ?? null,
+  };
+
+  const { error } = await supabase
+    .from("legal_acceptance")
+    .upsert(row, {
+      onConflict: "stripe_subscription_id,acceptance_version",
+      ignoreDuplicates: true,
+    });
+  if (error) {
+    console.error("[stripe-webhook] legal_acceptance persist failed:", error.message);
+  }
+}
+
 async function handleEvent(event: Stripe.Event, stripe: Stripe): Promise<void> {
   const supabase = getSupabaseAdmin();
   const nowIso = new Date().toISOString();
@@ -73,6 +126,14 @@ async function handleEvent(event: Stripe.Event, stripe: Stripe): Promise<void> {
     const email = customer.email ?? null;
 
     const priceId = sub.items.data[0]?.price.id ?? null;
+
+    // Best-effort, before the venue upsert so acceptance evidence is attempted
+    // even if the venue write later fails. Never throws.
+    try {
+      await persistLegalAcceptance(supabase, { sub, customerId, email, priceId });
+    } catch (err) {
+      console.error("[stripe-webhook] legal_acceptance persist threw:", err);
+    }
 
     const payload: Record<string, unknown> = {
       stripe_customer_id: customerId,

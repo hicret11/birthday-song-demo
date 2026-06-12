@@ -51,3 +51,6 @@ next-env.d.ts
 
 # Discovery batch outputs (mass-generation videos)
 out/
+
+# Privacy exports — contain PII; never commit
+privacy-exports/

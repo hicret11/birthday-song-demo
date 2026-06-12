@@ -7,6 +7,8 @@
 //   - Setting `Content-Disposition: attachment` server-side is the one
 //     mechanism that works on every browser, including iOS Safari.
 
+import { after } from "next/server";
+import { logGenerationEvent } from "@/lib/events";
 import { loadSharedSong } from "@/lib/share";
 import { slugify } from "@/lib/venues";
 
@@ -26,6 +28,17 @@ export async function GET(
 
   const song = await loadSharedSong(id);
   if (!song) return new Response("Not found", { status: 404 });
+
+  // Best-effort durable event — never blocks the download.
+  after(
+    logGenerationEvent("download_requested", request, {
+      shareId: id,
+      venueSlug: song.venueSlug,
+      recipientName: song.name,
+      language: song.language,
+      genre: song.genre,
+    }),
+  );
 
   // Prefer the muxed video; fall back to raw Suno audio when video render
   // failed at share-create time.

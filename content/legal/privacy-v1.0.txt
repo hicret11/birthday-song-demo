@@ -1,0 +1,587 @@
+                                                      Privacy Policy · Sing My Birthday
+02 / LEGAL
+
+
+Privacy Policy
+How Sing My Birthday collects, uses, stores, shares, and protects personal data across consumer songs, venue
+subscriptions, raffles, marketing, analytics, and the Sing My content library.
+ Version                        Effective         Issuing entity                          Governing frameworks
+ V1.0                           Friday, May 29,   glomotec, Inc. / glomotec               UK GDPR, EU GDPR, CCPA / CPRA, COPPA, UAE
+                                2026              Labs                                    PDPL, Delaware and United States law
+
+
+AT A GLANCE
+
+Key provisions, in plain terms. This summary helps you understand the policy, but the full Privacy Policy below is
+the binding version.
+     Plain-English point                          What it means
+     Your data powers the service.                We collect information needed to create songs and videos, deliver purchases,
+                                                  manage accounts, run venue subscriptions, measure usage, and improve Sing My
+                                                  Birthday.
+     Free songs collect useful signals.           Free previews, raffles, birthday reminders, and wait-screen interactions may collect
+                                                  email, birthday details, preferences, location, and engagement data.
+     Children need adult involvement.             Users under 13 may not use Sing My directly. Songs for children must be created by
+                                                  a parent/guardian or an authorised adult, and additional verification may be
+                                                  required.
+     Marketing and reminders use consent.         We may send birthday reminders, offers, and product updates where you consent or
+                                                  where applicable law allows. You can unsubscribe.
+     Cookies are controlled.                      Necessary cookies support checkout, security, and consent. Analytics and marketing
+                                                  cookies are controlled through the cookie banner where required.
+     Data rights still apply.                     Users may request access, correction, deletion, portability, or opt-out where
+                                                  applicable. Some records must be retained for legal, security, tax, or business
+                                                  reasons.
+
+
+
+
+00    How Sing My Birthday processes personal data
+This Privacy Policy explains how glomotec, Inc. and its affiliates, acting through glomotec Labs and the Sing My
+Birthday product, collect, use, store, disclose, and protect personal data when you access singmybirthday.com,
+create free or paid songs, purchase bundles, enter raffles or gifting mechanics, interact with our emails or
+advertising, or use Sing My as a venue, business, or partner.
+This Privacy Policy is incorporated into, and should be read together with, the Sing My Birthday Terms of Service,
+the Cookie Policy, any cookie banner or preference centre, and any separate venue, partner, or enterprise
+agreement that applies.
+Where mandatory privacy laws in your jurisdiction grant rights or protections beyond those described here,
+those mandatory provisions apply and your statutory rights are preserved.
+
+
+01    Who controls your personal data
+This Privacy Policy is issued by glomotec, Inc., a corporation incorporated in the State of Delaware, United States
+of America, with registered office at 131 Continental Drive, Suite 305, Newark, DE 19713, United States.
+Sing My Birthday is an engineering product developed and operated by glomotec Labs, the venture-incubation
+arm of glomotec, Inc. During the incubation period, glomotec, Inc. is the issuing entity, operator of record, and
+contracting party for Sing My Birthday.
+
+
+
+
+Sing My Birthday · Privacy Policy
+                                                   Privacy Policy · Sing My Birthday
+
+Where glomotec affiliates, service providers, or future Sing My entities process personal data in connection with
+Sing My Birthday, they do so under applicable agreements, controller/processor arrangements, intra-group
+controls, or other lawful transfer and processing mechanisms.
+Privacy notices and data-rights requests should be addressed to support@singmybirthday.com. If you contact
+glomotec through another channel, we may route your request internally to the Sing My Birthday team or the
+appropriate privacy contact.
+
+
+02   About this Privacy Policy
+2.1 Who this applies to
+This Privacy Policy applies to any natural person whose personal data is processed in connection with Sing My
+Birthday, including account holders, free users, paying consumers, gift senders, gift recipients where their
+information is provided by a user, parents or guardians, venue contacts, venue guests where a venue submits
+their birthday details, business prospects, partners, website visitors, social media users, and support contacts.
+
+2.2 Who the controller is
+For most Sing My Birthday consumer and website processing, glomotec, Inc. is the controller because it
+determines the purposes and means of processing.
+For venue and business use, the venue or business may be the controller for its own customer or guest data, and
+glomotec, Inc. may act as processor when it processes that data under the venue's instructions. Venue
+controller/processor terms should be addressed in a separate Venue Agreement and Data Processing
+Addendum.
+
+2.3 Scope of Sing My Birthday
+This Privacy Policy covers Sing My Birthday websites, applications, forms, APIs, email flows, social channels,
+content-generation pipelines, payment flows, account features, venue tools, and any related interfaces that link
+to this Privacy Policy.
+If a separate written agreement applies, such as a Venue Agreement, Data Processing Addendum, partnership
+agreement, or enterprise agreement, that agreement controls for the specific processing it covers.
+
+
+03   Definitions
+ Term                               Meaning
+ Personal data                      means any information relating to an identified or identifiable natural person.
+ Processing                         means any operation performed on personal data, including collection, recording, storage, use,
+                                    disclosure, sharing, analysis, deletion, or destruction.
+ Controller                         means the entity that determines the purposes and means of processing personal data.
+ Processor                          means an entity that processes personal data on behalf of a controller.
+ User Content                       means names, memories, prompts, text, preferences, uploads, or other information submitted
+                                    by or on behalf of a user.
+ Generated Output                   means songs, audio, video, lyrics, images, captions, share pages, or other outputs generated
+                                    through Sing My Birthday.
+ Child                              means a person under 13 in the United States, or another age threshold where applicable local
+                                    law sets a higher standard.
+ Special category data              means personal data that receives additional protection under applicable law, such as health,
+                                    biometric, race or ethnicity, religious belief, sexual orientation, or similar sensitive information.
+ Cookie                             means a cookie, pixel, tag, local storage item, SDK, or similar technology used to store or access
+                                    information on a device.
+
+
+
+
+Sing My Birthday · Privacy Policy
+                                              Privacy Policy · Sing My Birthday
+
+04   The personal data we collect
+The categories of personal data we collect depend on how you use Sing My Birthday. Not every category is
+collected from every user.
+
+4.1 Account, identity, and contact data
+    Name, display name, and account username.
+    Email address, phone number where provided, and contact preferences.
+    Authentication identifiers, login information, password hash, session identifiers, and account security events.
+    Age confirmation, adult-account confirmation, and parent/guardian confirmation where a song is created for
+     a child.
+    Billing contact information for consumers, venues, and businesses.
+
+4.2 Song, birthday, and personalisation data
+    Recipient first name or nickname, pronunciation notes, birthday date or birthday month/day, and optional
+     age range.
+    Relationship to the recipient, such as parent, friend, partner, sibling, colleague, venue guest, or other
+     category.
+    Language, country, city or approximate location, music style, tone, occasion type, gift context, delivery date,
+     and reminder preferences.
+    Personal memories, dedications, prompts, and other information you choose to provide for song or video
+     generation.
+    Generated Output metadata, including song version, style, model/provider, render timestamp, share link,
+     playback/download events, and regeneration history.
+
+4.3 Purchase, payment, and subscription data
+    Plan, product, price, currency, regional pricing tier, discount, coupon, trial status, and order history.
+    Stripe customer ID, checkout session ID, subscription status, payment status, refund status,
+     chargeback/dispute data, and invoice records.
+    Venue subscription details, billing contact, plan limits, founding-rate lock, multi-location details, white-label
+     options, and account usage.
+We do not store full payment card numbers ourselves. Payment processing is handled through Stripe or another
+payment processor.
+
+4.4 Venue, business, and partner data
+    Venue name, business type, location, website, social profile, decision-maker name, staff contact, billing
+     contact, and support contacts.
+    Estimated birthdays per month, languages commonly used, preferred use case, venue branding assets, and
+     pilot/onboarding status.
+    Discovery call notes, sales pipeline stage, objections, pricing feedback, agreement status,
+     renewal/cancellation records, support tickets, and venue-generated usage data.
+
+4.5 Raffle, voucher, gifting, and referral data
+    Raffle or giveaway entry information, eligibility, entry timestamp, prize/voucher status, and winner
+     communication.
+    Birthday reminder sign-ups, gift-recipient relationship, referral source, invite/share activity, and partner perk
+     selections.
+
+Sing My Birthday · Privacy Policy
+                                              Privacy Policy · Sing My Birthday
+
+    Fraud-prevention data for promotions, including duplicate entries, suspected abuse, and eligibility checks.
+
+4.6 Communication and support data
+    Emails, chat messages, support requests, social media messages, phone/meeting notes, call metadata, and
+     attachments you send us.
+    Transactional email events, including delivery, opens, clicks, bounce, unsubscribe, and suppression status.
+    Customer feedback, testimonials, consent records, permission to use a song/testimonial in promotional
+     material, and related audit history.
+
+4.7 Technical, device, analytics, and interaction data
+    IP address, approximate location inferred from IP, browser, operating system, device type, screen size,
+     language, time zone, and referring URL.
+    Pages viewed, clickstream, scroll depth, time on page, wait-screen interactions, generation steps, playback
+     events, downloads, shares, errors, performance metrics, and security events.
+    Campaign source, ad click identifiers, UTM parameters, referral source, affiliate/partner source, and
+     conversion events.
+    Cookie identifiers, consent choices, analytics identifiers, advertising pixels, and similar technology identifiers
+     as described in the Cookie Policy.
+
+4.8 Inferred, derived, aggregated, and synthetic data
+From the data above, we may create derived information, including engagement scores, market segments,
+pricing-performance insights, language demand, popular names, style demand, quality metrics, fraud-risk
+indicators, and anonymised, aggregated, derivative, or synthetic datasets.
+Where data is truly anonymised so that it can no longer identify you or another person, it is not personal data
+under many privacy laws and may be retained and used indefinitely.
+
+4.9 Data we do not deliberately collect
+Sing My Birthday is not designed to collect school names, precise home addresses of recipients, government
+identifiers, health data, religious beliefs, ethnicity, biometric identifiers, financial account numbers outside
+payment processor records, or other sensitive data unless a specific feature, legal requirement, or user
+submission makes it necessary.
+Users and venues should not submit sensitive information, school information, or precise child-location
+information. We may delete or restrict content that appears to contain unnecessary sensitive information.
+
+
+05   How we collect personal data
+5.1 Directly from you
+Most personal data is provided directly when you create an account, enter song details, generate a free preview,
+buy a song or bundle, enter a raffle, sign up for reminders, subscribe to emails, contact support, create a venue
+account, or communicate with us.
+
+5.2 From venues, businesses, and authorised users
+A venue or business may provide guest birthday details, staff contact information, branding assets, and usage
+information so Sing My Birthday can generate branded birthday songs or operate a venue subscription. The
+venue is responsible for having the authority or consent required to provide that information.
+
+
+
+
+Sing My Birthday · Privacy Policy
+                                               Privacy Policy · Sing My Birthday
+
+5.3 From third parties
+We may receive personal data from payment processors, authentication providers, analytics providers,
+advertising platforms, email delivery providers, social platforms, cloud infrastructure providers, venue partners,
+referral partners, public business sources, and other third-party services used to operate, secure, market, or
+improve Sing My Birthday.
+
+5.4 Automatically
+Some data is collected automatically when you interact with Sing My Birthday, including technical data, device
+data, cookie data, analytics events, advertising conversion events, and security logs.
+
+
+06   Why we process personal data
+ Purpose                            Examples
+ Provide the service                Create accounts, generate songs and videos, deliver previews, process purchases, create
+                                    share pages, send download links, and manage venue accounts.
+ Operate the data engine            Capture free-song signals, birthday reminders, raffle entries, preferences, relationship data,
+                                    language demand, pricing feedback, and conversion events.
+ Run payments and subscriptions     Create checkout sessions, process payments, manage trials, renew subscriptions, issue
+                                    credits/refunds, handle disputes, and maintain financial records.
+ Personalise and improve            Recommend styles, localise pricing, improve pronunciation, measure quality, analyse usage,
+                                    test funnels, train/improve AI systems, and build content-library insights.
+ Market and grow                    Send reminders, product offers, partner offers, newsletters, venue outreach, remarketing
+                                    campaigns, referral campaigns, and promotional communications where permitted.
+ Run raffles and promotions         Verify eligibility, administer vouchers or prizes, contact winners, prevent abuse, and improve
+                                    future gifting mechanics.
+ Security and compliance            Detect fraud, prevent misuse, enforce Terms, protect accounts, investigate incidents,
+                                    maintain audit logs, and comply with laws.
+ Legal rights and corporate         Defend claims, respond to legal requests, comply with tax/accounting rules, and support
+ transactions                       financing, investment, acquisition, merger, or restructuring activity.
+
+
+
+
+07   Our lawful bases for processing
+Where the UK GDPR, EU GDPR, UAE PDPL, or similar laws apply, we rely on one or more lawful bases depending
+on the processing purpose.
+
+7.1 Performance of a contract
+We process data to provide Sing My Birthday, create accounts, generate songs, deliver purchases, operate
+subscriptions, respond to support requests, and perform our Terms or a venue/business agreement.
+
+7.2 Consent
+We rely on consent where required for marketing emails, certain cookies and tracking technologies,
+promotional-use permissions, raffle/giveaway entries where consent is required, certain child-related
+processing, certain special-category data if ever submitted, and other processing where law requires affirmative
+consent.
+You may withdraw consent at any time through unsubscribe links, cookie preference controls, account settings,
+or by contacting support@singmybirthday.com. Withdrawal does not affect processing that occurred before
+withdrawal.
+
+7.3 Legal obligation
+We process data to comply with tax, accounting, payment, sanctions, fraud-prevention, child-protection,
+consumer-protection, data-protection, and other legal obligations.
+
+
+Sing My Birthday · Privacy Policy
+                                            Privacy Policy · Sing My Birthday
+
+7.4 Legitimate interests
+We process data where necessary for legitimate interests pursued by glomotec, Sing My Birthday, a venue, a
+partner, or a third party, except where those interests are overridden by your rights. Legitimate interests include
+operating and improving the service, preventing fraud, measuring performance, conducting analytics,
+developing products, protecting security, marketing to business contacts, managing partnerships, and
+defending legal claims.
+Where required, we carry out balancing tests for legitimate-interest processing. A summary may be available on
+request.
+
+7.5 Vital interests and public task
+In rare cases, we may rely on vital interests or public task grounds, but these bases are limited to the narrow
+circumstances they cover.
+
+
+08   Special category and sensitive data
+Sing My Birthday does not seek to collect special category or sensitive personal data. If you voluntarily submit
+sensitive information in a prompt, memory, dedication, or support message, we may process it only as necessary
+to provide the requested service, protect safety and security, comply with law, or exercise legal rights.
+If a feature later requires processing of sensitive data, we will use an appropriate lawful basis or consent
+mechanism where required and will update this Privacy Policy or the product flow.
+
+
+09   Children's privacy
+Sing My Birthday is intended for adults and is not directed to children under 13. Children under 13 may not
+create accounts, purchase products, enter raffles, or use Sing My Birthday directly.
+Adults may create birthday songs for children only if they are the child's parent or legal guardian, or they have
+appropriate authorisation from the parent or legal guardian. We may require additional verification where
+required by law or where the product flow involves child-related personal data.
+Where verifiable parental consent is required, a checkbox alone may not be sufficient. We may use methods
+such as email plus a small payment-card verification charge, identity verification, signed consent forms, or other
+mechanisms reasonably designed to confirm the adult's authority.
+We do not knowingly market directly to children. We may market to parents or adult account holders about
+products, reminders, gifts, or offers related to children only where permitted by law and consent choices.
+If we learn that we have collected personal data directly from a child under 13 without required consent, we will
+delete or restrict that data without undue delay, unless retention is required by law, security, or abuse-
+prevention needs. Parents or guardians may contact support@singmybirthday.com to request access, deletion,
+or review of child-related data.
+
+
+10   Sharing your personal data
+10.1 Categories of recipients
+We disclose personal data only as reasonably necessary for the purposes described in this Privacy Policy, the
+Terms, a venue/business agreement, or as required or permitted by law. Recipients may include:
+    Service providers and processors that provide hosting, databases, storage, AI generation, rendering, email
+     delivery, analytics, advertising, payments, fraud prevention, support, and security.
+    Affiliates, successors, and assigns within or related to the glomotec group or any future Sing My entity.
+
+
+
+Sing My Birthday · Privacy Policy
+                                                      Privacy Policy · Sing My Birthday
+
+      Payment processors such as Stripe for checkout, subscriptions, invoices, refunds, disputes, and fraud
+       prevention.
+      AI and media providers that help generate lyrics, songs, audio, images, videos, captions, or other
+       Generated Output.
+      Advertising and analytics partners for measurement, attribution, remarketing, audience-building, and
+       campaign optimisation, subject to consent and opt-out rights where required.
+      Venue and business customers where the processing relates to venue operations, guest birthday
+       moments, branded pages, or account administration.
+      Promotion and raffle partners where needed to administer a promotion, deliver a voucher or prize, verify
+       eligibility, or prevent abuse.
+      Professional advisers including lawyers, accountants, auditors, insurers, and compliance advisers.
+      Government, regulatory, judicial, or law-enforcement authorities where required or permitted by law.
+      Corporate transaction counterparties in connection with a financing, merger, acquisition, restructuring,
+       bankruptcy, sale of assets, or transfer of Sing My Birthday to a separate legal entity.
+
+10.2 Current and expected sub-processors
+The following table identifies major providers expected to support Sing My Birthday. The exact provider list may
+change as the product evolves.
+    Provider                        Role                                                           Jurisdiction / notes
+    Stripe                          Payments, checkout, subscriptions, refunds, disputes           United States / global
+    Supabase or equivalent          Database, authentication, storage, user/account data           United States / EU region where
+    Postgres stack                                                                                 configured
+    Vercel                          Application hosting, edge functions, analytics or deployment   United States / global
+                                    infrastructure
+    Hostinger                       Domain, DNS, and website hosting infrastructure                Global
+    Resend or equivalent            Transactional email delivery                                   United States / global
+    Zoho or equivalent              Human mailboxes and business email                             Global
+    Anthropic                       AI lyric, prompt, content, or text generation                  United States
+    fal.ai                          Image/video generation or rendering infrastructure             United States / global
+    Suno or selected music          Music/audio generation or related services                     Provider-dependent
+    provider
+    Cloudflare / R2 / similar       Asset storage, security, caching, CDN, DNS, and related        Global
+    storage                         infrastructure
+    Google Analytics / Vercel       Analytics, funnel measurement, performance metrics             Global
+    Analytics / similar
+    Meta, TikTok, Google Ads,       Advertising pixels, campaign measurement, remarketing          Global
+    or similar
+    YouTube, TikTok,                Content distribution, discovery, social engagement             Global
+    Instagram
+
+
+
+10.3 No sale for money; advertising sharing may occur
+We do not sell personal data for money. We may share certain identifiers, cookie data, online activity, or
+conversion events with advertising and analytics partners for cross-context behavioural advertising,
+measurement, or remarketing where permitted by law and your consent or opt-out choices. California users and
+other eligible users may exercise opt-out rights as described below.
+
+10.4 Sub-processor changes
+We may add, remove, or replace sub-processors as Sing My Birthday evolves. Where required by law or
+agreement, we will provide notice or maintain a current list in this Privacy Policy or another accessible location.
+
+
+
+
+Sing My Birthday · Privacy Policy
+                                              Privacy Policy · Sing My Birthday
+
+11   Retention
+We keep personal data for as long as needed for the purposes described in this Privacy Policy, unless a longer
+retention period is required or permitted by law. Some data may be retained indefinitely unless deleted, but this
+is subject to applicable law, data-minimisation obligations, verified rights requests, security needs, and purpose-
+bound retention limits.
+ Data type                               Typical retention approach
+ Account data                            For the account lifetime, then a reasonable period after closure for security, audit,
+                                         support, and dispute purposes.
+ Generated Output and song metadata      Indefinitely unless deleted or restricted, subject to user rights, product needs, library
+                                         use, fraud/security, and applicable law.
+ Payment, invoice, tax, and accounting   As required for tax, accounting, chargeback, fraud, and legal purposes. This may be
+ records                                 several years depending on jurisdiction.
+ Marketing data                          Until consent is withdrawn, unsubscribe occurs, or the data is no longer needed for the
+                                         marketing purpose.
+ Raffle and promotion data               For the duration of the promotion plus a reasonable period for eligibility, tax, fraud-
+                                         prevention, and dispute purposes.
+ Venue and business records              For the customer relationship plus a reasonable legal, tax, audit, and dispute period.
+ Cookie and analytics data               According to cookie settings, provider defaults, or the retention periods described in
+                                         the Cookie Policy.
+ Anonymised or aggregated data           Indefinitely, because it does not identify a person.
+
+
+
+
+12   Your privacy rights
+Depending on your location and applicable law, you may have rights to request access, correction, deletion,
+restriction, portability, objection, withdrawal of consent, opt-out of sale or sharing, opt-out of targeted
+advertising, opt-out of certain automated decisions, and non-discrimination for exercising privacy rights.
+To exercise rights, contact support@singmybirthday.com. We may verify your identity before responding. If you
+are a parent or guardian requesting rights over child-related data, we may request evidence of your authority.
+We aim to respond within the period required by applicable law. Some requests may be denied or limited where
+we need to keep data for security, legal, tax, contractual, fraud-prevention, dispute, or other lawful reasons.
+
+12.1 California privacy rights
+Where the CCPA/CPRA applies, California residents may have the right to know categories of personal
+information collected, sources, purposes, recipients, retention periods, and categories of information sold or
+shared; the right to request deletion or correction; the right to opt out of sale or sharing; the right to limit use of
+sensitive personal information where applicable; and the right not to be discriminated against for exercising
+these rights.
+We do not sell personal information for money. We may share personal information for cross-context
+behavioural advertising or similar advertising purposes where permitted by law. Eligible users may opt out
+through cookie controls, privacy settings, or by contacting support@singmybirthday.com. If required, we will
+provide a 'Your Privacy Choices' or equivalent mechanism.
+
+12.2 EU/UK privacy rights
+Where the EU GDPR or UK GDPR applies, you may have rights to access, rectification, erasure, restriction,
+objection, portability, withdrawal of consent, and complaint to a supervisory authority. You may also have rights
+in relation to automated decision-making where applicable.
+
+
+
+
+Sing My Birthday · Privacy Policy
+                                           Privacy Policy · Sing My Birthday
+
+13   Cookies, analytics, and advertising technologies
+We use cookies and similar technologies to operate Sing My Birthday, keep accounts and payments secure,
+remember preferences, measure usage, improve the product, run analytics, attribute campaigns, and support
+advertising or remarketing.
+Strictly necessary cookies may be used without consent where permitted because the service cannot work
+properly without them. Analytics, marketing, preference, and similar cookies are handled through the cookie
+banner or preference centre where required.
+You can manage cookie choices through the cookie banner, preference centre, browser settings, or platform-
+level controls. The Cookie Policy provides more detail on cookie categories, retention, providers, and how to
+change preferences.
+
+
+14   Artificial intelligence and Generated Output
+Sing My Birthday uses artificial intelligence, third-party models, rendering systems, and related tools to generate
+or assist with songs, lyrics, audio, video, images, captions, recommendations, and other outputs.
+We may process User Content, Generated Output, prompts, metadata, quality signals, engagement events, and
+feedback to generate outputs, improve the product, measure quality, train or fine-tune models where permitted,
+create content-library assets, and develop new features.
+AI-generated output may contain errors, pronunciation issues, hallucinations, artefacts, repetition, or undesired
+content. Users are responsible for reviewing outputs before sharing them publicly. We may regenerate, refuse,
+remove, limit, or restrict outputs where necessary for safety, quality, legal, policy, or business reasons.
+
+
+15   Promotional use, testimonials, and public sharing
+We may ask for permission to feature a song, testimonial, image, video, story, logo, venue name, or other
+content in promotional material. We will not publicly feature personal song outputs, child-related outputs,
+personal stories, user images, user voice, or venue logos for promotional purposes without additional
+permission from the relevant account holder, parent/guardian, venue, or authorised person where required.
+If you use a public sharing feature or post Generated Output on social media, that content may be visible to
+others according to your sharing choices and the third-party platform's rules.
+
+
+16   International transfers
+Sing My Birthday is operated from the United States and uses global service providers. Your personal data may
+be processed in the United States, United Kingdom, European Union, United Arab Emirates, and other countries
+where we or our providers operate.
+Where applicable law requires transfer safeguards, we use mechanisms such as Standard Contractual Clauses,
+contractual commitments, adequacy decisions, processor agreements, or other lawful transfer mechanisms.
+
+
+17   Security
+We use administrative, technical, and organisational safeguards designed to protect personal data against
+unauthorised access, loss, misuse, alteration, and disclosure. These may include access controls, authentication,
+logging, encryption in transit, vendor controls, least-privilege access, backups, incident response, and security
+monitoring.
+No service can guarantee perfect security. You are responsible for protecting your account credentials, using
+strong passwords, enabling available security controls, and notifying us promptly if you suspect unauthorised
+access.
+
+Sing My Birthday · Privacy Policy
+                                                   Privacy Policy · Sing My Birthday
+
+18   Venue and business customers
+Where venues or businesses use Sing My Birthday for guest birthdays, branded songs, white-label pages, QR
+codes, staff flows, or multi-location accounts, additional terms may apply. The venue is responsible for ensuring
+it has the lawful right to submit guest information and for providing any notices or consents required for its own
+customers, guests, or staff.
+Where data-protection law requires a written controller/processor agreement or Data Processing Addendum, it
+should be included in the separate Venue Agreement or related commercial documentation.
+
+
+19   Raffles, giveaways, vouchers, and gifting mechanics
+If you enter a raffle, giveaway, voucher, referral, gifting promotion, or similar mechanic, we process your data to
+administer the promotion, verify eligibility, prevent fraud, contact winners, deliver prizes or vouchers, comply
+with law, and improve future promotions.
+Sing My Birthday promotions are occasional and may be subject to additional official rules. Non-cash prize
+values, jurisdiction exclusions, no-purchase-required entry options, tax handling, eligibility, and winner selection
+will be set out in the applicable promotion rules.
+
+
+20   Automated decisions
+Sing My Birthday may use automated systems to generate content, localise pricing, detect fraud, rank
+recommendations, measure usage, and personalise offers. We do not intend to make legal or similarly
+significant decisions about users solely by automated means without a lawful basis and required safeguards.
+Where applicable law gives you rights in relation to automated decision-making, you may contact
+support@singmybirthday.com.
+
+
+21   Changes to this Privacy Policy
+We may update this Privacy Policy from time to time. The updated version will be posted on singmybirthday.com
+with a revised version or effective date. Where required by law or where changes materially affect your rights,
+we may provide additional notice by email, in-product message, banner, or other reasonable method.
+Continued use of Sing My Birthday after an updated Privacy Policy takes effect means you acknowledge the
+updated policy, subject to any consent rights or mandatory laws that apply.
+
+
+22   Contact
+For privacy questions, rights requests, child-data concerns, cookie questions, or data-protection matters, contact:
+Sing My Birthday Privacy Team
+glomotec, Inc.
+131 Continental Drive, Suite 305, Newark, DE 19713, United States
+Email: support@singmybirthday.com
+If you are contacting us from a jurisdiction with a supervisory authority, you may also have the right to lodge a
+complaint with that authority.
+
+
+23   Appendix A - data map
+ Data                               Uses                                                       Typical lawful basis
+ Email address                      Account, delivery, marketing, reminders, raffle, support   Contract, consent, legitimate
+                                                                                               interests
+
+Sing My Birthday · Privacy Policy
+                                                    Privacy Policy · Sing My Birthday
+ Recipient first name/nickname      Generate songs, personalise output, improve                   Contract, legitimate interests,
+                                    pronunciation                                                 consent where required
+ Birthday date/month                Song generation, reminders, raffles, gifting mechanics,       Contract, consent, legitimate
+                                    analytics                                                     interests
+ Relationship to recipient          Personalisation, segmentation, recommendations,               Contract, consent, legitimate
+                                    analytics                                                     interests
+ Country/location                   Regional pricing, analytics, compliance, marketing            Contract, legitimate interests, legal
+                                    localisation                                                  obligation
+ Style/language/preferences         Generate songs, improve product, recommend options,           Contract, legitimate interests
+                                    analytics
+ Payment/subscription data          Checkout, invoices, subscriptions, refunds, chargebacks       Contract, legal obligation, legitimate
+                                                                                                  interests
+ Venue data                         Sales, onboarding, subscription, branded songs,               Contract, legitimate interests, legal
+                                    support                                                       obligation
+ Technical/device data              Security, analytics, performance, attribution                 Legitimate interests, consent where
+                                                                                                  required
+ Cookie/advertising data            Analytics, attribution, remarketing, consent tracking         Consent, legitimate interests where
+                                                                                                  permitted
+ Generated Output metadata          Delivery, quality, library, analytics, model/product          Contract, legitimate interests,
+                                    improvement                                                   consent where required
+
+
+
+
+24   Appendix B - cookies and similar technologies
+ Category                           Purpose                                                               Control
+ Strictly necessary                 Checkout, security, session, consent preferences, fraud               Always active where needed
+                                    prevention, account access
+ Preferences                        Language, region, pricing tier, display choices, saved settings       Consent or legitimate
+                                                                                                          interests depending on
+                                                                                                          jurisdiction
+ Analytics                          Visits, generation funnel, playback, downloads, shares,               Consent where required
+                                    performance, errors
+ Marketing / advertising            Remarketing, campaign measurement, pixels, conversion                 Consent and opt-out where
+                                    tracking, audiences                                                   required
+ Transactional technology           Email delivery, receipts, song delivery, password resets, account     Contract and legitimate
+                                    notifications                                                         interests
+
+
+
+
+Sing My Birthday · Privacy Policy
+

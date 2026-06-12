@@ -32,7 +32,13 @@ export default async function SharePage({
 
   return (
     <>
-      <TrackShareView venue_slug={song.venueSlug ?? null} />
+      <TrackShareView
+        venue_slug={song.venueSlug ?? null}
+        share_id={song.id}
+        recipient_name={song.name}
+        language={song.language}
+        genre={song.genre}
+      />
       <ShareTemplateView song={song} />
     </>
   );
