@@ -45,6 +45,29 @@ export function EventBadge({ type }: { type: string | null }) {
   return <Badge tone={EVENT_TONE[type] ?? "neutral"}>{type}</Badge>;
 }
 
+// Content-package status + permission-bucket badges (shared by list + detail).
+const STATUS_TONE: Record<string, Tone> = {
+  "needs-permission": "amber",
+  "private-share-only": "red",
+  "approved-for-promo": "blue",
+  "pending-review": "amber",
+  "approved-by-hicrete": "green",
+  "declined-by-hicrete": "red",
+  "posted": "purple",
+};
+export function StatusBadge({ status }: { status: string }) {
+  return <Badge tone={STATUS_TONE[status] ?? "neutral"}>{status}</Badge>;
+}
+
+const BUCKET_TONE: Record<string, Tone> = {
+  "needs-permission": "amber",
+  "private-share-only": "red",
+  "approved-for-promo": "green",
+};
+export function BucketBadge({ bucket }: { bucket: string }) {
+  return <Badge tone={BUCKET_TONE[bucket] ?? "neutral"}>{bucket}</Badge>;
+}
+
 export function Panel({ title, children }: { title?: string; children: ReactNode }) {
   return (
     <div className="mb-4 rounded-lg border border-neutral-800 bg-neutral-900/40 p-3">
