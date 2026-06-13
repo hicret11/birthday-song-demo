@@ -1,0 +1,33 @@
+{
+  "_note": "Ready-to-paste pilot post. Copy this object (without _note) into the `posts` array in posts.json once ai_phone_glow_01.mp4 is in assets/ai-generated/approved/. It renders the AI clip with hook + song bed + CTA + caption. Nothing is posted.",
+  "post_id": "smb_ai_pilot_phoneglow",
+  "campaign": "ai_pilot",
+  "date": "2026-06-16",
+  "platforms": ["tiktok", "instagram_reels", "youtube_shorts"],
+  "pillar": "reveal",
+  "hook": "This is what YOUR name sounds like",
+  "on_screen_text": "in a real birthday song",
+  "caption": "press play 🎶 hearing your own name in a song hits different 💗",
+  "cta": "Hear your name → link in bio",
+  "hashtags": ["#birthdaysong", "#personalizedgift", "#giftideas", "#singmybirthday", "#customsong", "#birthdaygift"],
+  "utm_content": "ai_pilot_phoneglow",
+  "utm_urls": {
+    "tiktok": "https://singmybirthday.com/?utm_source=tiktok&utm_medium=organic&utm_campaign=ai_pilot&utm_content=ai_pilot_phoneglow",
+    "instagram_reels": "https://singmybirthday.com/?utm_source=instagram&utm_medium=organic&utm_campaign=ai_pilot&utm_content=ai_pilot_phoneglow",
+    "youtube_shorts": "https://singmybirthday.com/?utm_source=youtube&utm_medium=organic&utm_campaign=ai_pilot&utm_content=ai_pilot_phoneglow"
+  },
+  "asset_id": "ai_phone_glow_01",
+  "asset_type": "ai_generated",
+  "asset_permission_status": "na_brand_made",
+  "permission_record_url": null,
+  "adult_targeting_confirmed": true,
+  "approval_status": "draft",
+  "render_status": "draft",
+  "ai_tool": "luma",
+  "ai_prompt": "Vertical 9:16 cinematic extreme close-up of a modern smartphone lying on a soft cream blanket, glowing warmly in a dim cozy room, gentle warm light pulsing softly, blurred fairy-light bokeh in the background, shallow depth of field, intimate, realistic, no text on screen.",
+  "ai_negative_prompt": "children, people, faces, readable screen text, brand logos, watermark, distorted shapes, low quality",
+  "ai_generation_status": "pending",
+  "ai_quality_status": "pending",
+  "ai_quality_notes": "",
+  "source_ai_clip_path": "assets/ai-generated/approved/ai_phone_glow_01.mp4"
+}

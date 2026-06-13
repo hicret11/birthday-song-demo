@@ -12,7 +12,10 @@
     "discovery:batch": "tsx scripts/discovery/generate-batch.ts",
     "build:cake-assets": "node scripts/build_cake_assets.mjs",
     "privacy:export": "tsx scripts/privacy/export-user-data.ts",
-    "privacy:plan-delete": "tsx scripts/privacy/export-user-data.ts --mode=plan-delete"
+    "privacy:plan-delete": "tsx scripts/privacy/export-user-data.ts --mode=plan-delete",
+    "content:validate": "node content-automation/scripts/validate-posts.mjs",
+    "content:render": "node content-automation/scripts/render-posts.mjs",
+    "content:package-share": "node content-automation/scripts/package-share.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.95.2",

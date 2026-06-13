@@ -1,0 +1,12 @@
+# Share IDs to package — one per line.
+# Copy this file to share-ids.txt and replace with real share IDs.
+# Blank lines and lines starting with '#' are ignored.
+# This is SAFER than scanning KV: you only package IDs you explicitly list.
+#
+# Usage:
+#   npm run content:package-share -- --share-ids-file=content-automation/share-ids.txt
+#   (add --dry to preview buckets without writing files)
+
+# --- examples (these are placeholders and will fail as "not found") ---
+abcd1234
+wxyz5678
