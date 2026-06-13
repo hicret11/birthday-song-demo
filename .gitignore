@@ -54,3 +54,16 @@ out/
 
 # Privacy exports — contain PII; never commit
 privacy-exports/
+
+# Content-automation rendered output + local source clips (media, not source)
+content-automation/output/
+content-automation/assets/*.mp4
+content-automation/assets/*.mov
+# AI-generated source clips (media only — keep .gitkeep + metadata .json tracked)
+content-automation/assets/ai-generated/**/*.mp4
+content-automation/assets/ai-generated/**/*.mov
+
+# Product-output packages (rendered media + may reference recipient data — never commit)
+content-automation/product-outputs/
+# Real share-ID lists (keep the .example template tracked)
+content-automation/share-ids.txt
