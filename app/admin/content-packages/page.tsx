@@ -42,7 +42,15 @@ export default async function ContentPackagesPage({ searchParams }: { searchPara
       </form>
 
       {!result.ok && result.missing && (
-        <p className="rounded border border-amber-700 bg-amber-950 px-3 py-2 text-amber-300">{result.message}</p>
+        <div className="rounded-lg border border-amber-800 bg-amber-950/60 p-5 text-sm text-amber-200">
+          <p className="mb-2 font-semibold">Content package tables are not applied yet.</p>
+          <ul className="ml-4 list-disc space-y-1 text-amber-200/90">
+            <li>The Phase B migration (<span className="font-mono">admin_content_packages</span>) hasn&apos;t been applied to this environment yet — expected on preview.</li>
+            <li>It applies automatically during the <span className="font-medium">production build</span> when this PR merges (via <span className="font-mono">apply-migrations.mjs</span>).</li>
+            <li>After that, rows appear once you run <span className="font-mono">npm run content:package-share -- --share-id=&lt;id&gt; --record-admin</span>.</li>
+            <li>An empty list here right now is expected and not an error.</li>
+          </ul>
+        </div>
       )}
       {!result.ok && !result.missing && (
         <p className="rounded border border-red-800 bg-red-950 px-3 py-2 text-red-300">Query error: {result.error}</p>

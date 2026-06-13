@@ -17,7 +17,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       {authed && (
         <nav className="flex items-center gap-4 border-b border-neutral-800 bg-neutral-900 px-4 py-2">
           <span className="font-semibold text-neutral-400">SMB Admin</span>
-          <Link href="/admin/generations" className="hover:underline">Generations</Link>
+          <Link href="/admin/generations" className="hover:underline">Events</Link>
+          <Link href="/admin/captures" className="hover:underline">Captures</Link>
           <Link href="/admin/shares" className="hover:underline">Shares</Link>
           <Link href="/admin/content-packages" className="hover:underline">Content Packages</Link>
           <form action={logoutAction} className="ml-auto">
