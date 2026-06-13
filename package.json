@@ -15,7 +15,8 @@
     "privacy:plan-delete": "tsx scripts/privacy/export-user-data.ts --mode=plan-delete",
     "content:validate": "node content-automation/scripts/validate-posts.mjs",
     "content:render": "node content-automation/scripts/render-posts.mjs",
-    "content:package-share": "node content-automation/scripts/package-share.mjs"
+    "content:package-share": "node content-automation/scripts/package-share.mjs",
+    "outreach:import": "tsx scripts/outreach-import.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.95.2",
