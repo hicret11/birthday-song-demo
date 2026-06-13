@@ -60,6 +60,38 @@ export const tableCls = "w-full border-collapse text-xs";
 export const theadCls = "border-b border-neutral-700 text-left text-neutral-400";
 export const trCls = "border-b border-neutral-900 hover:bg-neutral-900/60";
 
+/** Mask an email for table display: hi•••@gmail.com. Full value when reveal=true. */
+export function maskEmail(email: string | null, reveal = false): string {
+  if (!email) return "—";
+  if (reveal) return email;
+  const [user, domain] = email.split("@");
+  if (!domain) return "•••";
+  return `${user.slice(0, 2)}${"•".repeat(3)}@${domain}`;
+}
+
+type CalloutTone = "neutral" | "amber" | "green" | "red" | "blue";
+const CALLOUT: Record<CalloutTone, string> = {
+  neutral: "border-neutral-800 bg-neutral-900/50 text-neutral-300",
+  amber: "border-amber-800/70 bg-amber-950/40 text-amber-200",
+  green: "border-green-800/70 bg-green-950/40 text-green-200",
+  red: "border-red-800/70 bg-red-950/40 text-red-200",
+  blue: "border-blue-800/70 bg-blue-950/40 text-blue-200",
+};
+export function Callout({
+  tone = "neutral", title, children,
+}: { tone?: CalloutTone; title?: ReactNode; children: ReactNode }) {
+  return (
+    <div className={`rounded-lg border p-4 text-sm ${CALLOUT[tone]}`}>
+      {title && <div className="mb-1.5 font-semibold">{title}</div>}
+      <div className="space-y-1.5 leading-relaxed opacity-95">{children}</div>
+    </div>
+  );
+}
+
+/** Small link-style button for opening external resources. */
+export const linkBtnCls =
+  "inline-flex items-center gap-1 rounded-md border border-neutral-700 bg-neutral-800/60 px-2.5 py-1 text-xs font-medium text-neutral-200 hover:border-neutral-600 hover:bg-neutral-800";
+
 export function fmtTs(ts: string | null): string {
   if (!ts) return "—";
   const d = new Date(ts);

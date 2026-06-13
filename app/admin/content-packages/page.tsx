@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/admin-auth";
 import { listPackages, PACKAGE_STATUSES, PERMISSION_BUCKETS } from "@/lib/admin-packages";
+import { Callout } from "../_ui";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,7 +22,10 @@ export default async function ContentPackagesPage({ searchParams }: { searchPara
   const input = "rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-neutral-100";
   return (
     <div>
-      <h1 className="mb-3 text-base font-semibold">Content Packages <span className="text-neutral-500">(Hicrete review)</span></h1>
+      <div className="mb-4 flex items-baseline justify-between">
+        <h1 className="text-xl font-semibold tracking-tight">Content Packages</h1>
+        <span className="text-xs text-neutral-500">Hicrete review queue</span>
+      </div>
 
       <form method="GET" className="mb-4 flex flex-wrap items-end gap-2">
         <label className="flex flex-col gap-1 text-xs text-neutral-400">Status
@@ -42,18 +46,20 @@ export default async function ContentPackagesPage({ searchParams }: { searchPara
       </form>
 
       {!result.ok && result.missing && (
-        <div className="rounded-lg border border-amber-800 bg-amber-950/60 p-5 text-sm text-amber-200">
-          <p className="mb-2 font-semibold">Content package tables are not applied yet.</p>
-          <ul className="ml-4 list-disc space-y-1 text-amber-200/90">
-            <li>The Phase B migration (<span className="font-mono">admin_content_packages</span>) hasn&apos;t been applied to this environment yet — expected on preview.</li>
-            <li>It applies automatically during the <span className="font-medium">production build</span> when this PR merges (via <span className="font-mono">apply-migrations.mjs</span>).</li>
-            <li>After that, rows appear once you run <span className="font-mono">npm run content:package-share -- --share-id=&lt;id&gt; --record-admin</span>.</li>
-            <li>An empty list here right now is expected and not an error.</li>
-          </ul>
-        </div>
+        <Callout tone="blue" title="Not set up yet — this is expected on preview">
+          <p>The Phase B table <span className="font-mono">admin_content_packages</span> hasn&apos;t been created in this environment. An empty list here is normal, not an error.</p>
+          <div className="mt-2">
+            <div className="mb-1 font-medium">What happens after merge:</div>
+            <ol className="ml-5 list-decimal space-y-1">
+              <li>The migration applies automatically during the <span className="font-medium">production build</span> (via <span className="font-mono">apply-migrations.mjs</span>).</li>
+              <li>Run <span className="font-mono">npm run content:package-share -- --share-id=&lt;id&gt; --record-admin</span>.</li>
+              <li>Packages appear here for review (Approve / Decline / Reset / Mark posted).</li>
+            </ol>
+          </div>
+        </Callout>
       )}
       {!result.ok && !result.missing && (
-        <p className="rounded border border-red-800 bg-red-950 px-3 py-2 text-red-300">Query error: {result.error}</p>
+        <Callout tone="red" title="Query error">{result.error}</Callout>
       )}
 
       {result.ok && (

@@ -2,8 +2,8 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/admin-auth";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import {
-  Badge, Panel, StatCard, StatGrid,
-  inputCls, btnCls, tableCls, theadCls, trCls, fmtTs, cutoffIso,
+  Badge, Callout, Panel, StatCard, StatGrid,
+  inputCls, btnCls, tableCls, theadCls, trCls, fmtTs, cutoffIso, maskEmail,
 } from "../_ui";
 
 export const runtime = "nodejs";
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 const LIMIT = 100;
 
-type Filters = { from?: string; to?: string; email?: string; venue_slug?: string };
+type Filters = { from?: string; to?: string; email?: string; venue_slug?: string; reveal?: string };
 type Row = {
   id: string; email: string | null; recipient_name: string | null;
   target_age: number | null; target_under_13: boolean | null; target_is_minor: boolean | null;
@@ -46,6 +46,7 @@ async function count(opts: { sp: Filters; sinceHours?: number; eq?: [string, unk
 export default async function CapturesPage({ searchParams }: { searchParams: Promise<Filters> }) {
   await requireAdmin();
   const sp = await searchParams;
+  const reveal = sp.reveal === "1";
 
   let rows: Row[] = [];
   let err: string | null = null;
@@ -66,15 +67,16 @@ export default async function CapturesPage({ searchParams }: { searchParams: Pro
     err = e instanceof Error ? e.message : "query failed";
   }
 
-  const uniqEmails = new Set(rows.map((r) => r.email).filter(Boolean)).size;
+  const revealQS = new URLSearchParams({ ...sp, reveal: "1" } as Record<string, string>);
 
   return (
     <div>
-      <div className="mb-1 flex items-baseline justify-between">
-        <h1 className="text-lg font-semibold">Capture History</h1>
-        <span className="text-xs text-neutral-500">lead / capture records — not completed-song history</span>
+      <h1 className="mb-1 text-xl font-semibold tracking-tight">Capture History</h1>
+      <div className="mb-5">
+        <Callout tone="amber" title="Lead / capture records — not completed-song history">
+          <p>From <span className="font-mono">waitlist_leads</span>: form &amp; wait-state captures. A row here <span className="font-semibold">does not</span> mean a song was generated, shared, or approved for promo.</p>
+        </Callout>
       </div>
-      <p className="mb-4 text-xs text-neutral-500">From <span className="font-mono">waitlist_leads</span>: form/wait-state captures. A row here does not mean a song was generated or shared.</p>
 
       <StatGrid>
         <StatCard label="Total captures" value={total ?? "—"} />
@@ -88,8 +90,9 @@ export default async function CapturesPage({ searchParams }: { searchParams: Pro
         <form method="GET" className="flex flex-wrap items-end gap-2">
           <label className="flex flex-col gap-1 text-xs text-neutral-400">From<input type="date" name="from" defaultValue={sp.from ?? ""} className={inputCls} /></label>
           <label className="flex flex-col gap-1 text-xs text-neutral-400">To<input type="date" name="to" defaultValue={sp.to ?? ""} className={inputCls} /></label>
-          <label className="flex flex-col gap-1 text-xs text-neutral-400">Email<input type="text" name="email" defaultValue={sp.email ?? ""} className={inputCls} /></label>
+          <label className="flex flex-col gap-1 text-xs text-neutral-400">Email<input type="text" name="email" defaultValue={sp.email ?? ""} placeholder="search…" className={inputCls} /></label>
           <label className="flex flex-col gap-1 text-xs text-neutral-400">Venue<input type="text" name="venue_slug" defaultValue={sp.venue_slug ?? ""} className={inputCls} /></label>
+          {reveal && <input type="hidden" name="reveal" value="1" />}
           <button type="submit" className={btnCls}>Filter</button>
           <Link href="/admin/captures" className="px-2 py-1.5 text-neutral-400 hover:underline">Reset</Link>
         </form>
@@ -98,48 +101,54 @@ export default async function CapturesPage({ searchParams }: { searchParams: Pro
       {err && <p className="mb-3 rounded border border-red-800 bg-red-950 px-3 py-2 text-red-300">Query error: {err}</p>}
 
       {!err && rows.length === 0 && (
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-5 text-sm text-neutral-400">No capture records match the current filters.</div>
+        <Callout tone="neutral">No capture records match the current filters.</Callout>
       )}
 
       {rows.length > 0 && (
         <>
-          <p className="mb-2 text-xs text-neutral-500">Showing {rows.length}{rows.length === LIMIT ? ` (capped at ${LIMIT})` : ""}, newest first.</p>
+          <div className="mb-2 flex items-center justify-between text-xs text-neutral-500">
+            <span>Showing {rows.length}{rows.length === LIMIT ? ` (capped at ${LIMIT})` : ""}, newest first.</span>
+            <Link href={reveal ? "/admin/captures" : `/admin/captures?${revealQS.toString()}`} className="hover:underline">{reveal ? "Mask emails" : "Reveal emails"}</Link>
+          </div>
           <div className="overflow-x-auto rounded-lg border border-neutral-800">
             <table className={tableCls}>
               <thead><tr className={theadCls}>
-                <th className="px-2.5 py-1.5">created_at</th><th className="px-2.5 py-1.5">recipient</th>
-                <th className="px-2.5 py-1.5">email</th><th className="px-2.5 py-1.5">age</th>
-                <th className="px-2.5 py-1.5">lang</th><th className="px-2.5 py-1.5">genre</th>
-                <th className="px-2.5 py-1.5">relationship</th><th className="px-2.5 py-1.5">venue</th>
-                <th className="px-2.5 py-1.5">geo</th><th className="px-2.5 py-1.5">consent</th>
+                <th className="px-3 py-2">created_at</th><th className="px-3 py-2">recipient</th>
+                <th className="px-3 py-2">age</th><th className="px-3 py-2">lang</th>
+                <th className="px-3 py-2">genre</th><th className="px-3 py-2">relationship</th>
+                <th className="px-3 py-2">venue</th><th className="px-3 py-2">geo</th>
+                <th className="px-3 py-2">consent</th><th className="px-3 py-2">email</th>
               </tr></thead>
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.id} className={trCls}>
-                    <td className="whitespace-nowrap px-2.5 py-1.5 font-mono text-neutral-400">{fmtTs(r.created_at)}</td>
-                    <td className="px-2.5 py-1.5">{r.recipient_name ?? "—"}</td>
-                    <td className="px-2.5 py-1.5 text-neutral-400">{r.email ?? "—"}</td>
-                    <td className="px-2.5 py-1.5">
-                      {r.target_age ?? "—"}{" "}
-                      {r.target_under_13 ? <Badge tone="red">under 13</Badge> : r.target_is_minor ? <Badge tone="amber">minor</Badge> : null}
-                    </td>
-                    <td className="px-2.5 py-1.5">{r.language ?? "—"}</td>
-                    <td className="px-2.5 py-1.5">{r.genre ?? "—"}</td>
-                    <td className="px-2.5 py-1.5">{r.relationship ?? "—"}</td>
-                    <td className="px-2.5 py-1.5">{r.venue_slug ? <Badge tone="blue">{r.venue_slug}</Badge> : "—"}</td>
-                    <td className="px-2.5 py-1.5 text-neutral-400">{[r.country, r.region].filter(Boolean).join("/") || "—"}</td>
-                    <td className="px-2.5 py-1.5">
-                      <span className="flex flex-wrap gap-1">
-                        {r.marketing_reminder_consent && <Badge tone="green">mktg</Badge>}
-                        {r.raffle_opt_in && <Badge tone="purple">raffle</Badge>}
-                        {!r.marketing_reminder_consent && !r.raffle_opt_in && <span className="text-neutral-600">—</span>}
+                    <td className="whitespace-nowrap px-3 py-1.5 font-mono text-neutral-400">{fmtTs(r.created_at)}</td>
+                    <td className="px-3 py-1.5 font-medium text-neutral-100">{r.recipient_name ?? "—"}</td>
+                    <td className="px-3 py-1.5">
+                      <span className="flex items-center gap-1.5">
+                        <span className="tabular-nums text-neutral-300">{r.target_age ?? "—"}</span>
+                        {r.target_under_13 ? <Badge tone="red">under 13</Badge> : r.target_is_minor ? <Badge tone="amber">minor</Badge> : null}
                       </span>
                     </td>
+                    <td className="px-3 py-1.5 text-neutral-400">{r.language ?? "—"}</td>
+                    <td className="px-3 py-1.5 text-neutral-400">{r.genre ?? "—"}</td>
+                    <td className="px-3 py-1.5 text-neutral-400">{r.relationship ?? "—"}</td>
+                    <td className="px-3 py-1.5">{r.venue_slug ? <Badge tone="blue">{r.venue_slug}</Badge> : <span className="text-neutral-600">—</span>}</td>
+                    <td className="px-3 py-1.5 text-neutral-400">{[r.country, r.region].filter(Boolean).join("/") || "—"}</td>
+                    <td className="px-3 py-1.5">
+                      <span className="flex flex-wrap gap-1">
+                        {r.marketing_reminder_consent && <Badge tone="green">marketing</Badge>}
+                        {r.raffle_opt_in && <Badge tone="purple">raffle</Badge>}
+                        {!r.marketing_reminder_consent && !r.raffle_opt_in && <span className="text-neutral-600">none</span>}
+                      </span>
+                    </td>
+                    <td className="px-3 py-1.5 font-mono text-xs text-neutral-500">{maskEmail(r.email, reveal)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          <p className="mt-2 text-[11px] text-neutral-600">Emails are masked by default to reduce accidental exposure in screenshots. Use the Email filter to search by full address, or “Reveal emails”.</p>
         </>
       )}
     </div>
