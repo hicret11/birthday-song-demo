@@ -6,6 +6,9 @@ export default function SiteFooter() {
   return (
     <footer className="border-t border-gray-200 bg-white px-4 py-6 text-sm text-gray-600">
       <nav className="mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-x-5 gap-y-3">
+        <Link className="font-semibold hover:text-gray-950" href="/become-a-venue">
+          For Venues
+        </Link>
         <Link className="font-semibold hover:text-gray-950" href="/terms">
           Terms
         </Link>

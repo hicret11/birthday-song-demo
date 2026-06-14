@@ -64,7 +64,7 @@ export default function OnboardingForm({ sessionId, defaultName }: Props) {
           <p className="mt-1 font-mono text-sm break-all">/v/{slug}</p>
         </div>
         <p className="text-xs text-gray-400">
-          The /v/[slug] page itself is still being built — once it ships, this URL is live.
+          This link is live now — share it with your guests anytime.
         </p>
       </div>
     );

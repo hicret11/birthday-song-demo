@@ -59,6 +59,30 @@ export default function BecomeAVenueClient() {
           {loading ? "Redirecting…" : "Become a founding venue"}
         </button>
 
+        <div className="mt-4 flex items-center gap-3 text-xs text-gray-500">
+          <span className="h-px flex-1 bg-white/10" />
+          <span>or</span>
+          <span className="h-px flex-1 bg-white/10" />
+        </div>
+
+        <a
+          href="mailto:founders@singmybirthday.com?subject=Venue%20interest%20%E2%80%94%20Sing%20My%20Birthday&body=Hi%20Sing%20My%20Birthday%20team%2C%0A%0AI%27d%20like%20to%20learn%20more%20about%20a%20branded%20venue%20link.%0A%0AVenue%20name%3A%0ACity%3A%0AWebsite%2FInstagram%3A%0A%0AThanks%21"
+          className="mt-4 block w-full rounded-2xl border border-white/20 bg-white/5 py-3.5 text-center text-sm font-bold text-white transition hover:bg-white/10"
+        >
+          Not ready to subscribe? Talk to us about your venue →
+        </a>
+
+        <p className="mt-3 text-center text-xs text-gray-400">
+          Have questions first? Email{" "}
+          <a
+            href="mailto:founders@singmybirthday.com?subject=Venue%20question%20%E2%80%94%20Sing%20My%20Birthday"
+            className="underline underline-offset-2 hover:text-gray-200"
+          >
+            founders@singmybirthday.com
+          </a>
+          .
+        </p>
+
         <p className="mt-3 text-center text-xs text-gray-400">
           By continuing, you agree to the{" "}
           <Link href="/terms" className="underline underline-offset-2 hover:text-gray-200">
