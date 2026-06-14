@@ -1,0 +1,32 @@
+[
+  {
+    "business_name": "Cheeky Monkeys Play Area",
+    "category": "kids play area",
+    "city": "Dubai",
+    "area": "Jumeirah",
+    "address": "Jumeirah Beach Road, Dubai",
+    "website_url": "https://example.com/cheeky-monkeys",
+    "phone": "+971 4 000 0000",
+    "google_maps_url": "https://maps.google.com/?q=cheeky+monkeys+dubai",
+    "rating": 4.5,
+    "review_count": 320,
+    "source": "manual_import"
+  },
+  {
+    "business_name": "Sweet Celebrations Bakery",
+    "category": "cake shop / bakery",
+    "city": "Abu Dhabi",
+    "area": "Al Reem Island",
+    "website_url": "https://example.com/sweet-celebrations",
+    "phone": "+971 2 000 0000",
+    "rating": 4.7,
+    "review_count": 145
+  },
+  {
+    "business_name": "Grand Ballroom Events",
+    "category": "event venue / banquet",
+    "city": "Sharjah",
+    "rating": 4.2,
+    "review_count": 60
+  }
+]

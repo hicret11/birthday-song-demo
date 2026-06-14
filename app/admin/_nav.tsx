@@ -9,6 +9,8 @@ const TABS: [string, string][] = [
   ["/admin/captures", "Captures"],
   ["/admin/shares", "Shares"],
   ["/admin/content-packages", "Content Packages"],
+  ["/admin/social", "Social"],
+  ["/admin/outreach", "Outreach"],
 ];
 
 export default function AdminNav() {
