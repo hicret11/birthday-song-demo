@@ -5,6 +5,10 @@
     {
       "path": "/api/admin/content/auto-package",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/admin/outreach/refresh",
+      "schedule": "0 7 * * *"
     }
   ]
 }
