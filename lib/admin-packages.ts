@@ -217,8 +217,14 @@ export type RecheckResult =
  *    is flagged minor.
  *  - Declined/minor → moved to `private-share-only` (still not postable).
  *  - Never approves and never posts; Hicrete still reviews from pending-review.
+ *
+ * `opts.dry` computes the same outcome WITHOUT writing — used by the daily cron
+ * to report a re-resolution plan.
  */
-export async function recheckPackagePermission(shareId: string): Promise<RecheckResult> {
+export async function recheckPackagePermission(
+  shareId: string,
+  opts: { dry?: boolean } = {},
+): Promise<RecheckResult> {
   try {
     const supabase = getSupabaseAdmin();
     const { data, error } = await supabase
@@ -245,29 +251,33 @@ export async function recheckPackagePermission(shareId: string): Promise<Recheck
 
     // Promote ONLY on a genuine non-minor grant. Triple-guarded against minors.
     if (perm.bucket === "approved-for-promo" && perm.minor !== true && pkg.is_minor_recipient === false) {
-      const { error: upErr } = await supabase
-        .from("admin_content_packages")
-        .update({
-          permission_bucket: "approved-for-promo",
-          status: "pending-review",
-          promo_granted: true,
-          permission_text_version: perm.permission_text_version,
-          policy_version: perm.policy_version,
-        })
-        .eq("id", pkg.id)
-        .eq("status", "needs-permission"); // concurrency guard: only if still needs-permission
-      if (upErr) return { ok: false, error: upErr.message };
+      if (!opts.dry) {
+        const { error: upErr } = await supabase
+          .from("admin_content_packages")
+          .update({
+            permission_bucket: "approved-for-promo",
+            status: "pending-review",
+            promo_granted: true,
+            permission_text_version: perm.permission_text_version,
+            policy_version: perm.policy_version,
+          })
+          .eq("id", pkg.id)
+          .eq("status", "needs-permission"); // concurrency guard: only if still needs-permission
+        if (upErr) return { ok: false, error: upErr.message };
+      }
       return { ok: true, outcome: "promoted", status: "pending-review", bucket: "approved-for-promo" };
     }
 
     // Declined or minor → reflect fail-closed private-share-only (still not postable).
     if (perm.bucket === "private-share-only") {
-      const { error: upErr } = await supabase
-        .from("admin_content_packages")
-        .update({ permission_bucket: "private-share-only", status: "private-share-only", promo_granted: false })
-        .eq("id", pkg.id)
-        .eq("status", "needs-permission");
-      if (upErr) return { ok: false, error: upErr.message };
+      if (!opts.dry) {
+        const { error: upErr } = await supabase
+          .from("admin_content_packages")
+          .update({ permission_bucket: "private-share-only", status: "private-share-only", promo_granted: false })
+          .eq("id", pkg.id)
+          .eq("status", "needs-permission");
+        if (upErr) return { ok: false, error: upErr.message };
+      }
       return { ok: true, outcome: "private-minor", status: "private-share-only", bucket: "private-share-only" };
     }
 
@@ -275,5 +285,57 @@ export async function recheckPackagePermission(shareId: string): Promise<Recheck
     return { ok: true, outcome: "still-needs-permission", status: pkg.status, bucket: pkg.permission_bucket };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "recheck failed" };
+  }
+}
+
+export type ReresolveCounts = {
+  rechecked: number;
+  promoted: number;
+  still_needs_permission: number;
+  private_or_minor: number;
+  unchanged: number;
+  errors: number;
+};
+
+/**
+ * Batch re-resolution for the daily cron: re-check every package currently in
+ * `needs-permission` against promo_permissions and promote the ones now granted
+ * (non-minor). Strictly fail-closed via recheckPackagePermission — never
+ * approves/posts, never touches reviewed/posted rows. `opts.dry` reports the
+ * plan without writing. Returns counts only (no PII).
+ */
+export async function reresolveNeedsPermissionPackages(opts: { dry?: boolean; limit?: number } = {}): Promise<
+  { ok: true; counts: ReresolveCounts } | { ok: false; missing?: boolean; error: string }
+> {
+  const counts: ReresolveCounts = {
+    rechecked: 0, promoted: 0, still_needs_permission: 0, private_or_minor: 0, unchanged: 0, errors: 0,
+  };
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("admin_content_packages")
+      .select("share_id")
+      .eq("status", "needs-permission")
+      .limit(opts.limit ?? 500);
+    if (error) {
+      if (isMissingTableError(error)) return { ok: false, missing: true, error: MISSING_MESSAGE };
+      return { ok: false, error: error.message };
+    }
+    const shareIds = (data ?? []).map((r) => (r as { share_id: string }).share_id);
+
+    for (const shareId of shareIds) {
+      const res = await recheckPackagePermission(shareId, { dry: opts.dry });
+      counts.rechecked++;
+      if (!res.ok) { counts.errors++; continue; }
+      switch (res.outcome) {
+        case "promoted": counts.promoted++; break;
+        case "still-needs-permission": counts.still_needs_permission++; break;
+        case "private-minor": counts.private_or_minor++; break;
+        case "unchanged": counts.unchanged++; break;
+      }
+    }
+    return { ok: true, counts };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "reresolve failed" };
   }
 }

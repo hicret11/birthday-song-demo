@@ -6,9 +6,15 @@
 // Idempotent (skips already-packaged share_ids → preserves human edits), resumable,
 // continues on per-share failure. Fail-closed permission buckets. NEVER approves,
 // NEVER posts, NO destructive writes. `?dry=1` computes the plan without writing.
+//
+// After packaging, it ALSO re-resolves existing needs-permission packages against
+// promo_permissions (Phase 2a): a permission granted after packaging promotes the
+// package to approved-for-promo / pending-review for Hicrete. Still fail-closed —
+// never approves/posts, never touches reviewed/posted rows.
 
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { findShareCreatedCandidates, packageShareToAdmin, type Bucket } from "@/lib/content-packages";
+import { reresolveNeedsPermissionPackages, type ReresolveCounts } from "@/lib/admin-packages";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -59,10 +65,23 @@ async function handle(request: Request): Promise<Response> {
     }
   }
 
+  // Phase 2a: re-resolve existing needs-permission packages against promo_permissions.
+  // Soft-fail — a re-resolution error must never break the packaging cron.
+  let reresolve: ReresolveCounts | null = null;
+  let reresolveError: string | null = null;
+  try {
+    const rr = await reresolveNeedsPermissionPackages({ dry });
+    if (rr.ok) reresolve = rr.counts;
+    else reresolveError = rr.error;
+  } catch (e) {
+    reresolveError = e instanceof Error ? e.message : "reresolve error";
+  }
+
   // Ops log (counts only — no PII / no share_ids) so cron runs are visible in logs.
   console.log(
     `[auto-package] dry=${dry} scanned=${discovery.scanned} already=${discovery.already_packaged} ` +
-      `candidates=${discovery.candidates.length} packaged=${packaged} failed=${failed} buckets=${JSON.stringify(buckets)}`,
+      `candidates=${discovery.candidates.length} packaged=${packaged} failed=${failed} buckets=${JSON.stringify(buckets)} ` +
+      `reresolve=${JSON.stringify(reresolve ?? { error: reresolveError })}`,
   );
 
   return Response.json({
@@ -75,6 +94,8 @@ async function handle(request: Request): Promise<Response> {
     failed,
     buckets,
     skipped,
+    reresolve,
+    reresolve_error: reresolveError,
     note: "Never approves or posts. approved-for-promo lands as pending-review for Hicrete.",
   });
 }
