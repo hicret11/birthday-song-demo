@@ -18,7 +18,7 @@ export default async function ContentPackagesPage({ searchParams }: { searchPara
 
   const rows = result.ok ? result.rows : [];
   const by = (s: string) => rows.filter((r) => r.status === s).length;
-  const blocked = rows.filter((r) => r.permission_bucket !== "approved-for-promo").length;
+  const byBucket = (b: string) => rows.filter((r) => r.permission_bucket === b).length;
 
   return (
     <div>
@@ -30,11 +30,11 @@ export default async function ContentPackagesPage({ searchParams }: { searchPara
 
       {result.ok && (
         <StatGrid>
-          <StatCard label="Total" value={rows.length} />
-          <StatCard label="Pending review" value={by("pending-review")} hint="awaiting Hicrete" />
-          <StatCard label="Approved" value={by("approved-by-hicrete")} hint="ready to post" />
+          <StatCard label="Ready for review" value={by("pending-review")} hint="awaiting Hicrete" />
+          <StatCard label="Approved by Hicrete" value={by("approved-by-hicrete")} hint="ready to post" />
           <StatCard label="Posted" value={by("posted")} />
-          <StatCard label="Blocked" value={blocked} hint="needs-permission / private" />
+          <StatCard label="Needs permission" value={byBucket("needs-permission")} />
+          <StatCard label="Private / minor" value={byBucket("private-share-only")} hint="fail-closed" />
         </StatGrid>
       )}
 

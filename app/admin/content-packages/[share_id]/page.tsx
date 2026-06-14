@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/admin-auth";
 import { getPackageDetail, evaluateAction, type AdminAction, type PackageRow } from "@/lib/admin-packages";
-import { approveAction, declineAction, resetReviewAction, markPostedAction } from "../actions";
+import { suggestedContent } from "@/lib/content-packages";
+import { SOCIAL_PLATFORMS } from "@/lib/admin-social";
+import { approveAction, declineAction, resetReviewAction, markPostedAction, createPlannedPostAction } from "../actions";
 import { Badge, BucketBadge, Callout, StatusBadge, linkBtnCls, inputCls, fmtTs } from "../../_ui";
 
 export const runtime = "nodejs";
@@ -110,6 +112,44 @@ export default async function PackageDetailPage({
         </form>
       </div>
       <p className="mb-5 text-xs text-neutral-500">Approve requires <span className="font-mono">approved-for-promo</span> + <span className="font-mono">promo_granted=true</span> + <span className="font-mono">is_minor_recipient=false</span>. Disabled buttons show why on hover; rules are re-checked server-side (fail-closed).</p>
+
+      {/* Suggested content (derived, not stored) */}
+      {(() => {
+        const s = suggestedContent(pkg);
+        const isApproved = pkg.status === "approved-by-hicrete";
+        return (
+          <div className="mb-5">
+            <h2 className="mb-2 text-sm font-semibold text-neutral-300">Suggested content <span className="font-normal text-neutral-500">(auto-generated; copy & post manually)</span></h2>
+            <div className="grid gap-3 md:grid-cols-3">
+              {(["tiktok", "instagram", "youtube"] as const).map((k) => (
+                <div key={k} className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-2">
+                  <div className="mb-1 text-xs font-medium uppercase tracking-wide text-neutral-500">{k}</div>
+                  <textarea readOnly rows={7} className="w-full resize-y rounded border border-neutral-800 bg-neutral-950 p-2 font-mono text-[11px] text-neutral-300" value={s.captions[k]} />
+                </div>
+              ))}
+            </div>
+            <div className="mt-2 text-xs text-neutral-500">
+              Share link: <a href={s.share_link} target="_blank" rel="noreferrer" className="text-fuchsia-400 hover:underline">{s.share_link}</a>
+            </div>
+            <div className="mt-3">
+              <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-neutral-500">Create planned social post</h3>
+              {isApproved ? (
+                <form action={createPlannedPostAction.bind(null, pkg.share_id)} className="flex items-end gap-2">
+                  <label className="flex flex-col gap-1 text-xs text-neutral-400">Platform
+                    <select name="platform" defaultValue="tiktok" className={inputCls}>
+                      {SOCIAL_PLATFORMS.map((p) => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                  </label>
+                  <button type="submit" className="rounded bg-fuchsia-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-fuchsia-500">Add planned post</button>
+                  <span className="text-xs text-neutral-500">→ writes a <span className="font-mono">planned</span> row in Social; posts nothing.</span>
+                </form>
+              ) : (
+                <p className="text-xs text-neutral-500">Available once the package is <span className="font-mono">approved-by-hicrete</span>.</p>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* History */}
       <h2 className="mb-2 text-sm font-semibold text-neutral-300">Approval history</h2>
