@@ -82,7 +82,7 @@ export function normalizeLead(raw: Record<string, unknown>, defaults?: { source?
 }
 
 export type ProviderResult =
-  | { configured: true; leads: NormalizedLead[] }
+  | { configured: true; leads: NormalizedLead[]; stats?: Record<string, number | boolean> }
   | { configured: false; reason: string };
 
 export function getProviderName(): string {
@@ -98,5 +98,14 @@ export function getProviderName(): string {
 export async function fetchUaeVenueLeads(): Promise<ProviderResult> {
   const name = getProviderName();
   if (name === "none") return { configured: false, reason: "source not configured" };
+  if (name === "google_places") {
+    const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+    if (!apiKey) return { configured: false, reason: "GOOGLE_PLACES_API_KEY missing" };
+    // Dynamic import keeps the network/provider code out of modules that only
+    // need the pure helpers above.
+    const { fetchGooglePlacesLeads } = await import("./providers/google-places");
+    const { leads, stats } = await fetchGooglePlacesLeads({ apiKey });
+    return { configured: true, leads, stats: { ...stats } };
+  }
   return { configured: false, reason: `provider "${name}" not implemented yet` };
 }
