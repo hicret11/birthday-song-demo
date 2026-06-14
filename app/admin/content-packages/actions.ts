@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/admin-auth";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { recordAction, type AdminAction } from "@/lib/admin-packages";
+import { recordAction, recheckPackagePermission, type AdminAction } from "@/lib/admin-packages";
 import { createPost, SOCIAL_PLATFORMS } from "@/lib/admin-social";
 import { suggestedContent } from "@/lib/content-packages";
 
@@ -15,7 +15,7 @@ async function run(shareId: string, action: AdminAction, formData: FormData): Pr
   const note = String(formData?.get("note") ?? "").slice(0, 500) || null;
   const res = await recordAction(shareId, action, note);
   const q = res.ok
-    ? `ok=${encodeURIComponent(res.nextStatus)}`
+    ? `ok=${encodeURIComponent("Status updated → " + res.nextStatus)}`
     : `err=${encodeURIComponent(res.error)}`;
   redirect(`/admin/content-packages/${shareId}?${q}`);
 }
@@ -31,6 +31,26 @@ export async function resetReviewAction(shareId: string, formData: FormData): Pr
 }
 export async function markPostedAction(shareId: string, formData: FormData): Promise<void> {
   await run(shareId, "mark-posted", formData);
+}
+
+// Re-check promo permission for a package whose permission may have been granted
+// after it was packaged. Re-resolved + updated SERVER-SIDE (fail-closed). Never
+// approves or posts — at most moves needs-permission → pending-review.
+export async function recheckPermissionAction(shareId: string): Promise<void> {
+  await requireAdmin();
+  if (!ID_RE.test(shareId)) redirect("/admin/content-packages");
+  const res = await recheckPackagePermission(shareId);
+  if (!res.ok) {
+    const msg = res.notFound ? "package not found" : res.error;
+    redirect(`/admin/content-packages/${shareId}?err=${encodeURIComponent(msg)}`);
+  }
+  const MESSAGES: Record<string, string> = {
+    promoted: "Permission found → moved to pending-review for your review",
+    "still-needs-permission": "Still needs permission — no grant on record yet",
+    "private-minor": "Private / minor / declined — kept fail-closed (cannot post)",
+    unchanged: "No change — this package has already been reviewed",
+  };
+  redirect(`/admin/content-packages/${shareId}?ok=${encodeURIComponent(MESSAGES[res.outcome] ?? "re-checked")}`);
 }
 
 // Create a PLANNED social_posts row from an approved package. Does NOT post anywhere.

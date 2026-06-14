@@ -590,6 +590,9 @@ export default function GeneratorClient({ venue }: Props) {
   // and never on minor-recipient flows. Best-effort; never blocks anything.
   const [promoGranted, setPromoGranted] = useState(false);
   const [promoSaved, setPromoSaved] = useState(false);
+  // Whether the user has answered the feature opt-in (either way) — drives the
+  // post-share card's confirmation state. Optional; never blocks anything.
+  const [promoResponded, setPromoResponded] = useState(false);
   const [creatingShare, setCreatingShare] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -1162,6 +1165,7 @@ export default function GeneratorClient({ venue }: Props) {
   // the share UI. The server also forces granted=false for minor recipients.
   function submitPromoPermission(granted: boolean) {
     setPromoGranted(granted);
+    setPromoResponded(true);
     setPromoSaved(false);
     try {
       void fetch("/api/promo-permission", {
@@ -2348,22 +2352,42 @@ export default function GeneratorClient({ venue }: Props) {
               </div>
 
               {/* Optional promotional-use permission. Shown only after the song
-                  is shareable, and never on minor-recipient flows. Compact and
+                  is shareable, and never on minor-recipient flows. Prominent but
                   fully optional — it does not gate the share CTA above. */}
               {!recipientIsMinor && (
-                <label className="flex items-start gap-2.5 pt-1 text-xs opacity-70">
-                  <input
-                    type="checkbox"
-                    checked={promoGranted}
-                    onChange={(e) => submitPromoPermission(e.target.checked)}
-                    className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border-white/30 bg-white/10 accent-purple-500"
-                  />
-                  <span>
-                    I give Sing My Birthday permission to feature this song,
-                    testimonial, or story in promotional material.
-                    {promoSaved && <span className="ml-1 text-emerald-300">Saved ✓</span>}
-                  </span>
-                </label>
+                <div className="mt-2 rounded-2xl border border-white/15 bg-white/5 p-4">
+                  <p className="text-sm font-bold">💜 Proud of this one? Let it inspire others.</p>
+                  <p className="mt-1 text-xs opacity-80">
+                    Yes — Sing My Birthday can feature my song in highlights &amp; ads.
+                    You can change your mind anytime; we&apos;ll never share private
+                    details, and never for songs made for kids.
+                  </p>
+                  {promoResponded ? (
+                    <p className="mt-3 text-sm font-semibold text-emerald-300">
+                      {promoGranted
+                        ? "Thank you! You can feature it 💜"
+                        : "No problem — we won't feature it."}
+                      {promoSaved && <span className="ml-1 opacity-70">Saved ✓</span>}
+                    </p>
+                  ) : (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => submitPromoPermission(true)}
+                        className={`rounded-2xl bg-gradient-to-r ${theme.accent} px-4 py-2.5 text-sm font-bold text-white shadow-lg transition hover:-translate-y-0.5`}
+                      >
+                        Yes, you can feature it
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => submitPromoPermission(false)}
+                        className="rounded-2xl border border-white/20 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/80 transition hover:bg-white/10"
+                      >
+                        No thanks
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           )}

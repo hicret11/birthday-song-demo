@@ -3,7 +3,7 @@ import { requireAdmin } from "@/lib/admin-auth";
 import { getPackageDetail, evaluateAction, type AdminAction, type PackageRow } from "@/lib/admin-packages";
 import { suggestedContent } from "@/lib/content-packages";
 import { SOCIAL_PLATFORMS } from "@/lib/admin-social";
-import { approveAction, declineAction, resetReviewAction, markPostedAction, createPlannedPostAction } from "../actions";
+import { approveAction, declineAction, resetReviewAction, markPostedAction, createPlannedPostAction, recheckPermissionAction } from "../actions";
 import { Badge, BucketBadge, Callout, StatusBadge, linkBtnCls, inputCls, fmtTs } from "../../_ui";
 
 export const runtime = "nodejs";
@@ -66,7 +66,7 @@ export default async function PackageDetailPage({
         <span className="flex gap-1"><StatusBadge status={pkg.status} /></span>
       </div>
 
-      {ok && <div className="mb-3"><Callout tone="green">Status updated → <span className="font-mono">{ok}</span></Callout></div>}
+      {ok && <div className="mb-3"><Callout tone="green">{ok}</Callout></div>}
       {err && <div className="mb-3"><Callout tone="red">{err}</Callout></div>}
 
       {/* Primary state banner */}
@@ -111,7 +111,19 @@ export default async function PackageDetailPage({
           <button type="submit" disabled={!reset.allowed} title={reset.allowed ? "" : reset.reason} className={btn(reset.allowed)}>Reset review</button>
         </form>
       </div>
-      <p className="mb-5 text-xs text-neutral-500">Approve requires <span className="font-mono">approved-for-promo</span> + <span className="font-mono">promo_granted=true</span> + <span className="font-mono">is_minor_recipient=false</span>. Disabled buttons show why on hover; rules are re-checked server-side (fail-closed).</p>
+      <p className="mb-4 text-xs text-neutral-500">Approve requires <span className="font-mono">approved-for-promo</span> + <span className="font-mono">promo_granted=true</span> + <span className="font-mono">is_minor_recipient=false</span>. Disabled buttons show why on hover; rules are re-checked server-side (fail-closed).</p>
+
+      {/* Re-check permission — promotes a needs-permission package to pending-review
+          if the customer granted promo permission after it was packaged. Never
+          approves/posts; minors & declines stay fail-closed. */}
+      {(pkg.status === "needs-permission" || pkg.permission_bucket === "private-share-only") && (
+        <div className="mb-5">
+          <form action={recheckPermissionAction.bind(null, pkg.share_id)} className="flex items-center gap-2">
+            <button type="submit" className="rounded border border-neutral-700 px-3 py-1.5 text-sm font-semibold text-neutral-200 hover:border-fuchsia-500 hover:text-fuchsia-300">Re-check permission</button>
+            <span className="text-xs text-neutral-500">Re-reads the customer&apos;s promo permission. Moves to <span className="font-mono">pending-review</span> only if they granted it (non-minor). Does not approve or post.</span>
+          </form>
+        </div>
+      )}
 
       {/* Suggested content (derived, not stored) */}
       {(() => {
