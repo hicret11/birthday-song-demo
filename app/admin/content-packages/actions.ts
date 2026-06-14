@@ -48,7 +48,7 @@ export async function createPlannedPostAction(shareId: string, formData: FormDat
   }
   const { data, error } = await supabase
     .from("admin_content_packages")
-    .select("status,recipient_first_name,genre,language,share_id,share_page_url")
+    .select("id,status,recipient_first_name,genre,language,share_id,share_page_url")
     .eq("share_id", shareId).limit(1);
   if (error) redirect(`/admin/content-packages/${shareId}?err=${encodeURIComponent(error.message)}`);
   const pkg = data?.[0];
@@ -59,7 +59,7 @@ export async function createPlannedPostAction(shareId: string, formData: FormDat
   const caps = suggestedContent(pkg).captions;
   const captionKey: "tiktok" | "instagram" | "youtube" =
     platform === "tiktok" ? "tiktok" : platform === "youtube_shorts" ? "youtube" : "instagram"; // facebook → instagram copy
-  const res = await createPost({ platform, share_id: shareId, caption: caps[captionKey], status: "planned" });
+  const res = await createPost({ platform, share_id: shareId, package_id: pkg.id ?? null, caption: caps[captionKey], status: "planned" });
   redirect(res.ok
     ? `/admin/content-packages/${shareId}?ok=${encodeURIComponent("planned " + platform + " post created")}`
     : `/admin/content-packages/${shareId}?err=${encodeURIComponent(res.error)}`);

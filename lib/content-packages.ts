@@ -54,6 +54,8 @@ function utm(platform: string, shareId: string): string {
 
 export type Suggested = {
   captions: { tiktok: string; instagram: string; youtube: string };
+  /** Use-case caption angles (platform-agnostic copy, ready to adapt). */
+  variants: { reaction: string; gift: string; venue: string; celebrity: string };
   hashtags: string;
   utm: { tiktok: string; instagram: string; youtube: string };
   share_link: string;
@@ -73,8 +75,16 @@ export function suggestedContent(p: {
     instagram: `A birthday song made just for ${name} 💗 ${genre ? `a custom ${p.genre} track` : "a custom track"}${lang} with their name in it.\nSome gifts they unwrap — this one they replay forever.\nMake theirs 👉 ${HOME}\n\n${utm("instagram", p.share_id)}\n\n${hashtags}`,
     youtube: `${name}'s personalized birthday song 🎶 ${genre ? `${p.genre} style` : ""}${lang}. Hear their name in a real song.\nMake a custom birthday song in minutes 👉 ${HOME}\n\n${utm("youtube", p.share_id)}\n\n${hashtags}`,
   };
+  // Use-case angles. Celebrity variant uses generic "pop-star birthday vibe" wording
+  // and an explicit not-affiliated disclaimer — never names an artist or implies endorsement.
+  const variants = {
+    reaction: `👀 wait for it — we put ${name}'s name in a real ${genre}song${lang} 🎶\nthat reaction when they hear themselves in the lyrics 🥹\nmake one for someone you love 👉 ${HOME}\n\n${hashtags}`,
+    gift: `the birthday gift that actually gets replayed 🎁 a custom ${genre}song${lang} made just for ${name}.\nsome gifts you unwrap — this one they keep forever 💗\n👉 ${HOME}\n\n${hashtags}`,
+    venue: `birthdays hit different here 🎉 surprise your guest with a personalized birthday song with their name in it.\nperfect for venues, parties & events.\n👉 ${HOME}\n\n${hashtags}`,
+    celebrity: `give them a pop-star birthday vibe 🎤 a custom ${genre}song${lang} with ${name}'s name in the lyrics.\n(original song — not affiliated with or endorsed by any artist)\n👉 ${HOME}\n\n${hashtags}`,
+  };
   return {
-    captions, hashtags,
+    captions, variants, hashtags,
     utm: { tiktok: utm("tiktok", p.share_id), instagram: utm("instagram", p.share_id), youtube: utm("youtube", p.share_id) },
     share_link: p.share_page_url || `${SITE}/share/${p.share_id}`,
   };

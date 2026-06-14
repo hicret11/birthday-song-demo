@@ -128,6 +128,22 @@ export default async function PackageDetailPage({
                 </div>
               ))}
             </div>
+            <div className="mt-3">
+              <div className="mb-1 text-xs font-medium uppercase tracking-wide text-neutral-500">caption angles</div>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {([
+                  ["reaction / reveal clip", "reaction"],
+                  ["birthday song gift", "gift"],
+                  ["venue / party use", "venue"],
+                  ["pop-star vibe (no endorsement)", "celebrity"],
+                ] as const).map(([label, k]) => (
+                  <div key={k} className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-2">
+                    <div className="mb-1 text-[11px] font-medium text-neutral-400">{label}</div>
+                    <textarea readOnly rows={6} className="w-full resize-y rounded border border-neutral-800 bg-neutral-950 p-2 font-mono text-[11px] text-neutral-300" value={s.variants[k]} />
+                  </div>
+                ))}
+              </div>
+            </div>
             <div className="mt-2 text-xs text-neutral-500">
               Share link: <a href={s.share_link} target="_blank" rel="noreferrer" className="text-fuchsia-400 hover:underline">{s.share_link}</a>
             </div>
