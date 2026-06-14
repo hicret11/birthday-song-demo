@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/admin-auth";
-import { listLeads, type OutreachLead } from "@/lib/admin-outreach";
+import { listLeads, countDraftedLeads, type OutreachLead } from "@/lib/admin-outreach";
 import { OUTREACH_STATUSES, getProviderName } from "@/lib/outreach/provider";
 import { Badge, Callout, Panel, StatCard, StatGrid, inputCls, btnCls, tableCls, theadCls, trCls, fmtTs } from "../_ui";
 import { updateLeadAction } from "./actions";
@@ -21,6 +21,7 @@ export default async function OutreachPage({ searchParams }: { searchParams: Pro
   const rows: OutreachLead[] = result.ok ? result.rows : [];
   const by = (s: string) => rows.filter((r) => r.outreach_status === s).length;
   const providerConfigured = getProviderName() !== "none";
+  const drafted = result.ok ? await countDraftedLeads() : null;
 
   return (
     <div>
@@ -35,11 +36,12 @@ export default async function OutreachPage({ searchParams }: { searchParams: Pro
 
       {result.ok && (
         <StatGrid>
-          <StatCard label="Total leads" value={rows.length} />
           <StatCard label="New" value={by("new")} />
           <StatCard label="Shortlisted" value={by("shortlisted")} />
+          <StatCard label="Drafted" value={drafted ?? "—"} hint="email prepared" />
           <StatCard label="Contacted" value={by("contacted")} />
           <StatCard label="Replied / Partnered" value={by("replied") + by("partnered")} />
+          <StatCard label="Not relevant" value={by("not_relevant")} />
         </StatGrid>
       )}
 
@@ -93,7 +95,7 @@ export default async function OutreachPage({ searchParams }: { searchParams: Pro
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.id} className={trCls}>
-                    <td className="px-3 py-1.5 font-medium text-neutral-100">{r.business_name}<div className="mt-0.5"><Badge tone={STATUS_TONE[r.outreach_status] ?? "neutral"}>{r.outreach_status}</Badge></div></td>
+                    <td className="px-3 py-1.5 font-medium"><Link href={`/admin/outreach/${r.id}`} className="text-fuchsia-400 hover:underline">{r.business_name}</Link><div className="mt-0.5"><Badge tone={STATUS_TONE[r.outreach_status] ?? "neutral"}>{r.outreach_status}</Badge></div></td>
                     <td className="px-3 py-1.5 text-neutral-400">{r.category ?? "—"}</td>
                     <td className="px-3 py-1.5 text-neutral-400">{[r.city, r.area].filter(Boolean).join(" · ") || "—"}</td>
                     <td className="px-3 py-1.5 text-neutral-300">{r.rating ?? "—"}{r.review_count ? <span className="text-neutral-600"> ({r.review_count})</span> : null}</td>

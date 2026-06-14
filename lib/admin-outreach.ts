@@ -4,6 +4,7 @@
 
 import { getSupabaseAdmin } from "./supabase-admin";
 import { OUTREACH_STATUSES, type NormalizedLead, type OutreachStatus } from "./outreach/provider";
+import type { EmailTemplate } from "./outreach/email";
 
 export type OutreachLead = {
   id: string;
@@ -85,6 +86,90 @@ export async function updateLead(
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "update failed" };
   }
+}
+
+// ── Lead detail ─────────────────────────────────────────────────────────────
+export type LeadResult =
+  | { ok: true; lead: OutreachLead }
+  | { ok: false; missing: true; message: string }
+  | { ok: false; notFound: true }
+  | { ok: false; missing: false; error: string };
+
+export async function getLead(id: string): Promise<LeadResult> {
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase.from("admin_outreach_leads").select(COLS).eq("id", id).limit(1);
+    if (error) return isMissingTableError(error) ? { ok: false, missing: true, message: MISSING } : { ok: false, missing: false, error: error.message };
+    const lead = data?.[0] as OutreachLead | undefined;
+    return lead ? { ok: true, lead } : { ok: false, notFound: true };
+  } catch (e) {
+    return { ok: false, missing: false, error: e instanceof Error ? e.message : "query failed" };
+  }
+}
+
+// ── Email templates ─────────────────────────────────────────────────────────
+export async function listTemplates(): Promise<EmailTemplate[]> {
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("outreach_email_templates")
+      .select("template_key,name,category_hint,subject,body")
+      .eq("is_active", true).order("name", { ascending: true });
+    if (error) return [];
+    return (data ?? []) as EmailTemplate[];
+  } catch { return []; }
+}
+
+// ── Activity / history (append-only) ────────────────────────────────────────
+export type ActivityRow = { id: string; action: string; template_key: string | null; channel: string; note: string | null; actor: string | null; created_at: string };
+
+export async function logActivity(input: { leadId: string; action: string; template_key?: string | null; note?: string | null; actor?: string | null }): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const supabase = getSupabaseAdmin();
+    const { error } = await supabase.from("outreach_activity").insert({
+      lead_id: input.leadId, action: input.action,
+      template_key: input.template_key || null, note: input.note || null,
+      actor: input.actor || "admin", channel: "email",
+    });
+    return error ? { ok: false, error: error.message } : { ok: true };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : "insert failed" }; }
+}
+
+export async function listActivity(leadId: string): Promise<ActivityRow[]> {
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("outreach_activity")
+      .select("id,action,template_key,channel,note,actor,created_at")
+      .eq("lead_id", leadId).order("created_at", { ascending: false }).limit(100);
+    if (error) return [];
+    return (data ?? []) as ActivityRow[];
+  } catch { return []; }
+}
+
+/** Count distinct leads that have a 'drafted' activity (for the "Drafted" card). */
+export async function countDraftedLeads(): Promise<number | null> {
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase.from("outreach_activity").select("lead_id").eq("action", "drafted").limit(2000);
+    if (error) return null;
+    return new Set((data ?? []).map((r) => (r as { lead_id: string }).lead_id)).size;
+  } catch { return null; }
+}
+
+/** One promo-approved share page URL to use as a public sample link, if any. */
+export async function getSampleShareLink(): Promise<string | null> {
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("admin_content_packages")
+      .select("share_page_url")
+      .eq("permission_bucket", "approved-for-promo")
+      .not("share_page_url", "is", null)
+      .order("packaged_at", { ascending: false }).limit(1);
+    if (error) return null;
+    return (data?.[0] as { share_page_url: string | null } | undefined)?.share_page_url ?? null;
+  } catch { return null; }
 }
 
 export type UpsertResult = {
