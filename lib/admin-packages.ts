@@ -1,8 +1,11 @@
 // Server-only data + rules for the admin Content Packages tab (Phase B).
-// Reads/writes ONLY admin_content_packages + admin_content_approvals via the
-// service role. Never touches KV or promo_permissions. Approval is fail-closed.
+// Reads/writes admin_content_packages + admin_content_approvals via the service
+// role. Approval is fail-closed. The re-check helper additionally reads
+// promo_permissions (via resolvePermissionBucket) to promote a package whose
+// permission was granted after it was first packaged — it never approves/posts.
 
 import { getSupabaseAdmin } from "./supabase-admin";
+import { resolvePermissionBucket } from "./content-packages";
 
 export type PackageRow = {
   id: string;
@@ -194,5 +197,83 @@ export async function recordAction(
     return { ok: true, nextStatus: verdict.nextStatus };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "action failed" };
+  }
+}
+
+export type RecheckOutcome = "promoted" | "still-needs-permission" | "private-minor" | "unchanged";
+export type RecheckResult =
+  | { ok: true; outcome: RecheckOutcome; status: string; bucket: string }
+  | { ok: false; missing?: boolean; notFound?: boolean; error: string };
+
+/**
+ * Re-resolve an existing package's permission against promo_permissions (the
+ * source of truth) and promote it if permission was granted AFTER packaging.
+ *
+ * Fail-closed and conservative:
+ *  - Only acts on packages still in `needs-permission`. Human-reviewed states
+ *    (approved-by-hicrete / declined-by-hicrete / posted) are NEVER touched.
+ *  - Promotes to `approved-for-promo` / `pending-review` ONLY when the latest
+ *    permission is a genuine grant AND neither the package nor the permission
+ *    is flagged minor.
+ *  - Declined/minor → moved to `private-share-only` (still not postable).
+ *  - Never approves and never posts; Hicrete still reviews from pending-review.
+ */
+export async function recheckPackagePermission(shareId: string): Promise<RecheckResult> {
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("admin_content_packages")
+      .select("id,permission_bucket,status,is_minor_recipient")
+      .eq("share_id", shareId)
+      .limit(1);
+    if (error) {
+      if (isMissingTableError(error)) return { ok: false, missing: true, error: MISSING_MESSAGE };
+      return { ok: false, error: error.message };
+    }
+    const pkg = data?.[0] as
+      | Pick<PackageRow, "id" | "permission_bucket" | "status" | "is_minor_recipient">
+      | undefined;
+    if (!pkg) return { ok: false, notFound: true, error: "package not found" };
+
+    // Only un-reviewed, needs-permission packages are eligible to change.
+    if (pkg.status !== "needs-permission") {
+      return { ok: true, outcome: "unchanged", status: pkg.status, bucket: pkg.permission_bucket };
+    }
+
+    // Source of truth. resolvePermissionBucket throws if it can't read (fail-closed).
+    const perm = await resolvePermissionBucket(supabase, shareId);
+
+    // Promote ONLY on a genuine non-minor grant. Triple-guarded against minors.
+    if (perm.bucket === "approved-for-promo" && perm.minor !== true && pkg.is_minor_recipient === false) {
+      const { error: upErr } = await supabase
+        .from("admin_content_packages")
+        .update({
+          permission_bucket: "approved-for-promo",
+          status: "pending-review",
+          promo_granted: true,
+          permission_text_version: perm.permission_text_version,
+          policy_version: perm.policy_version,
+        })
+        .eq("id", pkg.id)
+        .eq("status", "needs-permission"); // concurrency guard: only if still needs-permission
+      if (upErr) return { ok: false, error: upErr.message };
+      return { ok: true, outcome: "promoted", status: "pending-review", bucket: "approved-for-promo" };
+    }
+
+    // Declined or minor → reflect fail-closed private-share-only (still not postable).
+    if (perm.bucket === "private-share-only") {
+      const { error: upErr } = await supabase
+        .from("admin_content_packages")
+        .update({ permission_bucket: "private-share-only", status: "private-share-only", promo_granted: false })
+        .eq("id", pkg.id)
+        .eq("status", "needs-permission");
+      if (upErr) return { ok: false, error: upErr.message };
+      return { ok: true, outcome: "private-minor", status: "private-share-only", bucket: "private-share-only" };
+    }
+
+    // No permission row yet → unchanged.
+    return { ok: true, outcome: "still-needs-permission", status: pkg.status, bucket: pkg.permission_bucket };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "recheck failed" };
   }
 }
