@@ -75,6 +75,10 @@ export type RenderVideoInput = {
    * server-side; we still drawtext-escape here for filtergraph safety.
    */
   personalNote?: string;
+  /** Optional — song genre; picks a genre-themed background when assets exist. */
+  genre?: string;
+  /** Optional — stable seed (e.g. share id) for deterministic background variety. */
+  backgroundSeed?: string;
 };
 
 export type RenderVideoResult = {
@@ -365,7 +369,10 @@ export async function renderShareVideo(input: RenderVideoInput): Promise<RenderV
   const workDir = await mkdtemp(path.join(tmpdir(), `bday-video-${randomUUID()}-`));
   const audioPath = path.join(workDir, "audio.mp3");
   const outputPath = path.join(workDir, "out.mp4");
-  const templateUrl = templateVideoPath(input.template);
+  const templateUrl = templateVideoPath(input.template, {
+    genre: input.genre,
+    seed: input.backgroundSeed ?? input.logId,
+  });
 
   try {
     // Verify the font is reachable before kicking off ffmpeg — fails fast with

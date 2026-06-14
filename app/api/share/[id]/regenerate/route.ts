@@ -204,6 +204,8 @@ export async function POST(
       venueName: song.venueName,
       venueColor: song.venueColor,
       personalNote: song.personalNote,
+      genre: song.genre,
+      backgroundSeed: id,
     });
     freshVideoUrl = await uploadToR2(
       `shares/${id}-v${nextRetry}.mp4`,

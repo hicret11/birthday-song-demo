@@ -298,6 +298,8 @@ export async function POST(request: Request): Promise<Response> {
       venueName: venueFields?.venueName,
       venueColor: venueFields?.venueColor,
       personalNote,
+      genre,
+      backgroundSeed: id,
     });
     console.log(
       `[share-create] rendered mp4 for ${id} template=${body.template} duration=${rendered.durationSec.toFixed(2)}s bytes=${rendered.mp4.length}`,
