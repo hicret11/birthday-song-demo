@@ -1575,7 +1575,11 @@ export default function GeneratorClient({ venue }: Props) {
           style={{ borderLeftColor: venue.logo_color }}
         >
           <span>Birthday songs at</span>
-          <span className="inline-block h-2 w-2 rounded-full bg-[#ec4899]" aria-hidden />
+          <span
+            className="inline-block h-2 w-2 rounded-full"
+            style={{ backgroundColor: venue.logo_color }}
+            aria-hidden
+          />
           <span style={{ color: venue.logo_color }}>{venue.name}</span>
         </div>
       )}

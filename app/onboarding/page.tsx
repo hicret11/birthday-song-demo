@@ -69,7 +69,7 @@ export default async function OnboardingPage({ searchParams }: PageProps) {
           <code className="rounded bg-white/10 px-1.5 py-0.5">/v/{venue.share_slug}</code>.
         </p>
         <p className="mt-1 text-xs text-gray-400">
-          (The /v/[slug] page is being built — your link will go live as soon as it ships.)
+          Your link is live now — share it with your guests anytime.
         </p>
       </Shell>
     );

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { Music, Send, Sparkles } from "lucide-react";
 import LandingCta from "@/components/LandingCta";
 
@@ -108,6 +109,15 @@ export default function Home() {
           className="mx-auto opacity-80"
         />
         <p className="mt-2 text-xs text-gray-500">Made with love by Sing My Birthday</p>
+        <p className="mt-3 text-xs text-gray-400">
+          Own a venue or event space?{" "}
+          <Link
+            href="/become-a-venue"
+            className="font-semibold text-fuchsia-200 underline underline-offset-2 hover:text-white"
+          >
+            For Venues →
+          </Link>
+        </p>
       </footer>
     </main>
   );
