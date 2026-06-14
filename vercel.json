@@ -1,4 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "node scripts/apply-migrations.mjs && next build"
+  "buildCommand": "node scripts/apply-migrations.mjs && next build",
+  "crons": [
+    {
+      "path": "/api/admin/content/auto-package",
+      "schedule": "0 6 * * *"
+    }
+  ]
 }
