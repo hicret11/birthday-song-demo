@@ -2,7 +2,10 @@
 
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/admin-auth";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { recordAction, type AdminAction } from "@/lib/admin-packages";
+import { createPost, SOCIAL_PLATFORMS } from "@/lib/admin-social";
+import { suggestedContent } from "@/lib/content-packages";
 
 const ID_RE = /^[a-zA-Z0-9]{1,32}$/;
 
@@ -28,4 +31,36 @@ export async function resetReviewAction(shareId: string, formData: FormData): Pr
 }
 export async function markPostedAction(shareId: string, formData: FormData): Promise<void> {
   await run(shareId, "mark-posted", formData);
+}
+
+// Create a PLANNED social_posts row from an approved package. Does NOT post anywhere.
+// Allowed only when the package is approved-by-hicrete (re-checked server-side).
+export async function createPlannedPostAction(shareId: string, formData: FormData): Promise<void> {
+  await requireAdmin();
+  if (!ID_RE.test(shareId)) redirect("/admin/content-packages");
+  const platform = String(formData.get("platform") ?? "");
+  if (!(SOCIAL_PLATFORMS as readonly string[]).includes(platform)) {
+    redirect(`/admin/content-packages/${shareId}?err=${encodeURIComponent("invalid platform")}`);
+  }
+  let supabase;
+  try { supabase = getSupabaseAdmin(); } catch {
+    redirect(`/admin/content-packages/${shareId}?err=${encodeURIComponent("supabase not configured")}`);
+  }
+  const { data, error } = await supabase
+    .from("admin_content_packages")
+    .select("status,recipient_first_name,genre,language,share_id,share_page_url")
+    .eq("share_id", shareId).limit(1);
+  if (error) redirect(`/admin/content-packages/${shareId}?err=${encodeURIComponent(error.message)}`);
+  const pkg = data?.[0];
+  if (!pkg) redirect(`/admin/content-packages/${shareId}?err=${encodeURIComponent("package not found")}`);
+  if (pkg.status !== "approved-by-hicrete") {
+    redirect(`/admin/content-packages/${shareId}?err=${encodeURIComponent("only approved-by-hicrete packages can create a planned post")}`);
+  }
+  const caps = suggestedContent(pkg).captions;
+  const captionKey: "tiktok" | "instagram" | "youtube" =
+    platform === "tiktok" ? "tiktok" : platform === "youtube_shorts" ? "youtube" : "instagram"; // facebook → instagram copy
+  const res = await createPost({ platform, share_id: shareId, caption: caps[captionKey], status: "planned" });
+  redirect(res.ok
+    ? `/admin/content-packages/${shareId}?ok=${encodeURIComponent("planned " + platform + " post created")}`
+    : `/admin/content-packages/${shareId}?err=${encodeURIComponent(res.error)}`);
 }
