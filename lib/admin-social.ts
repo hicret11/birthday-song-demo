@@ -52,7 +52,7 @@ export async function listPosts(f: ListFilters): Promise<ListResult> {
 }
 
 export async function createPost(input: {
-  platform: string; share_id?: string | null; post_url?: string | null; caption?: string | null;
+  platform: string; share_id?: string | null; package_id?: string | null; post_url?: string | null; caption?: string | null;
   status?: string; posted_at?: string | null; notes?: string | null; created_by?: string | null;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   if (!(SOCIAL_PLATFORMS as readonly string[]).includes(input.platform)) return { ok: false, error: "invalid platform" };
@@ -63,6 +63,7 @@ export async function createPost(input: {
     const { error } = await supabase.from("social_posts").insert({
       platform: input.platform,
       share_id: input.share_id || null,
+      package_id: input.package_id || null,
       post_url: input.post_url || null,
       caption: input.caption || null,
       status,
