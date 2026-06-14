@@ -59,6 +59,12 @@ async function handle(request: Request): Promise<Response> {
     }
   }
 
+  // Ops log (counts only — no PII / no share_ids) so cron runs are visible in logs.
+  console.log(
+    `[auto-package] dry=${dry} scanned=${discovery.scanned} already=${discovery.already_packaged} ` +
+      `candidates=${discovery.candidates.length} packaged=${packaged} failed=${failed} buckets=${JSON.stringify(buckets)}`,
+  );
+
   return Response.json({
     ok: true,
     dry,
