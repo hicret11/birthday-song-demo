@@ -25,6 +25,7 @@ import { getClientIp, rateLimitFixedWindow } from "@/lib/rate-limit";
 import { sendSongReadyEmail } from "@/lib/resend";
 import { logGenerationEvent } from "@/lib/events";
 import { generateShareId, saveSharedSong } from "@/lib/share";
+import { addSongToUser } from "@/lib/user-songs";
 import { renderShareVideo } from "@/lib/video";
 import { loadActiveVenue } from "@/lib/venues";
 
@@ -355,6 +356,9 @@ export async function POST(request: Request): Promise<Response> {
   // already caught and logged — they cannot bubble up here either.
   const toEmail = sanitizeEmail(body.email);
   if (toEmail) {
+    // Index this song under the buyer's email so "My Songs" can list it after
+    // an optional magic-link login. Best-effort, never blocks the response.
+    after(addSongToUser(toEmail, id));
     const origin = request.headers.get("origin") ?? new URL(request.url).origin;
     after(
       sendSongReadyEmail({
