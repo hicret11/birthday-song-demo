@@ -323,6 +323,10 @@ export async function POST(request: Request): Promise<Response> {
     videoUrl,
     template: body.template,
     createdAt: Date.now(),
+    // Lock the pricing tier at creation so the unlock price can't drift between
+    // preview and checkout. A freshly created song is implicitly locked
+    // (unlocked is undefined → falsy) until the Stripe webhook flips it.
+    tier: resolveTier(request),
     ...(senderName ? { senderName } : {}),
     ...(styleNotes ? { styleNotes } : {}),
     ...(refinedStyle ? { refinedStyle } : {}),

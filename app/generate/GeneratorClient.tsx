@@ -597,6 +597,21 @@ export default function GeneratorClient({ venue }: Props) {
   const [shareError, setShareError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // ── Consumer paywall (preview → unlock) ─────────────────────────────────
+  // The finished song plays as a free preview (first PREVIEW_SECONDS); the full
+  // song + download + video + slideshow are unlocked via one-time Stripe
+  // checkout. Tier comes back on the share response so the CTA can show the
+  // geo-correct price. NOTE: this is a client-side gate (good enough for v1);
+  // hardening = serve a real trimmed preview clip from /api/audio when locked.
+  const [shareTier, setShareTier] = useState<"A" | "B" | "C" | null>(null);
+  const [unlocking, setUnlocking] = useState(false);
+  const [previewEnded, setPreviewEnded] = useState(false);
+  const songAudioRef = useRef<HTMLAudioElement | null>(null);
+  const PREVIEW_SECONDS = 20;
+  // Display-only mirror of TIER_PRICE_DISPLAY in lib/pricing-tiers.ts. The real
+  // charge is always the Stripe price_id; keep these in sync for the CTA label.
+  const TIER_PRICE_LABEL: Record<"A" | "B" | "C", string> = { A: "$9.99", B: "$5.99", C: "$2.99" };
+
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const cleanupRef = useRef<null | (() => void)>(null);
   const completeDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1143,10 +1158,38 @@ export default function GeneratorClient({ venue }: Props) {
         ? new URL(ok.shareUrl, window.location.origin).toString()
         : ok.shareUrl;
       setShareUrl(absolute);
+      if (ok.tier === "A" || ok.tier === "B" || ok.tier === "C") setShareTier(ok.tier);
     } catch {
       setShareError("Couldn't reach the server. Please try again.");
     } finally {
       setCreatingShare(false);
+    }
+  }
+
+  // Open one-time Stripe checkout to unlock the full song. shareId is the tail
+  // of the auto-created share URL; the button stays disabled until it exists.
+  async function unlockFullSong() {
+    const shareId = shareUrl ? shareUrl.split("/").pop() ?? null : null;
+    if (!shareId || unlocking) return;
+    setUnlocking(true);
+    setShareError(null);
+    try {
+      track("unlock_click", { share_id: shareId, tier: shareTier ?? "unknown" });
+      const res = await fetch("/api/stripe/checkout-song", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shareId }),
+      });
+      const data = await res.json();
+      if (data?.url) {
+        window.location.href = data.url as string;
+        return;
+      }
+      setShareError(data?.error?.message ?? "Couldn't start checkout. Please try again.");
+    } catch {
+      setShareError("Couldn't reach the server. Please try again.");
+    } finally {
+      setUnlocking(false);
     }
   }
 
@@ -2207,8 +2250,9 @@ export default function GeneratorClient({ venue }: Props) {
           </p>
 
           {audioUrl ? (
-            <div className="mt-4 space-y-2">
+            <div className="mt-4 space-y-3">
               <audio
+                ref={songAudioRef}
                 controls
                 src={audioProxyUrl ?? audioUrl}
                 className="w-full"
@@ -2221,28 +2265,49 @@ export default function GeneratorClient({ venue }: Props) {
                     // Ignore — pausing a paused element throws on some browsers.
                   }
                 }}
+                onTimeUpdate={(e) => {
+                  // Free-preview gate: hold playback at PREVIEW_SECONDS and
+                  // surface the unlock CTA. Client-side only for v1.
+                  const el = e.currentTarget;
+                  if (el.currentTime >= PREVIEW_SECONDS) {
+                    el.pause();
+                    el.currentTime = PREVIEW_SECONDS;
+                    if (!previewEnded) setPreviewEnded(true);
+                  }
+                }}
+                onSeeking={(e) => {
+                  const el = e.currentTarget;
+                  if (el.currentTime > PREVIEW_SECONDS) el.currentTime = PREVIEW_SECONDS;
+                }}
               />
-              <div className="flex items-center justify-between gap-3">
-                <a
-                  href={audioProxyUrl ?? audioUrl}
-                  download
-                  className="text-xs opacity-70 underline-offset-2 hover:underline"
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-fuchsia-300/90">
+                🎁 Free preview · first {PREVIEW_SECONDS} seconds
+              </p>
+
+              {/* The buy moment — the preview hooked them; now unlock everything. */}
+              <div className="rounded-3xl border border-fuchsia-300/30 bg-gradient-to-br from-fuchsia-500/15 via-purple-500/10 to-amber-400/10 p-5">
+                <p className="text-base font-extrabold">
+                  {previewEnded ? `Loved it? Unlock ${name}'s full song 🎶` : `Unlock ${name}'s full song 🎶`}
+                </p>
+                <p className="mt-1 text-xs leading-relaxed opacity-80">
+                  Full one-minute song, MP3 download, a shareable video, and a photo
+                  slideshow — keep it forever and send it to family.
+                </p>
+                <button
+                  type="button"
+                  onClick={unlockFullSong}
+                  disabled={!shareUrl || unlocking}
+                  className="mt-3 w-full rounded-2xl bg-gradient-to-r from-pink-500 via-fuchsia-500 to-amber-400 py-3.5 text-sm font-extrabold text-white shadow-xl transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Download audio
-                </a>
-                {/* Small, non-blocking indicator while the share artifact is
-                    rendering in the background. User can listen / read /
-                    edit lyrics during this window — they aren't blocked. */}
-                {!shareUrl && (creatingShare || !shareError) && (
-                  <span className="flex items-center gap-2 text-[11px] opacity-60">
-                    <span
-                      aria-hidden
-                      className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-fuchsia-400"
-                    />
-                    Wrapping it up — your shareable link will be ready in about
-                    30 seconds…
-                  </span>
-                )}
+                  {unlocking
+                    ? "Opening secure checkout…"
+                    : !shareUrl
+                      ? "Preparing your song…"
+                      : `Unlock the full song${shareTier ? ` · ${TIER_PRICE_LABEL[shareTier]}` : ""} →`}
+                </button>
+                <p className="mt-2 text-center text-[11px] opacity-60">
+                  One-time payment · instant unlock · secure checkout by Stripe
+                </p>
               </div>
             </div>
           ) : loadingMusic ? (
