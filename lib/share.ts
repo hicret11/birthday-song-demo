@@ -28,3 +28,33 @@ export async function loadSharedSong(id: string): Promise<SharedSong | null> {
   const value = await kv.get<SharedSong>(shareKey(id));
   return value ?? null;
 }
+
+/**
+ * Flip a song to unlocked after a successful one-time payment. Called from the
+ * Stripe webhook (checkout.session.completed). Idempotent — repeat webhook
+ * deliveries are harmless. Resetting the TTL on unlock is intentional: a song
+ * someone paid for should not silently expire out from under them.
+ * Returns false if the share id is unknown (e.g. KV expired before payment).
+ */
+export async function markSharedSongUnlocked(id: string): Promise<boolean> {
+  const song = await loadSharedSong(id);
+  if (!song) return false;
+  if (!song.unlocked) {
+    song.unlocked = true;
+    song.unlockedAt = Date.now();
+    await kv.set(shareKey(song.id), song, { ex: SHARE_TTL_SECONDS });
+  }
+  return true;
+}
+
+/** Persist photo URLs and/or a rendered slideshow video onto an existing song. */
+export async function updateSharedSong(
+  id: string,
+  patch: Partial<Pick<SharedSong, "photoUrls" | "slideshowVideoUrl">>,
+): Promise<boolean> {
+  const song = await loadSharedSong(id);
+  if (!song) return false;
+  Object.assign(song, patch);
+  await kv.set(shareKey(song.id), song, { ex: SHARE_TTL_SECONDS });
+  return true;
+}

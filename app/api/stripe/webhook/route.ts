@@ -4,6 +4,7 @@ import { mintPortalToken } from "@/lib/portal-tokens";
 import { sendDunningEmail } from "@/lib/resend";
 import { getStripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { markSharedSongUnlocked } from "@/lib/share";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://singmybirthday.com";
 const DUNNING_TOKEN_TTL_SECONDS = 24 * 60 * 60;
@@ -11,6 +12,7 @@ const DUNNING_TOKEN_TTL_SECONDS = 24 * 60 * 60;
 export const runtime = "nodejs";
 
 const RELEVANT: Set<string> = new Set([
+  "checkout.session.completed",
   "customer.subscription.created",
   "customer.subscription.updated",
   "customer.subscription.deleted",
@@ -114,6 +116,25 @@ async function persistLegalAcceptance(
 }
 
 async function handleEvent(event: Stripe.Event, stripe: Stripe): Promise<void> {
+  // Consumer song unlock (one-time payment) — handled first because it needs
+  // neither Supabase nor Stripe customer lookups. Venue subscriptions also emit
+  // checkout.session.completed (mode "subscription"); those are persisted via
+  // the customer.subscription.* events, so we only act on song_unlock payments.
+  if (event.type === "checkout.session.completed") {
+    const session = event.data.object as Stripe.Checkout.Session;
+    if (session.mode === "payment" && session.metadata?.kind === "song_unlock") {
+      const shareId = session.metadata.share_id || session.client_reference_id || "";
+      if (shareId) {
+        const ok = await markSharedSongUnlocked(shareId);
+        if (!ok) console.error(`[stripe-webhook] song_unlock: share ${shareId} not found (KV expired?)`);
+        else console.log(`[stripe-webhook] song_unlock: ${shareId} unlocked`);
+      } else {
+        console.error("[stripe-webhook] song_unlock: missing share_id in metadata");
+      }
+    }
+    return;
+  }
+
   const supabase = getSupabaseAdmin();
   const nowIso = new Date().toISOString();
 

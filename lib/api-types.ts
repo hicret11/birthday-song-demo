@@ -215,6 +215,23 @@ export type SharedSong = {
   cakeStyle?: CakeStyle;
   candleColor?: CandleColor;
   personalNote?: string;
+  /**
+   * Consumer monetization. A freshly created song is LOCKED: the buyer hears
+   * only a short free preview until they complete one-time Stripe checkout.
+   * The Stripe webhook (checkout.session.completed with
+   * metadata.kind="song_unlock") flips `unlocked` to true, which opens full
+   * audio, MP3 download, the branded share video, and the photo slideshow.
+   * Missing on legacy/pre-paywall entries — treat absence as locked=false
+   * ONLY for songs created before the paywall shipped (see PAYWALL_SINCE).
+   */
+  unlocked?: boolean;
+  unlockedAt?: number;
+  /** Pricing tier resolved from geo/IP at creation; drives the unlock price. */
+  tier?: "A" | "B" | "C";
+  /** User-uploaded photo URLs (R2) for the optional paid photo slideshow. */
+  photoUrls?: string[];
+  /** Rendered photo-slideshow MP4 (R2 URL), produced after unlock. */
+  slideshowVideoUrl?: string;
 };
 
 export type ShareCreateRequest = {
