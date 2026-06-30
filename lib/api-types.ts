@@ -102,7 +102,7 @@ export type GenerateVideoResponse = {
 
 
 
-export const SHARE_TEMPLATES = ["classic", "neon", "elegant", "playful"] as const;
+export const SHARE_TEMPLATES = ["classic", "neon", "elegant", "playful", "corporate"] as const;
 export type ShareTemplate = (typeof SHARE_TEMPLATES)[number];
 
 /**

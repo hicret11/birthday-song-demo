@@ -12,6 +12,7 @@ const TEMPLATE_VARIANTS: Record<ShareTemplate, string[]> = {
   elegant: ["elegant-60s.mp4"],
   neon: ["neon-60s.mp4"],
   playful: ["playful-60s.mp4"],
+  corporate: ["corporate-60s.mp4"],
 };
 
 // Optional extra backgrounds keyed by lowercased song genre, layered on top of a

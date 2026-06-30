@@ -12,9 +12,9 @@ const MAX_RETRIES = 2;
 const OVERLAY_STYLES: Record<ShareTemplate, React.CSSProperties> = {
   classic: {
     fontFamily: 'Georgia, "Times New Roman", serif',
-    color: "#1f2937",
+    color: "#fce7f3",
     textShadow:
-      "3px 0 0 #faf7f2, -3px 0 0 #faf7f2, 0 3px 0 #faf7f2, 0 -3px 0 #faf7f2, 2px 2px 0 #faf7f2, -2px 2px 0 #faf7f2, 2px -2px 0 #faf7f2, -2px -2px 0 #faf7f2",
+      "0 0 12px rgba(236,72,153,0.55), 2px 0 0 #1a0b2e, -2px 0 0 #1a0b2e, 0 2px 0 #1a0b2e, 0 -2px 0 #1a0b2e",
   },
   elegant: {
     fontFamily: 'Georgia, "Times New Roman", serif',
@@ -31,6 +31,11 @@ const OVERLAY_STYLES: Record<ShareTemplate, React.CSSProperties> = {
     fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif',
     color: "#ffffff",
     textShadow: "3px 3px 0 #000000, 0 0 12px rgba(0,0,0,0.4)",
+  },
+  corporate: {
+    fontFamily: '"Inter", system-ui, -apple-system, "Segoe UI", sans-serif',
+    color: "#ffffff",
+    textShadow: "2px 0 0 #0b1220, -2px 0 0 #0b1220, 0 2px 0 #0b1220, 0 -2px 0 #0b1220, 0 0 10px rgba(0,0,0,0.5)",
   },
 };
 

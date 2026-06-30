@@ -38,6 +38,7 @@ const LOADING_MESSAGES = [
   "Tuning the chorus…",
   "Adding the icing…",
   "Wrapping the bow…",
+  "✨ This is where the magic happens…",
 ];
 
 // Gate for the visual cake + candle pickers in the "Make it Yours" panel.
@@ -186,34 +187,37 @@ function CakeIcon({ style, selected }: { style: CakeStyle; selected: boolean }) 
 }
 
 const TEMPLATE_LABELS: Record<ShareTemplate, { name: string; desc: string }> = {
-  classic: { name: "Classic", desc: "Clean & timeless" },
+  classic: { name: "Classic", desc: "Bold & celebratory" },
   neon: { name: "Neon", desc: "Vibrant & glowing" },
   elegant: { name: "Elegant", desc: "Refined & golden" },
   playful: { name: "Playful", desc: "Fun & colorful" },
+  corporate: { name: "Corporate", desc: "Polished & professional" },
 };
 
 // Tiny color anchors next to each template name in the picker — let the user
 // see the design's accent at a glance without rendering the whole template.
 const TEMPLATE_ACCENT: Record<ShareTemplate, string> = {
-  classic: "#8b4513",
+  classic: "#ec4899",
   neon: "#ff00ff",
   elegant: "#f5e070",
   playful: "#fb923c",
+  corporate: "#ec4899",
 };
 
 // Preview-card styling (approximation of OVERLAY_STYLES from share/templates).
 // Self-contained — no cross-component coupling.
 const PREVIEW_BG: Record<ShareTemplate, string> = {
-  classic: "bg-[#faf7f2]",
+  classic: "bg-gradient-to-br from-[#1a0b2e] via-[#2d1248] to-[#3a1b1f]",
   elegant: "bg-[#0a0805]",
   neon: "bg-[#0d0521]",
   playful: "bg-gradient-to-br from-[#fb7185] to-[#fb923c]",
+  corporate: "bg-gradient-to-br from-[#0b1220] to-[#1b2538]",
 };
 const PREVIEW_TEXT_STYLE: Record<ShareTemplate, React.CSSProperties> = {
   classic: {
     fontFamily: "Georgia, 'Times New Roman', serif",
-    color: "#1f2937",
-    textShadow: "0 1px 0 rgba(255,255,255,0.7)",
+    color: "#fbcfe8",
+    textShadow: "0 0 14px rgba(236,72,153,0.5)",
   },
   elegant: {
     fontFamily: "Georgia, 'Times New Roman', serif",
@@ -229,6 +233,11 @@ const PREVIEW_TEXT_STYLE: Record<ShareTemplate, React.CSSProperties> = {
     fontFamily: "system-ui, -apple-system, sans-serif",
     color: "#ffffff",
     textShadow: "2px 2px 0 rgba(0,0,0,0.35)",
+  },
+  corporate: {
+    fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+    color: "#ffffff",
+    textShadow: "0 2px 8px rgba(0,0,0,0.5)",
   },
 };
 
@@ -1984,7 +1993,7 @@ export default function GeneratorClient({ venue }: Props) {
               <p className="mb-2 text-center text-[10px] font-bold uppercase tracking-widest opacity-60">
                 Pick a design while you wait
               </p>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
                 {SHARE_TEMPLATES.map((key) => {
                   const meta = TEMPLATE_LABELS[key];
                   const selected = shareTemplate === key;
@@ -2017,7 +2026,7 @@ export default function GeneratorClient({ venue }: Props) {
             {name.trim() && (
               <div className="mt-4 overflow-hidden rounded-2xl border border-white/15">
                 <div className={`px-5 py-7 text-center ${PREVIEW_BG[shareTemplate]}`}>
-                  <p className="text-[11px] font-bold uppercase tracking-widest opacity-60" style={{ color: shareTemplate === "classic" ? "#6b7280" : "rgba(255,255,255,0.55)" }}>
+                  <p className="text-[11px] font-bold uppercase tracking-widest opacity-60" style={{ color: "rgba(255,255,255,0.55)" }}>
                     Preview
                   </p>
                   <p
@@ -2029,7 +2038,7 @@ export default function GeneratorClient({ venue }: Props) {
                   {personalNote.trim() && (
                     <p
                       className="mt-2 text-xs italic opacity-80"
-                      style={{ color: shareTemplate === "classic" ? "#6b7280" : "rgba(255,255,255,0.85)" }}
+                      style={{ color: "rgba(255,255,255,0.85)" }}
                     >
                       {personalNote.trim()}
                     </p>
