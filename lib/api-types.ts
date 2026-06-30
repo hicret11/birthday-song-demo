@@ -269,6 +269,13 @@ export type ShareCreateRequest = {
   cake_style?: CakeStyle;
   candle_color?: CandleColor;
   personal_note?: string;
+  /**
+   * Optional R2 photo URLs (https) captured before share creation for the
+   * paid photo slideshow. Validated server-side (array of https URLs, max 6)
+   * and persisted onto the SharedSong. Purely additive — never blocks share
+   * creation. The slideshow itself is rendered later, after unlock.
+   */
+  photoUrls?: string[];
 };
 
 export type ShareCreateResponse = {

@@ -117,6 +117,28 @@ function isValidAudioUrl(value: unknown): value is string {
   }
 }
 
+const MAX_PHOTO_URLS = 6;
+
+// Photo URLs come from /api/photos/upload (R2 https URLs). Additive — invalid
+// or empty input is silently dropped, never failing share creation. Returns
+// undefined when nothing valid is supplied so the field can be omitted entirely.
+function sanitizePhotoUrls(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const out: string[] = [];
+  for (const entry of value) {
+    if (typeof entry !== "string" || !entry.trim()) continue;
+    try {
+      const url = new URL(entry);
+      if (url.protocol !== "https:") continue;
+    } catch {
+      continue;
+    }
+    out.push(entry);
+    if (out.length >= MAX_PHOTO_URLS) break;
+  }
+  return out.length > 0 ? out : undefined;
+}
+
 export async function POST(request: Request): Promise<Response> {
   const ip = getClientIp(request);
   let rate;
@@ -240,6 +262,10 @@ export async function POST(request: Request): Promise<Response> {
 
   const waitCapture = sanitizeWaitCapture(body.wait_capture);
 
+  // Optional photo URLs for the paid slideshow. Best-effort — invalid entries
+  // are dropped, the field is omitted when nothing valid was supplied.
+  const photoUrls = sanitizePhotoUrls(body.photoUrls);
+
   // "Make it Yours" personalization. Cake and candle map to closed enums —
   // unknown values are silently dropped (never fail share creation over
   // a presentation field). Personal note is free text: strip control
@@ -336,6 +362,7 @@ export async function POST(request: Request): Promise<Response> {
     ...(cakeStyle ? { cakeStyle } : {}),
     ...(candleColor ? { candleColor } : {}),
     ...(personalNote ? { personalNote } : {}),
+    ...(photoUrls ? { photoUrls } : {}),
     ...(venueFields ?? {}),
   };
 

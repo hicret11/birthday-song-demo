@@ -597,6 +597,16 @@ export default function GeneratorClient({ venue }: Props) {
   const [shareError, setShareError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // ── Optional photo slideshow ────────────────────────────────────────────
+  // Users may add up to 6 photos before unlocking; the URLs persist on the
+  // share and the slideshow video is rendered after unlock. Entirely optional
+  // and non-blocking — skipping is fine and never gates share creation.
+  const MAX_SLIDESHOW_PHOTOS = 6;
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const photoInputRef = useRef<HTMLInputElement | null>(null);
+
   // ── Consumer paywall (preview → unlock) ─────────────────────────────────
   // The finished song plays as a free preview (first PREVIEW_SECONDS); the full
   // song + download + video + slideshow are unlocked via one-time Stripe
@@ -1138,6 +1148,7 @@ export default function GeneratorClient({ venue }: Props) {
       ...(cakeStyle ? { cake_style: cakeStyle } : {}),
       ...(candleColor ? { candle_color: candleColor } : {}),
       ...(personalNote.trim() ? { personal_note: personalNote.trim() } : {}),
+      ...(photoUrls.length > 0 ? { photoUrls } : {}),
       ...(venue ? { venueSlug: venue.slug } : {}),
       ...(emailToSend ? { email: emailToSend } : {}),
     };
@@ -1191,6 +1202,56 @@ export default function GeneratorClient({ venue }: Props) {
     } finally {
       setUnlocking(false);
     }
+  }
+
+  // Optional slideshow photos — upload selected images to R2 and stash the
+  // returned URLs so createShareLink() can persist them on the share. Fully
+  // non-blocking: errors surface inline and never stop the user from sharing.
+  async function handlePhotoSelect(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setPhotoError(null);
+    const remaining = MAX_SLIDESHOW_PHOTOS - photoUrls.length;
+    if (remaining <= 0) {
+      setPhotoError(`You can add up to ${MAX_SLIDESHOW_PHOTOS} photos.`);
+      return;
+    }
+    const selected = Array.from(files).slice(0, remaining);
+    const form = new FormData();
+    for (const file of selected) form.append("photos", file);
+
+    setUploadingPhotos(true);
+    track("slideshow_photos_upload_start", {
+      venue_slug: venue?.slug ?? "none",
+      count: selected.length,
+    });
+    try {
+      const res = await fetch("/api/photos/upload", { method: "POST", body: form });
+      const data = await res.json();
+      if (!res.ok) {
+        setPhotoError(data?.error?.message ?? "Couldn't upload photos.");
+        return;
+      }
+      const urls = Array.isArray(data?.urls) ? (data.urls as string[]) : [];
+      if (urls.length === 0) {
+        setPhotoError("No photos were uploaded.");
+        return;
+      }
+      setPhotoUrls((prev) => [...prev, ...urls].slice(0, MAX_SLIDESHOW_PHOTOS));
+      track("slideshow_photos_uploaded", {
+        venue_slug: venue?.slug ?? "none",
+        count: urls.length,
+      });
+    } catch {
+      setPhotoError("Couldn't reach the server. Please try again.");
+    } finally {
+      setUploadingPhotos(false);
+      if (photoInputRef.current) photoInputRef.current.value = "";
+    }
+  }
+
+  function removePhoto(index: number) {
+    setPhotoUrls((prev) => prev.filter((_, i) => i !== index));
+    setPhotoError(null);
   }
 
   async function copyShareUrl() {
@@ -2308,6 +2369,76 @@ export default function GeneratorClient({ venue }: Props) {
                 <p className="mt-2 text-center text-[11px] opacity-60">
                   One-time payment · instant unlock · secure checkout by Stripe
                 </p>
+              </div>
+
+              {/* Optional: add photos for a Ken-Burns slideshow set to the song.
+                  Entirely optional — skipping is fine. The photos persist on the
+                  share; the slideshow video renders after unlock. */}
+              <div className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-extrabold">📸 Add photos for a slideshow</p>
+                    <p className="mt-1 text-xs leading-relaxed opacity-70">
+                      Optional — add up to {MAX_SLIDESHOW_PHOTOS} photos and we&apos;ll
+                      turn them into a Ken-Burns video set to {name || "the"}&apos;s song
+                      after you unlock.
+                    </p>
+                  </div>
+                </div>
+
+                {photoUrls.length > 0 && (
+                  <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                    {photoUrls.map((url, i) => (
+                      <div
+                        key={url}
+                        className="group relative aspect-square overflow-hidden rounded-xl border border-white/10 bg-white/5"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element -- remote R2 thumbnails; no need for next/image optimization here */}
+                        <img
+                          src={url}
+                          alt={`Slideshow photo ${i + 1}`}
+                          className="h-full w-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removePhoto(i)}
+                          aria-label={`Remove photo ${i + 1}`}
+                          className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-xs font-bold text-white opacity-0 transition group-hover:opacity-100"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <input
+                  ref={photoInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => void handlePhotoSelect(e.target.files)}
+                />
+
+                <button
+                  type="button"
+                  onClick={() => photoInputRef.current?.click()}
+                  disabled={uploadingPhotos || photoUrls.length >= MAX_SLIDESHOW_PHOTOS}
+                  className="mt-3 w-full rounded-2xl border border-white/15 bg-white/5 py-2.5 text-sm font-semibold transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {uploadingPhotos
+                    ? "Uploading…"
+                    : photoUrls.length >= MAX_SLIDESHOW_PHOTOS
+                      ? `Maximum ${MAX_SLIDESHOW_PHOTOS} photos added`
+                      : photoUrls.length > 0
+                        ? "Add more photos"
+                        : "Choose photos"}
+                </button>
+
+                {photoError && (
+                  <p className="mt-2 text-xs text-rose-300">{photoError}</p>
+                )}
               </div>
             </div>
           ) : loadingMusic ? (
