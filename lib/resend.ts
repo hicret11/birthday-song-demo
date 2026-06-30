@@ -477,6 +477,96 @@ export async function sendDunningEmail(props: DunningEmailProps): Promise<void> 
   }
 }
 
+// ── Consumer login magic-link email ─────────────────────────────────────────
+// Sent when someone asks to see "My Songs". Passwordless: clicking the link
+// signs them in. Always send a generic message (never reveal whether the email
+// has songs) and keep the link short-lived + single-use.
+
+export type LoginLinkEmailProps = {
+  to: string;
+  loginUrl: string;
+};
+
+function buildLoginLinkHtml(props: LoginLinkEmailProps): string {
+  return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"/><title>Your sign-in link</title></head>
+<body style="margin:0;padding:0;background:#f5f3ff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" bgcolor="#f5f3ff" style="padding:32px 0;">
+    <tr><td align="center">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="520" style="max-width:520px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 16px rgba(15,23,42,0.08);">
+        <tr><td bgcolor="${BRAND_PURPLE}" style="background-color:${BRAND_PURPLE};background-image:${BRAND_GRADIENT};padding:24px;text-align:center;">
+          <img src="${LOGO_MARK_WHITE_URL}" alt="" width="56" height="56" style="display:inline-block;border:0;vertical-align:middle;" />
+          <span style="display:inline-block;margin-left:12px;font-size:22px;font-weight:800;color:#fff;vertical-align:middle;line-height:56px;">Sing My Birthday</span>
+        </td></tr>
+        <tr><td align="center" style="padding:28px 28px 8px 28px;font-size:22px;font-weight:800;color:#0f172a;">
+          Your sign-in link
+        </td></tr>
+        <tr><td align="center" style="padding:12px 28px 0 28px;font-size:14px;line-height:1.5;color:#4b5563;">
+          Click below to sign in and see your birthday songs. No password needed.
+        </td></tr>
+        <tr><td align="center" style="padding:22px 28px 8px 28px;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+            <tr><td bgcolor="${BRAND_PURPLE}" style="background-color:${BRAND_PURPLE};background-image:${BRAND_GRADIENT};border-radius:14px;">
+              <a href="${props.loginUrl}" target="_blank" rel="noopener" style="display:inline-block;padding:14px 28px;font-size:15px;font-weight:800;color:#fff;text-decoration:none;border-radius:14px;line-height:1;">
+                Sign in to Sing My Birthday
+              </a>
+            </td></tr>
+          </table>
+          <p style="margin:14px 0 0 0;font-size:11px;color:#9ca3af;">This link expires in 30 minutes and can only be used once.</p>
+        </td></tr>
+        <tr><td align="center" style="padding:18px 28px 4px 28px;font-size:11px;color:#9ca3af;">
+          If you didn't request this, you can safely ignore this email.
+        </td></tr>
+        <tr><td align="center" style="padding:18px 28px 24px 28px;border-top:1px solid #f3f4f6;font-size:11px;color:#9ca3af;">
+          Sing My Birthday <span style="color:#d1d5db;">·</span> A glomotec Labs product<br/>
+          Sent by GLOBAL MOBILITY TECHNOLOGIES LLC, 1309 Coffeen Avenue STE 15705, Sheridan, WY 82801
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+}
+
+function buildLoginLinkText(props: LoginLinkEmailProps): string {
+  return [
+    "Your Sing My Birthday sign-in link",
+    "",
+    "Click to sign in and see your birthday songs (no password needed):",
+    props.loginUrl,
+    "",
+    "This link expires in 30 minutes and can only be used once.",
+    "If you didn't request this, you can safely ignore this email.",
+    "",
+    "Sing My Birthday · A glomotec Labs product",
+    "Sent by GLOBAL MOBILITY TECHNOLOGIES LLC, 1309 Coffeen Avenue STE 15705, Sheridan, WY 82801",
+  ].join("\n");
+}
+
+export async function sendLoginLinkEmail(props: LoginLinkEmailProps): Promise<void> {
+  try {
+    const client = getResend();
+    if (!client) {
+      console.warn("[resend] RESEND_API_KEY not set; login-link not sent");
+      return;
+    }
+    const result = await client.emails.send({
+      from: fromAddress(),
+      to: props.to,
+      subject: "Your Sing My Birthday sign-in link",
+      html: buildLoginLinkHtml(props),
+      text: buildLoginLinkText(props),
+      tags: [{ name: "category", value: "login_link" }],
+    });
+    if (result.error) {
+      console.error("[resend] login-link send returned error", result.error);
+      return;
+    }
+    console.log(`[resend] login-link sent ${result.data?.id ?? "?"} to ${props.to}`);
+  } catch (err) {
+    console.error("[resend] login-link send failed", err);
+  }
+}
+
 // ── Original song-ready email (unchanged below) ─────────────────────────────
 
 export async function sendSongReadyEmail(props: SongReadyEmailProps): Promise<void> {

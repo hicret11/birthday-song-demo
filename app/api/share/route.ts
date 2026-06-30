@@ -25,6 +25,7 @@ import { getClientIp, rateLimitFixedWindow } from "@/lib/rate-limit";
 import { sendSongReadyEmail } from "@/lib/resend";
 import { logGenerationEvent } from "@/lib/events";
 import { generateShareId, saveSharedSong } from "@/lib/share";
+import { addSongToUser } from "@/lib/user-songs";
 import { renderShareVideo } from "@/lib/video";
 import { loadActiveVenue } from "@/lib/venues";
 
@@ -114,6 +115,28 @@ function isValidAudioUrl(value: unknown): value is string {
   } catch {
     return false;
   }
+}
+
+const MAX_PHOTO_URLS = 6;
+
+// Photo URLs come from /api/photos/upload (R2 https URLs). Additive — invalid
+// or empty input is silently dropped, never failing share creation. Returns
+// undefined when nothing valid is supplied so the field can be omitted entirely.
+function sanitizePhotoUrls(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const out: string[] = [];
+  for (const entry of value) {
+    if (typeof entry !== "string" || !entry.trim()) continue;
+    try {
+      const url = new URL(entry);
+      if (url.protocol !== "https:") continue;
+    } catch {
+      continue;
+    }
+    out.push(entry);
+    if (out.length >= MAX_PHOTO_URLS) break;
+  }
+  return out.length > 0 ? out : undefined;
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -239,6 +262,10 @@ export async function POST(request: Request): Promise<Response> {
 
   const waitCapture = sanitizeWaitCapture(body.wait_capture);
 
+  // Optional photo URLs for the paid slideshow. Best-effort — invalid entries
+  // are dropped, the field is omitted when nothing valid was supplied.
+  const photoUrls = sanitizePhotoUrls(body.photoUrls);
+
   // "Make it Yours" personalization. Cake and candle map to closed enums —
   // unknown values are silently dropped (never fail share creation over
   // a presentation field). Personal note is free text: strip control
@@ -323,6 +350,10 @@ export async function POST(request: Request): Promise<Response> {
     videoUrl,
     template: body.template,
     createdAt: Date.now(),
+    // Lock the pricing tier at creation so the unlock price can't drift between
+    // preview and checkout. A freshly created song is implicitly locked
+    // (unlocked is undefined → falsy) until the Stripe webhook flips it.
+    tier: resolveTier(request),
     ...(senderName ? { senderName } : {}),
     ...(styleNotes ? { styleNotes } : {}),
     ...(refinedStyle ? { refinedStyle } : {}),
@@ -331,6 +362,7 @@ export async function POST(request: Request): Promise<Response> {
     ...(cakeStyle ? { cakeStyle } : {}),
     ...(candleColor ? { candleColor } : {}),
     ...(personalNote ? { personalNote } : {}),
+    ...(photoUrls ? { photoUrls } : {}),
     ...(venueFields ?? {}),
   };
 
@@ -351,6 +383,9 @@ export async function POST(request: Request): Promise<Response> {
   // already caught and logged — they cannot bubble up here either.
   const toEmail = sanitizeEmail(body.email);
   if (toEmail) {
+    // Index this song under the buyer's email so "My Songs" can list it after
+    // an optional magic-link login. Best-effort, never blocks the response.
+    after(addSongToUser(toEmail, id));
     const origin = request.headers.get("origin") ?? new URL(request.url).origin;
     after(
       sendSongReadyEmail({

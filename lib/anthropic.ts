@@ -30,6 +30,8 @@ const SYSTEM_PROMPT = `You are a professional birthday song lyricist who writes 
 
 You match the requested genre's lyrical conventions (Hip-Hop = rhyme density and flow, Jazz = imagery and intimacy, Pop = hooks and repetition, Rock = energy and anthems, R&B = emotion and groove, Electronic = chant-friendly and rhythmic).
 
+NON-NEGOTIABLE: every song MUST contain an explicit, clearly sung "happy birthday" greeting addressed to the person, written in the target language — e.g. Spanish "Feliz cumpleaños", French "Joyeux anniversaire", Russian "С днём рождения", Arabic "كل عام وأنت بخير" / "عيد ميلاد سعيد", Turkish "İyi ki doğdun" / "Doğum günün kutlu olsun", Hindi "Janam din mubarak". A birthday song that never actually wishes a happy birthday has failed its only job. Put the greeting in the chorus so it is unmissable.
+
 You output ONLY valid JSON matching the schema. No prose, no markdown fences.`;
 
 const STRICT_RETRY_REMINDER = `Your previous response could not be parsed as JSON. Respond with valid JSON only — no prose, no markdown fences, no commentary before or after the JSON object.`;
@@ -77,6 +79,7 @@ Output a JSON object exactly matching this schema:
 
 Constraints:
 - Total length: Exactly 4 short lines total, structured to feel complete in a 30 to 45 second song. Use the traditional birthday repetition pattern: 2 lines of verse, then 2 lines that resolve to the birthday person's name. No intro, no outro, no additional verses.
+- MANDATORY: the lyrics MUST explicitly wish ${input.name} a happy birthday in ${input.language} (the natural local phrase, e.g. Spanish "Feliz cumpleaños", French "Joyeux anniversaire", Russian "С днём рождения", Arabic "كل عام وأنت بخير", Turkish "İyi ki doğdun", Hindi "Janam din mubarak"). This greeting must appear in the chorus — it is the entire point of the song and must never be omitted, no matter what other theme (a team welcome, a tribute, an inside joke) the inputs suggest.
 - Use ${input.name} in the chorus and ideally in the verse too.
 - Reference advanced fields naturally if provided.
 - Never include English placeholder text in non-English lyrics.`;

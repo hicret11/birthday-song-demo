@@ -29,6 +29,14 @@ const STEPS: Array<{ icon: typeof Sparkles; title: string }> = [
 export default function Home() {
   return (
     <main className="relative flex min-h-screen flex-col overflow-hidden bg-gradient-to-br from-[#070019] via-[#12062f] to-[#1e1646] text-white">
+      <nav className="absolute right-4 top-4 z-20">
+        <Link
+          href="/my-songs"
+          className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold text-slate-200 backdrop-blur transition hover:text-white"
+        >
+          My songs
+        </Link>
+      </nav>
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(236,72,153,0.20),transparent_55%),radial-gradient(circle_at_88%_72%,rgba(245,158,11,0.14),transparent_55%),radial-gradient(circle_at_50%_50%,rgba(168,85,247,0.12),transparent_60%)]"

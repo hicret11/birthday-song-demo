@@ -38,6 +38,7 @@ const LOADING_MESSAGES = [
   "Tuning the chorus…",
   "Adding the icing…",
   "Wrapping the bow…",
+  "✨ This is where the magic happens…",
 ];
 
 // Gate for the visual cake + candle pickers in the "Make it Yours" panel.
@@ -186,34 +187,37 @@ function CakeIcon({ style, selected }: { style: CakeStyle; selected: boolean }) 
 }
 
 const TEMPLATE_LABELS: Record<ShareTemplate, { name: string; desc: string }> = {
-  classic: { name: "Classic", desc: "Clean & timeless" },
+  classic: { name: "Classic", desc: "Bold & celebratory" },
   neon: { name: "Neon", desc: "Vibrant & glowing" },
   elegant: { name: "Elegant", desc: "Refined & golden" },
   playful: { name: "Playful", desc: "Fun & colorful" },
+  corporate: { name: "Corporate", desc: "Polished & professional" },
 };
 
 // Tiny color anchors next to each template name in the picker — let the user
 // see the design's accent at a glance without rendering the whole template.
 const TEMPLATE_ACCENT: Record<ShareTemplate, string> = {
-  classic: "#8b4513",
+  classic: "#ec4899",
   neon: "#ff00ff",
   elegant: "#f5e070",
   playful: "#fb923c",
+  corporate: "#ec4899",
 };
 
 // Preview-card styling (approximation of OVERLAY_STYLES from share/templates).
 // Self-contained — no cross-component coupling.
 const PREVIEW_BG: Record<ShareTemplate, string> = {
-  classic: "bg-[#faf7f2]",
+  classic: "bg-gradient-to-br from-[#1a0b2e] via-[#2d1248] to-[#3a1b1f]",
   elegant: "bg-[#0a0805]",
   neon: "bg-[#0d0521]",
   playful: "bg-gradient-to-br from-[#fb7185] to-[#fb923c]",
+  corporate: "bg-gradient-to-br from-[#0b1220] to-[#1b2538]",
 };
 const PREVIEW_TEXT_STYLE: Record<ShareTemplate, React.CSSProperties> = {
   classic: {
     fontFamily: "Georgia, 'Times New Roman', serif",
-    color: "#1f2937",
-    textShadow: "0 1px 0 rgba(255,255,255,0.7)",
+    color: "#fbcfe8",
+    textShadow: "0 0 14px rgba(236,72,153,0.5)",
   },
   elegant: {
     fontFamily: "Georgia, 'Times New Roman', serif",
@@ -229,6 +233,11 @@ const PREVIEW_TEXT_STYLE: Record<ShareTemplate, React.CSSProperties> = {
     fontFamily: "system-ui, -apple-system, sans-serif",
     color: "#ffffff",
     textShadow: "2px 2px 0 rgba(0,0,0,0.35)",
+  },
+  corporate: {
+    fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+    color: "#ffffff",
+    textShadow: "0 2px 8px rgba(0,0,0,0.5)",
   },
 };
 
@@ -596,6 +605,31 @@ export default function GeneratorClient({ venue }: Props) {
   const [creatingShare, setCreatingShare] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  // ── Optional photo slideshow ────────────────────────────────────────────
+  // Users may add up to 6 photos before unlocking; the URLs persist on the
+  // share and the slideshow video is rendered after unlock. Entirely optional
+  // and non-blocking — skipping is fine and never gates share creation.
+  const MAX_SLIDESHOW_PHOTOS = 6;
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const photoInputRef = useRef<HTMLInputElement | null>(null);
+
+  // ── Consumer paywall (preview → unlock) ─────────────────────────────────
+  // The finished song plays as a free preview (first PREVIEW_SECONDS); the full
+  // song + download + video + slideshow are unlocked via one-time Stripe
+  // checkout. Tier comes back on the share response so the CTA can show the
+  // geo-correct price. NOTE: this is a client-side gate (good enough for v1);
+  // hardening = serve a real trimmed preview clip from /api/audio when locked.
+  const [shareTier, setShareTier] = useState<"A" | "B" | "C" | null>(null);
+  const [unlocking, setUnlocking] = useState(false);
+  const [previewEnded, setPreviewEnded] = useState(false);
+  const songAudioRef = useRef<HTMLAudioElement | null>(null);
+  const PREVIEW_SECONDS = 20;
+  // Display-only mirror of TIER_PRICE_DISPLAY in lib/pricing-tiers.ts. The real
+  // charge is always the Stripe price_id; keep these in sync for the CTA label.
+  const TIER_PRICE_LABEL: Record<"A" | "B" | "C", string> = { A: "$9.99", B: "$5.99", C: "$2.99" };
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const cleanupRef = useRef<null | (() => void)>(null);
@@ -1123,6 +1157,7 @@ export default function GeneratorClient({ venue }: Props) {
       ...(cakeStyle ? { cake_style: cakeStyle } : {}),
       ...(candleColor ? { candle_color: candleColor } : {}),
       ...(personalNote.trim() ? { personal_note: personalNote.trim() } : {}),
+      ...(photoUrls.length > 0 ? { photoUrls } : {}),
       ...(venue ? { venueSlug: venue.slug } : {}),
       ...(emailToSend ? { email: emailToSend } : {}),
     };
@@ -1143,11 +1178,89 @@ export default function GeneratorClient({ venue }: Props) {
         ? new URL(ok.shareUrl, window.location.origin).toString()
         : ok.shareUrl;
       setShareUrl(absolute);
+      if (ok.tier === "A" || ok.tier === "B" || ok.tier === "C") setShareTier(ok.tier);
     } catch {
       setShareError("Couldn't reach the server. Please try again.");
     } finally {
       setCreatingShare(false);
     }
+  }
+
+  // Open one-time Stripe checkout to unlock the full song. shareId is the tail
+  // of the auto-created share URL; the button stays disabled until it exists.
+  async function unlockFullSong() {
+    const shareId = shareUrl ? shareUrl.split("/").pop() ?? null : null;
+    if (!shareId || unlocking) return;
+    setUnlocking(true);
+    setShareError(null);
+    try {
+      track("unlock_click", { share_id: shareId, tier: shareTier ?? "unknown" });
+      const res = await fetch("/api/stripe/checkout-song", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shareId }),
+      });
+      const data = await res.json();
+      if (data?.url) {
+        window.location.href = data.url as string;
+        return;
+      }
+      setShareError(data?.error?.message ?? "Couldn't start checkout. Please try again.");
+    } catch {
+      setShareError("Couldn't reach the server. Please try again.");
+    } finally {
+      setUnlocking(false);
+    }
+  }
+
+  // Optional slideshow photos — upload selected images to R2 and stash the
+  // returned URLs so createShareLink() can persist them on the share. Fully
+  // non-blocking: errors surface inline and never stop the user from sharing.
+  async function handlePhotoSelect(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setPhotoError(null);
+    const remaining = MAX_SLIDESHOW_PHOTOS - photoUrls.length;
+    if (remaining <= 0) {
+      setPhotoError(`You can add up to ${MAX_SLIDESHOW_PHOTOS} photos.`);
+      return;
+    }
+    const selected = Array.from(files).slice(0, remaining);
+    const form = new FormData();
+    for (const file of selected) form.append("photos", file);
+
+    setUploadingPhotos(true);
+    track("slideshow_photos_upload_start", {
+      venue_slug: venue?.slug ?? "none",
+      count: selected.length,
+    });
+    try {
+      const res = await fetch("/api/photos/upload", { method: "POST", body: form });
+      const data = await res.json();
+      if (!res.ok) {
+        setPhotoError(data?.error?.message ?? "Couldn't upload photos.");
+        return;
+      }
+      const urls = Array.isArray(data?.urls) ? (data.urls as string[]) : [];
+      if (urls.length === 0) {
+        setPhotoError("No photos were uploaded.");
+        return;
+      }
+      setPhotoUrls((prev) => [...prev, ...urls].slice(0, MAX_SLIDESHOW_PHOTOS));
+      track("slideshow_photos_uploaded", {
+        venue_slug: venue?.slug ?? "none",
+        count: urls.length,
+      });
+    } catch {
+      setPhotoError("Couldn't reach the server. Please try again.");
+    } finally {
+      setUploadingPhotos(false);
+      if (photoInputRef.current) photoInputRef.current.value = "";
+    }
+  }
+
+  function removePhoto(index: number) {
+    setPhotoUrls((prev) => prev.filter((_, i) => i !== index));
+    setPhotoError(null);
   }
 
   async function copyShareUrl() {
@@ -1880,7 +1993,7 @@ export default function GeneratorClient({ venue }: Props) {
               <p className="mb-2 text-center text-[10px] font-bold uppercase tracking-widest opacity-60">
                 Pick a design while you wait
               </p>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
                 {SHARE_TEMPLATES.map((key) => {
                   const meta = TEMPLATE_LABELS[key];
                   const selected = shareTemplate === key;
@@ -1913,7 +2026,7 @@ export default function GeneratorClient({ venue }: Props) {
             {name.trim() && (
               <div className="mt-4 overflow-hidden rounded-2xl border border-white/15">
                 <div className={`px-5 py-7 text-center ${PREVIEW_BG[shareTemplate]}`}>
-                  <p className="text-[11px] font-bold uppercase tracking-widest opacity-60" style={{ color: shareTemplate === "classic" ? "#6b7280" : "rgba(255,255,255,0.55)" }}>
+                  <p className="text-[11px] font-bold uppercase tracking-widest opacity-60" style={{ color: "rgba(255,255,255,0.55)" }}>
                     Preview
                   </p>
                   <p
@@ -1925,7 +2038,7 @@ export default function GeneratorClient({ venue }: Props) {
                   {personalNote.trim() && (
                     <p
                       className="mt-2 text-xs italic opacity-80"
-                      style={{ color: shareTemplate === "classic" ? "#6b7280" : "rgba(255,255,255,0.85)" }}
+                      style={{ color: "rgba(255,255,255,0.85)" }}
                     >
                       {personalNote.trim()}
                     </p>
@@ -2207,8 +2320,9 @@ export default function GeneratorClient({ venue }: Props) {
           </p>
 
           {audioUrl ? (
-            <div className="mt-4 space-y-2">
+            <div className="mt-4 space-y-3">
               <audio
+                ref={songAudioRef}
                 controls
                 src={audioProxyUrl ?? audioUrl}
                 className="w-full"
@@ -2221,27 +2335,118 @@ export default function GeneratorClient({ venue }: Props) {
                     // Ignore — pausing a paused element throws on some browsers.
                   }
                 }}
+                onTimeUpdate={(e) => {
+                  // Free-preview gate: hold playback at PREVIEW_SECONDS and
+                  // surface the unlock CTA. Client-side only for v1.
+                  const el = e.currentTarget;
+                  if (el.currentTime >= PREVIEW_SECONDS) {
+                    el.pause();
+                    el.currentTime = PREVIEW_SECONDS;
+                    if (!previewEnded) setPreviewEnded(true);
+                  }
+                }}
+                onSeeking={(e) => {
+                  const el = e.currentTarget;
+                  if (el.currentTime > PREVIEW_SECONDS) el.currentTime = PREVIEW_SECONDS;
+                }}
               />
-              <div className="flex items-center justify-between gap-3">
-                <a
-                  href={audioProxyUrl ?? audioUrl}
-                  download
-                  className="text-xs opacity-70 underline-offset-2 hover:underline"
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-fuchsia-300/90">
+                🎁 Free preview · first {PREVIEW_SECONDS} seconds
+              </p>
+
+              {/* The buy moment — the preview hooked them; now unlock everything. */}
+              <div className="rounded-3xl border border-fuchsia-300/30 bg-gradient-to-br from-fuchsia-500/15 via-purple-500/10 to-amber-400/10 p-5">
+                <p className="text-base font-extrabold">
+                  {previewEnded ? `Loved it? Unlock ${name}'s full song 🎶` : `Unlock ${name}'s full song 🎶`}
+                </p>
+                <p className="mt-1 text-xs leading-relaxed opacity-80">
+                  Full one-minute song, MP3 download, a shareable video, and a photo
+                  slideshow — keep it forever and send it to family.
+                </p>
+                <button
+                  type="button"
+                  onClick={unlockFullSong}
+                  disabled={!shareUrl || unlocking}
+                  className="mt-3 w-full rounded-2xl bg-gradient-to-r from-pink-500 via-fuchsia-500 to-amber-400 py-3.5 text-sm font-extrabold text-white shadow-xl transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Download audio
-                </a>
-                {/* Small, non-blocking indicator while the share artifact is
-                    rendering in the background. User can listen / read /
-                    edit lyrics during this window — they aren't blocked. */}
-                {!shareUrl && (creatingShare || !shareError) && (
-                  <span className="flex items-center gap-2 text-[11px] opacity-60">
-                    <span
-                      aria-hidden
-                      className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-fuchsia-400"
-                    />
-                    Wrapping it up — your shareable link will be ready in about
-                    30 seconds…
-                  </span>
+                  {unlocking
+                    ? "Opening secure checkout…"
+                    : !shareUrl
+                      ? "Preparing your song…"
+                      : `Unlock the full song${shareTier ? ` · ${TIER_PRICE_LABEL[shareTier]}` : ""} →`}
+                </button>
+                <p className="mt-2 text-center text-[11px] opacity-60">
+                  One-time payment · instant unlock · secure checkout by Stripe
+                </p>
+              </div>
+
+              {/* Optional: add photos for a Ken-Burns slideshow set to the song.
+                  Entirely optional — skipping is fine. The photos persist on the
+                  share; the slideshow video renders after unlock. */}
+              <div className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-extrabold">📸 Add photos for a slideshow</p>
+                    <p className="mt-1 text-xs leading-relaxed opacity-70">
+                      Optional — add up to {MAX_SLIDESHOW_PHOTOS} photos and we&apos;ll
+                      turn them into a Ken-Burns video set to {name || "the"}&apos;s song
+                      after you unlock.
+                    </p>
+                  </div>
+                </div>
+
+                {photoUrls.length > 0 && (
+                  <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                    {photoUrls.map((url, i) => (
+                      <div
+                        key={url}
+                        className="group relative aspect-square overflow-hidden rounded-xl border border-white/10 bg-white/5"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element -- remote R2 thumbnails; no need for next/image optimization here */}
+                        <img
+                          src={url}
+                          alt={`Slideshow photo ${i + 1}`}
+                          className="h-full w-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removePhoto(i)}
+                          aria-label={`Remove photo ${i + 1}`}
+                          className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-xs font-bold text-white opacity-0 transition group-hover:opacity-100"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <input
+                  ref={photoInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => void handlePhotoSelect(e.target.files)}
+                />
+
+                <button
+                  type="button"
+                  onClick={() => photoInputRef.current?.click()}
+                  disabled={uploadingPhotos || photoUrls.length >= MAX_SLIDESHOW_PHOTOS}
+                  className="mt-3 w-full rounded-2xl border border-white/15 bg-white/5 py-2.5 text-sm font-semibold transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {uploadingPhotos
+                    ? "Uploading…"
+                    : photoUrls.length >= MAX_SLIDESHOW_PHOTOS
+                      ? `Maximum ${MAX_SLIDESHOW_PHOTOS} photos added`
+                      : photoUrls.length > 0
+                        ? "Add more photos"
+                        : "Choose photos"}
+                </button>
+
+                {photoError && (
+                  <p className="mt-2 text-xs text-rose-300">{photoError}</p>
                 )}
               </div>
             </div>

@@ -88,15 +88,40 @@ export function resolveTier(request: Request): Tier {
   return getTierForCountry(country);
 }
 
-// TODO: wire tier → Stripe price_id when pricing strategy is finalized.
-// Suggested shape, drop in here once decided:
+// ── Consumer song-unlock pricing ────────────────────────────────────────────
 //
-//   export const STRIPE_PRICE_IDS: Record<Tier, string> = {
-//     A: process.env.STRIPE_PRICE_ID_TIER_A!,
-//     B: process.env.STRIPE_PRICE_ID_TIER_B!,
-//     C: process.env.STRIPE_PRICE_ID_TIER_C!,
-//   };
+// One-time payment to unlock the full song + MP3 download + share video +
+// photo slideshow. Price is geo-tiered (Ray's "price by IP"): high-PPP markets
+// pay the anchor, mid/low markets pay less so the impulse buy stays frictionless.
 //
-// The Stripe Checkout flow already receives a Tier letter from resolveTier();
-// at that point it's a single lookup to pick the price. Until then, the venue
-// founding-tier price stays the only Stripe Product on file.
+// SETUP REQUIRED (do this in the Stripe Dashboard, then set the env vars):
+//   1. Create ONE Product "Sing My Birthday — Full Song".
+//   2. Add THREE one-time prices on it (amounts below are the defaults we chose;
+//      adjust freely). Copy each price_id into the matching env var:
+//        STRIPE_PRICE_ID_TIER_A  → $9.99  (US/UK/UAE/EU & other high-PPP)
+//        STRIPE_PRICE_ID_TIER_B  → $5.99  (LatAm, SE-Asia, Eastern Europe, TR)
+//        STRIPE_PRICE_ID_TIER_C  → $2.99  (everywhere else / unknown geo)
+//   3. Add STRIPE_WEBHOOK_SECRET (already used by the venue flow) and make sure
+//      the webhook endpoint subscribes to `checkout.session.completed`.
+//
+// The amounts in TIER_PRICE_DISPLAY are for UI copy ONLY — the actual charge is
+// always whatever the Stripe price_id says, so the price the user sees and the
+// price they pay can never drift apart in code.
+
+export const STRIPE_PRICE_IDS: Record<Tier, string | undefined> = {
+  A: process.env.STRIPE_PRICE_ID_TIER_A,
+  B: process.env.STRIPE_PRICE_ID_TIER_B,
+  C: process.env.STRIPE_PRICE_ID_TIER_C,
+};
+
+/** Display-only amounts. Keep in sync with the Stripe prices you create. */
+export const TIER_PRICE_DISPLAY: Record<Tier, { label: string; amountCents: number; currency: string }> = {
+  A: { label: "$9.99", amountCents: 999, currency: "usd" },
+  B: { label: "$5.99", amountCents: 599, currency: "usd" },
+  C: { label: "$2.99", amountCents: 299, currency: "usd" },
+};
+
+/** Stripe price_id for a tier, or undefined if not configured yet. */
+export function priceIdForTier(tier: Tier): string | undefined {
+  return STRIPE_PRICE_IDS[tier];
+}

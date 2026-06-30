@@ -5,15 +5,16 @@ import type { ShareTemplate, SharedSong } from "@/lib/api-types";
 import { toAudioProxyUrl } from "@/lib/audio-proxy";
 import { logClientEvent } from "@/lib/client-events";
 import { greetingFor } from "@/lib/greetings";
+import UnlockableAudio from "@/components/share/UnlockableAudio";
 
 const MAX_RETRIES = 2;
 
 const OVERLAY_STYLES: Record<ShareTemplate, React.CSSProperties> = {
   classic: {
     fontFamily: 'Georgia, "Times New Roman", serif',
-    color: "#1f2937",
+    color: "#fce7f3",
     textShadow:
-      "3px 0 0 #faf7f2, -3px 0 0 #faf7f2, 0 3px 0 #faf7f2, 0 -3px 0 #faf7f2, 2px 2px 0 #faf7f2, -2px 2px 0 #faf7f2, 2px -2px 0 #faf7f2, -2px -2px 0 #faf7f2",
+      "0 0 12px rgba(236,72,153,0.55), 2px 0 0 #1a0b2e, -2px 0 0 #1a0b2e, 0 2px 0 #1a0b2e, 0 -2px 0 #1a0b2e",
   },
   elegant: {
     fontFamily: 'Georgia, "Times New Roman", serif',
@@ -30,6 +31,11 @@ const OVERLAY_STYLES: Record<ShareTemplate, React.CSSProperties> = {
     fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif',
     color: "#ffffff",
     textShadow: "3px 3px 0 #000000, 0 0 12px rgba(0,0,0,0.4)",
+  },
+  corporate: {
+    fontFamily: '"Inter", system-ui, -apple-system, "Segoe UI", sans-serif',
+    color: "#ffffff",
+    textShadow: "2px 0 0 #0b1220, -2px 0 0 #0b1220, 0 2px 0 #0b1220, 0 -2px 0 #0b1220, 0 0 10px rgba(0,0,0,0.5)",
   },
 };
 
@@ -148,6 +154,7 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "") || "song";
   const downloadExt = currentVideo ? "mp4" : "mp3";
+  const unlocked = !!song.unlocked;
 
   return (
     <div className={className}>
@@ -155,12 +162,13 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
         {song.language} • {song.genre} • {song.lyrics.title}
       </p>
 
-      {currentVideo ? (
+      {/* Branded share video — only shown once the song is unlocked. The
+          preview-gated audio below is the paywall surface for locked songs. */}
+      {unlocked && currentVideo && (
         <div className="relative mt-6">
           <video
             key={currentVideo}
             controls
-            autoPlay
             playsInline
             onPlay={handlePlay}
             src={currentVideo}
@@ -174,19 +182,47 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
             {greetingFor(song.language, song.name)}
           </div>
         </div>
-      ) : (
-        <audio
-          key={currentAudio}
-          controls
-          autoPlay
-          loop={false}
-          onPlay={handlePlay}
-          src={toAudioProxyUrl(currentAudio)}
-          className="mt-6 w-full"
-        />
       )}
 
-      {/* Action stack — Send (primary) / Download (secondary) / Try another (tertiary) */}
+      {/* Audio: full playback + MP3 download when unlocked, 20s preview +
+          unlock CTA when locked. */}
+      <UnlockableAudio
+        shareId={song.id}
+        audioSrc={toAudioProxyUrl(currentAudio)}
+        unlocked={unlocked}
+        recipientName={song.name}
+      />
+
+      {/* Unlocked-only downloads: branded video + photo slideshow. */}
+      {unlocked && currentVideo && (
+        <a
+          href={`/api/share/${song.id}/download`}
+          download={`birthday-song-${nameSlug}.${downloadExt}`}
+          className="mt-3 block w-full rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-center text-sm font-bold transition hover:bg-white/15"
+        >
+          <span aria-hidden>⬇</span> Download video
+        </a>
+      )}
+
+      {unlocked && song.slideshowVideoUrl && (
+        <div className="mt-6">
+          <video
+            controls
+            playsInline
+            src={song.slideshowVideoUrl}
+            className="w-full rounded-2xl bg-black shadow-lg"
+          />
+          <a
+            href={song.slideshowVideoUrl}
+            download
+            className="mt-3 block w-full rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-center text-sm font-bold transition hover:bg-white/15"
+          >
+            <span aria-hidden>⬇</span> Download slideshow
+          </a>
+        </div>
+      )}
+
+      {/* Action stack — Send (primary) / Try another (tertiary) */}
       <div className="mt-5 space-y-3">
         <button
           type="button"
@@ -195,14 +231,6 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
         >
           📤 Send to a friend
         </button>
-
-        <a
-          href={`/api/share/${song.id}/download`}
-          download={`birthday-song-${nameSlug}.${downloadExt}`}
-          className="block w-full rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-center text-sm font-bold transition hover:bg-white/15"
-        >
-          <span aria-hidden>⬇</span> Download song
-        </a>
 
         {showStyleEditor && retriesUsed < MAX_RETRIES && (
           <input
@@ -305,7 +333,17 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
         ))}
       </div>
 
-      <footer className="mt-12 text-center text-xs opacity-70">
+      {/* Re-conversion CTA — turns recipients into creators. Always shown. */}
+      <div className="mt-12">
+        <a
+          href="/generate"
+          className="block w-full rounded-2xl bg-gradient-to-r from-pink-500 via-fuchsia-500 to-amber-400 px-5 py-4 text-center text-base font-extrabold text-white shadow-2xl shadow-fuchsia-500/30 transition hover:-translate-y-1 hover:shadow-fuchsia-500/50"
+        >
+          🎂 Make your own birthday song →
+        </a>
+      </div>
+
+      <footer className="mt-8 text-center text-xs opacity-70">
         <a href="/" className="underline-offset-2 hover:underline">
           Made with Birthday Song Generator
         </a>
