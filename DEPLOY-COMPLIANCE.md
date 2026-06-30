@@ -151,10 +151,10 @@ Replace `$B` with `https://singmybirthday.com`.
 ### 3.1 Legal pages + footer
 ```bash
 for p in terms privacy cookies; do
-  echo "== /$p =="; curl -s $B/$p | grep -oE "V1\.0|May 29, 2026|glomotec, Inc\." | sort -u
+  echo "== /$p =="; curl -s $B/$p | grep -oE "V1\.0|May 29, 2026|GLOBAL MOBILITY TECHNOLOGIES LLC" | sort -u
 done
 ```
-- [ ] Each page returns **V1.0**, **Friday, May 29, 2026**, **glomotec, Inc.**
+- [ ] Each page returns **V1.0**, **Friday, May 29, 2026**, **GLOBAL MOBILITY TECHNOLOGIES LLC**
 - [ ] Footer Terms / Privacy / Cookies links navigate correctly on a content page
 
 ### 3.2 Cookie banner + analytics gating (browser, fresh/incognito)
