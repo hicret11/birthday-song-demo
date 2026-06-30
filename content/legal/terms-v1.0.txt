@@ -7,8 +7,8 @@
   previews, paid songs, video bundles, venue subscriptions, raffles, data-capture features, and related services.
 
    VERSION                           EFFECTIVE                         ISSUING ENTITY                     GOVERNING LAW
-                                                                                                          State of Delaware, United
-   V1.0                              Friday, May 29, 2026              glomotec, Inc.
+                                                                                                          State of Wyoming, United
+   V1.0                              Friday, May 29, 2026              GLOBAL MOBILITY TECHNOLOGIES LLC
                                                                                                           States
 
 
@@ -38,14 +38,14 @@ separate permission.
 
 Raffles and prizes.                                                Built by glomotec Labs.
 Promotional raffles, giveaways, and competitions run               Sing My Birthday is an engineering product developed
-occasionally with non-cash prizes capped at USD                    by glomotec Labs, separate from glomotec, Inc.'s main
-$1,000 equivalent per prize. Cash prizes are not offered.          lines of business. glomotec, Inc. is the issuing entity
+occasionally with non-cash prizes capped at USD                    by glomotec Labs, separate from the glomotec group's main
+$1,000 equivalent per prize. Cash prizes are not offered.          lines of business. The LLC is the issuing entity
                                                                    during the incubation period and may migrate the
                                                                    service to a separate entity later, with notice.
 Binding agreement and waiver of class action and jury trial
 These Terms of Service, together with the Sing My Birthday Privacy Policy, Cookie Policy, any promotion rules,
 any venue agreement, and any other policy or schedule referenced here, form a legally binding agreement
-between you and glomotec, Inc. (“glomotec,” “Sing My Birthday,” “we,” “us,” or “our”).
+between you and GLOBAL MOBILITY TECHNOLOGIES LLC (“glomotec,” “Sing My Birthday,” “we,” “us,” or “our”).
 
 By accessing or using singmybirthday.com, creating an account, generating a song, entering a raffle,
 purchasing a song, purchasing a video bundle, subscribing to a venue plan, or otherwise interacting with the
@@ -60,13 +60,13 @@ If you do not agree to these Terms, do not access or use Sing My Birthday.
 
 
 1. Parties and defined terms
-These Terms are entered into between you and glomotec, Inc., a corporation incorporated in the State of
-Delaware, United States of America, with registered office at 131 Continental Drive, Suite 305, Newark, DE
-19713, United States.
+These Terms are entered into between you and GLOBAL MOBILITY TECHNOLOGIES LLC, a close limited liability company formed in the State of
+Wyoming, United States of America, with business address at 1309 Coffeen Avenue STE 15705, Sheridan, WY
+82801, United States.
 
 “Sing My Birthday” means the website, application, account system, song and video generation tools, venue
 tools, data-capture features, promotional campaigns, and related services operated by or on behalf of
-glomotec, Inc. under the Sing My Birthday brand.
+GLOBAL MOBILITY TECHNOLOGIES LLC under the Sing My Birthday brand.
 
 “Account” means the profile or credentials created by a user to access features of the service.
 
@@ -120,13 +120,13 @@ experience purposes only, subject to these Terms.
 
 3.1 Provider, glomotec Labs, and entity migration
 
-Sing My Birthday is an engineering product developed and operated by glomotec Labs, the venture-incubation
-arm of glomotec, Inc. Sing My Birthday is separate and distinct from glomotec, Inc.'s primary lines of business
-and does not represent or operate on behalf of those lines of business.
+Sing My Birthday is an engineering product developed and operated by glomotec Labs, the product and venture
+studio operated by GLOBAL MOBILITY TECHNOLOGIES LLC. Sing My Birthday is separate and distinct from the primary lines of business
+of glomotec, Inc. (the Delaware parent within the glomotec group) and does not represent or operate on behalf of those lines of business.
 
-During the incubation period, glomotec, Inc. serves as the issuing entity, contracting party, and operator of
+GLOBAL MOBILITY TECHNOLOGIES LLC serves as the issuing entity, contracting party, and operator of
 record for Sing My Birthday under these Terms. References to glomotec, Sing My Birthday, "we," "us," and
-"our" in these Terms include glomotec, Inc. in this issuing-entity capacity.
+"our" in these Terms include GLOBAL MOBILITY TECHNOLOGIES LLC in this issuing-entity capacity.
 
 We may, at our discretion and at the conclusion of the incubation period, migrate the Sing My Birthday
 business, brand, contracts, accounts, data, and Terms of Service to a separate legal entity established for that
@@ -224,7 +224,7 @@ preferences, and consent choices.
 
 Subject to applicable law and your consent choices where required, we may use, retain, share, license, and
 otherwise exploit this information for any purpose related to the operation, monetisation, security, and
-improvement of Sing My Birthday and the businesses of glomotec, Inc. and its affiliates, successors, and
+improvement of Sing My Birthday and the businesses of GLOBAL MOBILITY TECHNOLOGIES LLC and its affiliates, successors, and
 assigns, including but not limited to: delivering songs, videos, and birthday content; sending transactional,
 reminder, marketing, and promotional communications; running raffles, giveaways, vouchers, and gifting
 mechanics; personalising experiences and recommendations; measuring conversion, retention, and pricing
@@ -249,12 +249,12 @@ granted in these Terms.
 You represent that you have all rights, permissions, and consents necessary to submit User Content and to
 allow us and our providers to process it. You must not submit content that violates privacy, publicity, copyright,
 trademark, trade secret, contract, child-safety, or other rights.
-By submitting User Content, you grant glomotec, Inc., its affiliates, service providers, processors, successors,
+By submitting User Content, you grant GLOBAL MOBILITY TECHNOLOGIES LLC, its affiliates, service providers, processors, successors,
 and assignees an irrevocable, perpetual, worldwide, non-exclusive, royalty-free, sublicensable, transferable
 licence to host, store, reproduce, process, adapt, modify, create derivative works from, analyse, transmit,
 display, distribute, publicly perform, train AI models on, commercialise, and otherwise use the User Content for
 any purpose related to the operation, monetisation, improvement, marketing, security, and provision of Sing My
-Birthday and the businesses of glomotec, Inc. and its affiliates, subject only to mandatory data-protection laws
+Birthday and the businesses of GLOBAL MOBILITY TECHNOLOGIES LLC and its affiliates, subject only to mandatory data-protection laws
 and the consents you have provided.
 
 Where User Content includes personal information, our use is also subject to the Privacy Policy and applicable
@@ -266,9 +266,9 @@ them without restriction, compensation, or obligation to you.
 
 
 9. Generated output, user rights, and restrictions
-As between you and glomotec, glomotec, Inc. owns all right, title, and interest in and to Generated Output
+As between you and glomotec, GLOBAL MOBILITY TECHNOLOGIES LLC owns all right, title, and interest in and to Generated Output
 produced through Sing My Birthday, including any underlying models, prompts, templates, arrangements,
-audio, video, lyrics, and components. glomotec, Inc. retains the perpetual, worldwide, irrevocable right to use,
+audio, video, lyrics, and components. GLOBAL MOBILITY TECHNOLOGIES LLC retains the perpetual, worldwide, irrevocable right to use,
 reproduce, modify, license, distribute, publicly perform, train AI models on, commercialise, and otherwise
 exploit Generated Output and its components for any purpose, including marketing, content library expansion,
 partnership distribution, and AI training. The licence granted to you in the following paragraphs is the sole right
@@ -560,10 +560,10 @@ Where consumer-protection law in your jurisdiction gives you non-waivable rights
 
 
 26. Governing law and venue
-These Terms are governed by the laws of the State of Delaware, United States, without regard to conflict-of-
+These Terms are governed by the laws of the State of Wyoming, United States, without regard to conflict-of-
 law rules, except where mandatory local consumer-protection laws require otherwise.
 
-Subject to Section 25, courts located in Delaware will have exclusive jurisdiction over disputes arising from
+Subject to Section 25, courts located in Wyoming will have exclusive jurisdiction over disputes arising from
 these Terms, unless applicable law requires a different forum.
 27. Regional consumer and privacy rights
 Users in the European Union, United Kingdom, United Arab Emirates, California, and other jurisdictions may
@@ -583,9 +583,9 @@ law, that provision applies only to the maximum extent permitted and the rest of
 For support, legal notices, account issues, privacy requests, deletion requests, copyright notices, payment
 issues, or questions about these Terms, contact:
 
-Sing My Birthday / glomotec, Inc.
-131 Continental Drive, Suite 305
-Newark, DE 19713
+Sing My Birthday / GLOBAL MOBILITY TECHNOLOGIES LLC
+1309 Coffeen Avenue STE 15705
+Sheridan, WY 82801
 United States
 Email: support@singmybirthday.com
 

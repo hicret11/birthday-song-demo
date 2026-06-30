@@ -204,7 +204,7 @@ function buildHtml(props: SongReadyEmailProps): string {
                   Sing My Birthday <span style="color:#d1d5db;">·</span> A glomotec Labs product
                 </p>
                 <p style="margin:0 0 10px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:11px;line-height:1.5;color:#9ca3af;">
-                  Sent by glomotec, Inc., 131 Continental Drive, Suite 305, Newark, DE 19713
+                  Sent by GLOBAL MOBILITY TECHNOLOGIES LLC, 1309 Coffeen Avenue STE 15705, Sheridan, WY 82801
                 </p>
                 <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:11px;color:#9ca3af;">
                   <a href="${UNSUBSCRIBE_MAILTO}" style="color:#9ca3af;text-decoration:underline;">Unsubscribe</a>
@@ -244,7 +244,7 @@ function buildText(props: SongReadyEmailProps): string {
   lines.push("Made with love by Sing My Birthday");
   lines.push("Sing My Birthday · A glomotec Labs product");
   lines.push(
-    "Sent by glomotec, Inc., 131 Continental Drive, Suite 305, Newark, DE 19713",
+    "Sent by GLOBAL MOBILITY TECHNOLOGIES LLC, 1309 Coffeen Avenue STE 15705, Sheridan, WY 82801",
   );
   lines.push(`Unsubscribe: ${UNSUBSCRIBE_MAILTO}`);
   return lines.join("\n");
@@ -342,7 +342,7 @@ function buildPortalLinkHtml(props: PortalLinkEmailProps): string {
         </td></tr>
         <tr><td align="center" style="padding:18px 28px 24px 28px;border-top:1px solid #f3f4f6;font-size:11px;color:#9ca3af;">
           Sing My Birthday <span style="color:#d1d5db;">·</span> A glomotec Labs product<br/>
-          Sent by glomotec, Inc., 131 Continental Drive, Suite 305, Newark, DE 19713
+          Sent by GLOBAL MOBILITY TECHNOLOGIES LLC, 1309 Coffeen Avenue STE 15705, Sheridan, WY 82801
         </td></tr>
       </table>
     </td></tr>
@@ -362,7 +362,7 @@ function buildPortalLinkText(props: PortalLinkEmailProps): string {
     "If you didn't request this, you can safely ignore this email.",
     "",
     "Sing My Birthday · A glomotec Labs product",
-    "Sent by glomotec, Inc., 131 Continental Drive, Suite 305, Newark, DE 19713",
+    "Sent by GLOBAL MOBILITY TECHNOLOGIES LLC, 1309 Coffeen Avenue STE 15705, Sheridan, WY 82801",
   ].join("\n");
 }
 
@@ -429,7 +429,7 @@ function buildDunningHtml(props: DunningEmailProps): string {
         </td></tr>
         <tr><td align="center" style="padding:20px 28px 24px 28px;border-top:1px solid #f3f4f6;font-size:11px;color:#9ca3af;">
           Sing My Birthday <span style="color:#d1d5db;">·</span> A glomotec Labs product<br/>
-          Sent by glomotec, Inc., 131 Continental Drive, Suite 305, Newark, DE 19713
+          Sent by GLOBAL MOBILITY TECHNOLOGIES LLC, 1309 Coffeen Avenue STE 15705, Sheridan, WY 82801
         </td></tr>
       </table>
     </td></tr>
@@ -448,7 +448,7 @@ function buildDunningText(props: DunningEmailProps): string {
     "This link goes straight to your secure Stripe billing portal. Expires in 24 hours.",
     "",
     "Sing My Birthday · A glomotec Labs product",
-    "Sent by glomotec, Inc., 131 Continental Drive, Suite 305, Newark, DE 19713",
+    "Sent by GLOBAL MOBILITY TECHNOLOGIES LLC, 1309 Coffeen Avenue STE 15705, Sheridan, WY 82801",
   ].join("\n");
 }
 

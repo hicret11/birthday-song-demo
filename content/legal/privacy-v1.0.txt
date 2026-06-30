@@ -6,8 +6,8 @@ Privacy Policy
 How Sing My Birthday collects, uses, stores, shares, and protects personal data across consumer songs, venue
 subscriptions, raffles, marketing, analytics, and the Sing My content library.
  Version                        Effective         Issuing entity                          Governing frameworks
- V1.0                           Friday, May 29,   glomotec, Inc. / glomotec               UK GDPR, EU GDPR, CCPA / CPRA, COPPA, UAE
-                                2026              Labs                                    PDPL, Delaware and United States law
+ V1.0                           Friday, May 29,   GLOBAL MOBILITY TECHNOLOGIES LLC / glomotec               UK GDPR, EU GDPR, CCPA / CPRA, COPPA, UAE
+                                2026              Labs                                    PDPL, Wyoming and United States law
 
 
 AT A GLANCE
@@ -35,7 +35,7 @@ the binding version.
 
 
 00    How Sing My Birthday processes personal data
-This Privacy Policy explains how glomotec, Inc. and its affiliates, acting through glomotec Labs and the Sing My
+This Privacy Policy explains how GLOBAL MOBILITY TECHNOLOGIES LLC and its affiliates, acting through glomotec Labs and the Sing My
 Birthday product, collect, use, store, disclose, and protect personal data when you access singmybirthday.com,
 create free or paid songs, purchase bundles, enter raffles or gifting mechanics, interact with our emails or
 advertising, or use Sing My as a venue, business, or partner.
@@ -47,11 +47,11 @@ those mandatory provisions apply and your statutory rights are preserved.
 
 
 01    Who controls your personal data
-This Privacy Policy is issued by glomotec, Inc., a corporation incorporated in the State of Delaware, United States
-of America, with registered office at 131 Continental Drive, Suite 305, Newark, DE 19713, United States.
-Sing My Birthday is an engineering product developed and operated by glomotec Labs, the venture-incubation
-arm of glomotec, Inc. During the incubation period, glomotec, Inc. is the issuing entity, operator of record, and
-contracting party for Sing My Birthday.
+This Privacy Policy is issued by GLOBAL MOBILITY TECHNOLOGIES LLC, a close limited liability company formed in the State of Wyoming,
+United States of America, with business address at 1309 Coffeen Avenue STE 15705, Sheridan, WY 82801, United States.
+Sing My Birthday is an engineering product developed and operated by GLOBAL MOBILITY TECHNOLOGIES LLC, operating as glomotec Labs,
+the product and venture studio within the glomotec group, whose parent strategic entity is glomotec, Inc. (a Delaware corporation).
+GLOBAL MOBILITY TECHNOLOGIES LLC is the issuing entity, operator of record, and contracting party for Sing My Birthday.
 
 
 
@@ -75,10 +75,10 @@ information is provided by a user, parents or guardians, venue contacts, venue g
 their birthday details, business prospects, partners, website visitors, social media users, and support contacts.
 
 2.2 Who the controller is
-For most Sing My Birthday consumer and website processing, glomotec, Inc. is the controller because it
+For most Sing My Birthday consumer and website processing, GLOBAL MOBILITY TECHNOLOGIES LLC is the controller because it
 determines the purposes and means of processing.
 For venue and business use, the venue or business may be the controller for its own customer or guest data, and
-glomotec, Inc. may act as processor when it processes that data under the venue's instructions. Venue
+GLOBAL MOBILITY TECHNOLOGIES LLC may act as processor when it processes that data under the venue's instructions. Venue
 controller/processor terms should be addressed in a separate Venue Agreement and Data Processing
 Addendum.
 
@@ -528,8 +528,8 @@ updated policy, subject to any consent rights or mandatory laws that apply.
 22   Contact
 For privacy questions, rights requests, child-data concerns, cookie questions, or data-protection matters, contact:
 Sing My Birthday Privacy Team
-glomotec, Inc.
-131 Continental Drive, Suite 305, Newark, DE 19713, United States
+GLOBAL MOBILITY TECHNOLOGIES LLC
+1309 Coffeen Avenue STE 15705, Sheridan, WY 82801, United States
 Email: support@singmybirthday.com
 If you are contacting us from a jurisdiction with a supervisory authority, you may also have the right to lodge a
 complaint with that authority.

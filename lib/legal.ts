@@ -3,7 +3,7 @@ import path from "node:path";
 
 export const LEGAL_VERSION = "V1.0";
 export const LEGAL_EFFECTIVE_DATE = "Friday, May 29, 2026";
-export const LEGAL_ENTITY = "glomotec, Inc.";
+export const LEGAL_ENTITY = "GLOBAL MOBILITY TECHNOLOGIES LLC";
 export const COOKIE_BANNER_VERSION = "V1.0";
 export const PROMO_PERMISSION_TEXT_VERSION = "V1.0";
 
