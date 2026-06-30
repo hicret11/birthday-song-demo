@@ -9,7 +9,7 @@ VERSION                        EFFECTIVE                 ISSUING ENTITY         
 
 
                                                                                       PECR, ePrivacy, GDPR,
-V1.0                           Friday, May 29, 2026      glomotec, Inc.               CCPA / CPRA, UAE PDPL,
+V1.0                           Friday, May 29, 2026      GLOBAL MOBILITY TECHNOLOGIES LLC               CCPA / CPRA, UAE PDPL,
                                                                                       COPPA-aware design
 
 
@@ -35,7 +35,7 @@ below, and update it as the product changes.
 
 
 How Sing My Birthday uses cookies and similar technologies
-This Cookie Policy explains how glomotec, Inc. and Sing My Birthday use cookies, local storage, session
+This Cookie Policy explains how GLOBAL MOBILITY TECHNOLOGIES LLC and Sing My Birthday use cookies, local storage, session
 storage, pixels, SDKs, tags, device identifiers, and similar technologies to operate singmybirthday.com, the
 Sing My Birthday application, checkout, account flows, music/video generation, delivery pages, venue flows,
 raffles, analytics, and marketing systems.
@@ -51,12 +51,12 @@ mandatory provisions apply and your statutory rights are preserved.
 
 
    1. Who sets these cookies
-   This Cookie Policy is issued by glomotec, Inc., a corporation incorporated in the State of Delaware,
-   United States of America, with registered office at 131 Continental Drive, Suite 305, Newark, DE 19713,
-   United States, as the issuing entity and operator of record for Sing My Birthday during its glomotec Labs
-   incubation period.
+   This Cookie Policy is issued by GLOBAL MOBILITY TECHNOLOGIES LLC, a close limited liability company formed in the State of Wyoming,
+   United States of America, with business address at 1309 Coffeen Avenue STE 15705, Sheridan, WY 82801,
+   United States, as the issuing entity and operator of record for Sing My Birthday, operating as glomotec Labs
+   within the glomotec group.
 
-   References to “Sing My Birthday,” “glomotec,” “we,” “us,” and “our” mean glomotec, Inc. acting in
+   References to “Sing My Birthday,” “glomotec,” “we,” “us,” and “our” mean GLOBAL MOBILITY TECHNOLOGIES LLC acting in
    connection with Sing My Birthday, together with affiliates, service providers, processors, and successors
    where the context permits.
 
@@ -78,7 +78,7 @@ mandatory provisions apply and your statutory rights are preserved.
    matters, this Cookie Policy controls.
 
    2.3 Controllers and processors
-   For consumer users, glomotec, Inc. is generally the controller for cookie and tracking choices. For venue
+   For consumer users, GLOBAL MOBILITY TECHNOLOGIES LLC is generally the controller for cookie and tracking choices. For venue
    customers, the venue may act as controller for certain guest data while Sing My Birthday acts as
    processor under the Venue Agreement and any applicable Data Processing Agreement.
 
@@ -423,7 +423,7 @@ version is identified at the top of this policy.
 
 15.2 Contact
 For questions about cookies, consent choices, or privacy rights, contact support@singmybirthday.com or
-write to glomotec, Inc., 131 Continental Drive, Suite 305, Newark, DE 19713, United States.
+write to GLOBAL MOBILITY TECHNOLOGIES LLC, 1309 Coffeen Avenue STE 15705, Sheridan, WY 82801, United States.
 
 By accessing Sing My Birthday and selecting a consent option, you confirm that you have had the
 opportunity to read this Cookie Policy and understand how we use cookies and similar technologies. You
