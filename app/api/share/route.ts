@@ -25,8 +25,12 @@ import { getClientIp, rateLimitFixedWindow } from "@/lib/rate-limit";
 import { sendSongReadyEmail } from "@/lib/resend";
 import { logGenerationEvent } from "@/lib/events";
 import { generateShareId, saveSharedSong } from "@/lib/share";
+import { addPendingUnlock } from "@/lib/pending-unlocks";
+import { enrollBirthdayReminder } from "@/lib/birthday-reminders";
 import { addSongToUser } from "@/lib/user-songs";
 import { renderShareVideo } from "@/lib/video";
+import { renderHighlightCut } from "@/lib/audio-cut";
+import { moderateShareInput } from "@/lib/moderation";
 import { loadActiveVenue } from "@/lib/venues";
 
 const RATE_LIMIT_MAX = 5;
@@ -101,6 +105,40 @@ function sanitizeWaitCapture(value: unknown): WaitCapture | undefined {
     out.year_reminder = true;
   }
   return Object.keys(out).length > 0 ? out : undefined;
+}
+
+// Birthday capture is purely additive — used only for the annual reminder.
+// Accepts "YYYY-MM-DD" or "MM-DD" and returns a normalized month-day "MM-DD",
+// or undefined if missing/invalid. Validates the day against the month
+// (Feb 29 is allowed — leap-year handling is the cron's concern, and a Feb 29
+// recipient still has a real birthday). Never throws; share creation never
+// fails over a malformed birthday.
+function sanitizeBirthdayMonthDay(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+
+  let month: number;
+  let day: number;
+  const ymd = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  const md = /^(\d{2})-(\d{2})$/.exec(trimmed);
+  if (ymd) {
+    month = Number(ymd[2]);
+    day = Number(ymd[3]);
+  } else if (md) {
+    month = Number(md[1]);
+    day = Number(md[2]);
+  } else {
+    return undefined;
+  }
+
+  if (!Number.isInteger(month) || month < 1 || month > 12) return undefined;
+  // Max days per month; February capped at 29 to allow leap-day birthdays.
+  const daysInMonth = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  const maxDay = daysInMonth[month - 1];
+  if (!Number.isInteger(day) || day < 1 || day > maxDay) return undefined;
+
+  return `${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 function isValidTemplate(value: unknown): value is ShareTemplate {
@@ -262,6 +300,11 @@ export async function POST(request: Request): Promise<Response> {
 
   const waitCapture = sanitizeWaitCapture(body.wait_capture);
 
+  // Optional recipient birthday (month-day) for the annual reminder. Stored on
+  // the share row when valid; only drives enrollment when the buyer also opted
+  // into the year reminder (see the enrollment gate below). Additive.
+  const birthdayDate = sanitizeBirthdayMonthDay(body.birthday_date);
+
   // Optional photo URLs for the paid slideshow. Best-effort — invalid entries
   // are dropped, the field is omitted when nothing valid was supplied.
   const photoUrls = sanitizePhotoUrls(body.photoUrls);
@@ -308,6 +351,58 @@ export async function POST(request: Request): Promise<Response> {
     }
   }
 
+  // Content moderation gate. The recipient name + notes become a PUBLIC artifact
+  // (share page, OG card) and steer the lyrics, so screen them before we spend
+  // money rendering/persisting. Fail-open by design (never blocks over an API
+  // blip); a serious-category flag rejects with a friendly message.
+  const moderation = await moderateShareInput([
+    name,
+    senderName,
+    personalNote,
+    styleNotes,
+    lyrics.raw,
+  ]);
+  if (!moderation.allowed) {
+    console.warn(`[share-create:moderation-blocked] cats=${moderation.categories?.join(",")}`);
+    return errorResponse(
+      "INVALID_INPUT",
+      "We can't create a song from this content. Please adjust the details and try again.",
+      400,
+    );
+  }
+
+  // Highlight-cut: carve a tight ~55s highlight from Suno's full 2–3 min track
+  // and persist a stable copy of the full-length track. Best-effort — on any
+  // failure we keep the raw Suno audioUrl as the only source. Runs before the
+  // video render so the audiogram/karaoke can be built from the tight cut.
+  let highlightAudioUrl: string | undefined;
+  let fullAudioUrl: string | undefined;
+  let previewAudioUrl: string | undefined;
+  let highlightDurationSec: number | undefined;
+  try {
+    const cut = await renderHighlightCut(body.audioUrl);
+    if (cut) {
+      const [hUrl, fUrl, pUrl] = await Promise.all([
+        uploadToR2(`audio/${id}-highlight.mp3`, cut.cutMp3, "audio/mpeg"),
+        uploadToR2(`audio/${id}-full.mp3`, cut.fullMp3, "audio/mpeg"),
+        uploadToR2(`audio/${id}-preview.mp3`, cut.previewMp3, "audio/mpeg"),
+      ]);
+      highlightAudioUrl = hUrl;
+      fullAudioUrl = fUrl;
+      previewAudioUrl = pUrl;
+      highlightDurationSec = Math.round(cut.cutDurationSec);
+      console.log(
+        `[share-create:highlight-cut] id=${id} cut=${highlightDurationSec}s full=${Math.round(cut.fullDurationSec)}s`,
+      );
+    }
+  } catch (err) {
+    console.error(`[share-create:highlight-cut-failed] id=${id}`, err);
+  }
+
+  // The video/audiogram/captions track the tight highlight when we have one —
+  // that's the polished, repeat-free song. Falls back to the raw Suno track.
+  const videoAudioUrl = highlightAudioUrl ?? body.audioUrl;
+
   let videoUrl: string | undefined;
   try {
     // cakeStyle + candleColor are still validated + persisted (see below)
@@ -316,7 +411,7 @@ export async function POST(request: Request): Promise<Response> {
     // overlays conflicted visually. Picker UI is gated off, but the
     // server keeps accepting + storing the picks for a future visual pass.
     const rendered = await renderShareVideo({
-      audioUrl: body.audioUrl,
+      audioUrl: videoAudioUrl,
       name,
       template: body.template,
       language,
@@ -327,6 +422,9 @@ export async function POST(request: Request): Promise<Response> {
       personalNote,
       genre,
       backgroundSeed: id,
+      // Drives the premium 9:16 lyric-audiogram's timed line reveal. The
+      // renderer falls back to the simple renderer if these are unusable.
+      lyrics,
     });
     console.log(
       `[share-create] rendered mp4 for ${id} template=${body.template} duration=${rendered.durationSec.toFixed(2)}s bytes=${rendered.mp4.length}`,
@@ -354,11 +452,16 @@ export async function POST(request: Request): Promise<Response> {
     // preview and checkout. A freshly created song is implicitly locked
     // (unlocked is undefined → falsy) until the Stripe webhook flips it.
     tier: resolveTier(request),
+    ...(highlightAudioUrl ? { highlightAudioUrl } : {}),
+    ...(fullAudioUrl ? { fullAudioUrl } : {}),
+    ...(previewAudioUrl ? { previewAudioUrl } : {}),
+    ...(highlightDurationSec ? { highlightDurationSec } : {}),
     ...(senderName ? { senderName } : {}),
     ...(styleNotes ? { styleNotes } : {}),
     ...(refinedStyle ? { refinedStyle } : {}),
     ...(pronunciationHint ? { pronunciationHint } : {}),
     ...(waitCapture ? { waitCapture } : {}),
+    ...(birthdayDate ? { birthdayDate } : {}),
     ...(cakeStyle ? { cakeStyle } : {}),
     ...(candleColor ? { candleColor } : {}),
     ...(personalNote ? { personalNote } : {}),
@@ -387,6 +490,20 @@ export async function POST(request: Request): Promise<Response> {
     // an optional magic-link login. Best-effort, never blocks the response.
     after(addSongToUser(toEmail, id));
     const origin = request.headers.get("origin") ?? new URL(request.url).origin;
+    // Register the still-locked share for the abandoned-preview recovery
+    // sequence. A freshly created song is locked (song.unlocked is falsy), so
+    // we only skip enrollment in the defensive case where it's somehow already
+    // unlocked. Best-effort — addPendingUnlock never throws.
+    if (!song.unlocked) {
+      after(
+        addPendingUnlock({
+          id,
+          email: toEmail,
+          recipientName: name,
+          shareUrl: `${origin}/share/${id}`,
+        }),
+      );
+    }
     after(
       sendSongReadyEmail({
         to: toEmail,
@@ -398,6 +515,20 @@ export async function POST(request: Request): Promise<Response> {
         origin,
       }),
     );
+
+    // Annual birthday reminder (LTV). Consent gate: enroll ONLY when the buyer
+    // gave us an email (above), supplied a valid birthday month-day, AND
+    // explicitly opted into the year reminder via the wait-capture checkbox.
+    // Never enroll silently. Best-effort — enrollBirthdayReminder never throws.
+    if (birthdayDate && waitCapture?.year_reminder === true) {
+      after(
+        enrollBirthdayReminder({
+          email: toEmail,
+          recipientName: name,
+          monthDay: birthdayDate,
+        }),
+      );
+    }
   }
 
   // Best-effort durable event — the richly-joinable row (email ↔ share_id).

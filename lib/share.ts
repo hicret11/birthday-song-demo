@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { kv } from "@vercel/kv";
 import type { SharedSong } from "./api-types";
+import { removePendingUnlock } from "./pending-unlocks";
 
 const ID_ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 const ID_LENGTH = 8;
@@ -36,21 +37,46 @@ export async function loadSharedSong(id: string): Promise<SharedSong | null> {
  * someone paid for should not silently expire out from under them.
  * Returns false if the share id is unknown (e.g. KV expired before payment).
  */
-export async function markSharedSongUnlocked(id: string): Promise<boolean> {
+export async function markSharedSongUnlocked(
+  id: string,
+  plan?: "full" | "deluxe",
+): Promise<boolean> {
   const song = await loadSharedSong(id);
   if (!song) return false;
-  if (!song.unlocked) {
+  // Persist the purchased plan even on idempotent replays (e.g. a Deluxe
+  // upgrade after a prior Standard unlock, or a duplicate webhook delivery that
+  // now carries the plan). Default to "full" when unspecified.
+  const resolvedPlan: "full" | "deluxe" = plan ?? song.plan ?? "full";
+  if (!song.unlocked || song.plan !== resolvedPlan) {
     song.unlocked = true;
-    song.unlockedAt = Date.now();
+    if (!song.unlockedAt) song.unlockedAt = Date.now();
+    song.plan = resolvedPlan;
     await kv.set(shareKey(song.id), song, { ex: SHARE_TTL_SECONDS });
   }
+  // They paid — stop any pending abandoned-preview reminders. Best-effort and
+  // idempotent: removePendingUnlock swallows its own errors and is harmless if
+  // the share was never enrolled (no email) or already removed.
+  await removePendingUnlock(id);
   return true;
 }
 
-/** Persist photo URLs and/or a rendered slideshow video onto an existing song. */
+/**
+ * Persist additive artifacts onto an existing song: photo URLs, a rendered
+ * slideshow video, karaoke captions, or the premium Remotion video URL/status.
+ */
 export async function updateSharedSong(
   id: string,
-  patch: Partial<Pick<SharedSong, "photoUrls" | "slideshowVideoUrl">>,
+  patch: Partial<
+    Pick<
+      SharedSong,
+      | "photoUrls"
+      | "slideshowVideoUrl"
+      | "captions"
+      | "premiumVideoUrl"
+      | "videoStatus"
+      | "previewAudioUrl"
+    >
+  >,
 ): Promise<boolean> {
   const song = await loadSharedSong(id);
   if (!song) return false;

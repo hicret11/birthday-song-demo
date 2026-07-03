@@ -1,10 +1,12 @@
+import { after } from "next/server";
 import { headers } from "next/headers";
 import type Stripe from "stripe";
 import { mintPortalToken } from "@/lib/portal-tokens";
+import { requestPremiumRender } from "@/lib/render-video";
 import { sendDunningEmail } from "@/lib/resend";
 import { getStripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { markSharedSongUnlocked } from "@/lib/share";
+import { loadSharedSong, markSharedSongUnlocked } from "@/lib/share";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://singmybirthday.com";
 const DUNNING_TOKEN_TTL_SECONDS = 24 * 60 * 60;
@@ -124,10 +126,22 @@ async function handleEvent(event: Stripe.Event, stripe: Stripe): Promise<void> {
     const session = event.data.object as Stripe.Checkout.Session;
     if (session.mode === "payment" && session.metadata?.kind === "song_unlock") {
       const shareId = session.metadata.share_id || session.client_reference_id || "";
+      const plan: "full" | "deluxe" = session.metadata.plan === "deluxe" ? "deluxe" : "full";
       if (shareId) {
-        const ok = await markSharedSongUnlocked(shareId);
+        const ok = await markSharedSongUnlocked(shareId, plan);
         if (!ok) console.error(`[stripe-webhook] song_unlock: share ${shareId} not found (KV expired?)`);
-        else console.log(`[stripe-webhook] song_unlock: ${shareId} unlocked`);
+        else {
+          console.log(`[stripe-webhook] song_unlock: ${shareId} unlocked`);
+          // Fire-and-forget the premium Remotion render (no-op unless
+          // RENDER_WORKER_URL is set). Kept non-blocking via after() so the
+          // webhook acknowledges Stripe immediately. Best-effort — never throws.
+          after(
+            (async () => {
+              const song = await loadSharedSong(shareId);
+              if (song) await requestPremiumRender(song);
+            })().catch(() => undefined),
+          );
+        }
       } else {
         console.error("[stripe-webhook] song_unlock: missing share_id in metadata");
       }

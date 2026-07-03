@@ -48,7 +48,7 @@ function buildSunoStyle(genre: string, styleNotes?: string | null): string {
   const notes = stripControlChars(styleNotes ?? "").trim().slice(0, MAX_STYLE_NOTES_LEN);
   const parts = [cleanGenre];
   if (notes) parts.push(notes);
-  parts.push("short cheerful birthday song", "about 35 seconds", "natural ending");
+  parts.push("full, cheerful birthday song with a clear verse and chorus", "about 60 seconds", "natural ending");
   return parts.join(", ").slice(0, MAX_STYLE_TOTAL_LEN);
 }
 
@@ -58,8 +58,8 @@ function buildSunoStyle(genre: string, styleNotes?: string | null): string {
 function buildRefinedSunoStyle(refined: string): string {
   const parts = [
     refined,
-    "short cheerful birthday song",
-    "about 35 seconds",
+    "full, cheerful birthday song with a clear verse and chorus",
+    "about 60 seconds",
     "natural ending",
   ];
   return parts.join(", ").slice(0, MAX_STYLE_TOTAL_LEN);

@@ -1,5 +1,5 @@
 import { getStripe } from "@/lib/stripe";
-import { resolveTier, priceIdForTier } from "@/lib/pricing-tiers";
+import { resolveTier, priceIdForPlanTier, type Plan } from "@/lib/pricing-tiers";
 import { loadSharedSong } from "@/lib/share";
 import {
   LEGAL_VERSION,
@@ -23,9 +23,9 @@ export const runtime = "nodejs";
  * gets the full song, download, video, and slideshow.
  */
 export async function POST(request: Request): Promise<Response> {
-  let body: { shareId?: unknown };
+  let body: { shareId?: unknown; plan?: unknown };
   try {
-    body = (await request.json()) as { shareId?: unknown };
+    body = (await request.json()) as { shareId?: unknown; plan?: unknown };
   } catch {
     return Response.json({ error: { message: "Invalid request." } }, { status: 400 });
   }
@@ -34,6 +34,10 @@ export async function POST(request: Request): Promise<Response> {
   if (!/^[a-zA-Z0-9]{1,32}$/.test(shareId)) {
     return Response.json({ error: { message: "Missing or invalid shareId." } }, { status: 400 });
   }
+
+  // Plan selection (good-better-best). Defaults to Standard ("full"); anything
+  // other than the literal "deluxe" is treated as "full".
+  const plan: Plan = body.plan === "deluxe" ? "deluxe" : "full";
 
   const song = await loadSharedSong(shareId);
   if (!song) {
@@ -48,7 +52,10 @@ export async function POST(request: Request): Promise<Response> {
   // Tier the song was created at wins if present (so the price can't change
   // between preview and checkout); otherwise resolve from this request's geo.
   const tier = song.tier ?? resolveTier(request);
-  const price = priceIdForTier(tier);
+  // priceIdForPlanTier falls back to the Standard "full" price when a Deluxe
+  // price isn't configured for this tier — so Deluxe checkout keeps working
+  // pre-config (the buyer just pays the Standard price until Deluxe SKUs exist).
+  const price = priceIdForPlanTier(plan, tier);
   if (!price) {
     console.error(`[checkout-song] no Stripe price_id configured for tier ${tier}`);
     return Response.json({ error: { message: "Pricing not configured." } }, { status: 500 });
@@ -62,6 +69,7 @@ export async function POST(request: Request): Promise<Response> {
     kind: "song_unlock",
     share_id: shareId,
     tier,
+    plan,
     terms_version: LEGAL_VERSION,
     acceptance_surface: LEGAL_ACCEPTANCE_SURFACE,
     acceptance_version: LEGAL_ACCEPTANCE_VERSION,
@@ -75,7 +83,7 @@ export async function POST(request: Request): Promise<Response> {
       mode: "payment",
       line_items: [{ price, quantity: 1 }],
       client_reference_id: shareId,
-      success_url: `${origin}/share/${shareId}?unlocked=1`,
+      success_url: `${origin}/share/${shareId}?unlocked=1&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/share/${shareId}`,
       allow_promotion_codes: true,
       metadata,
