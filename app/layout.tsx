@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import CookieConsent from "@/components/CookieConsent";
 import SiteFooter from "@/components/SiteFooter";
+import { DEFAULT_LOCALE, isRtl } from "@/lib/i18n";
+import { resolveLocale } from "@/lib/i18n/server";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -61,14 +63,19 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Reflects the cookie/Accept-Language locale. The `?lang=` query override is
+  // applied per-page (e.g. the landing) and not visible here, which is fine.
+  const locale = await resolveLocale().catch(() => DEFAULT_LOCALE);
+
   return (
     <html
-      lang="en"
+      lang={locale}
+      dir={isRtl(locale) ? "rtl" : "ltr"}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
