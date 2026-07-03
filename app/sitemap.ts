@@ -9,6 +9,37 @@ export const revalidate = 0;
 
 const BASE = "https://singmybirthday.com";
 
+// Seed list of popular international first names for the programmatic
+// "happy birthday [name] song" landing pages (app/happy-birthday/[name]).
+// These capture long-tail organic search and funnel into /generate.
+// Lowercased for clean, canonical URLs.
+const SEED_NAMES = [
+  // English / Western
+  "emma", "olivia", "ava", "sophia", "isabella", "mia", "charlotte", "amelia",
+  "harper", "evelyn", "liam", "noah", "oliver", "elijah", "william", "james",
+  "benjamin", "lucas", "henry", "theodore", "jack", "leo", "ethan", "mason",
+  // Spanish / Latin
+  "mateo", "santiago", "sofia", "valentina", "diego", "lucia", "martina",
+  "alejandro", "gabriel", "camila", "carlos", "maria", "jose", "ana",
+  // French
+  "louis", "gabrielle", "jules", "chloe", "manon", "hugo", "lea",
+  // German / Nordic
+  "lukas", "finn", "lena", "matteo", "elias", "astrid", "freya", "lars",
+  // Italian / Portuguese
+  "giulia", "francesco", "alessandro", "beatriz", "joao", "mariana",
+  // Arabic
+  "mohammed", "ahmed", "fatima", "aisha", "omar", "layla", "yusuf", "noor",
+  // Indian / South Asian
+  "aarav", "vivaan", "aditya", "ananya", "diya", "saanvi", "arjun", "ishaan",
+  // East Asian
+  "haruto", "yuki", "sakura", "wei", "mei", "minjun", "seoyeon",
+  // African
+  "kwame", "amara", "zola", "thabo", "chiamaka",
+  // More common everyday names
+  "michael", "sarah", "david", "jessica", "daniel", "emily", "john", "anna",
+  "chris", "laura", "alex", "grace", "ryan", "hannah", "kevin", "rachel",
+] as const;
+
 async function loadIndexableVenues(): Promise<
   { slug: string; updatedAt: Date | null }[]
 > {
@@ -68,8 +99,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  // Discovery library (per-name pages) intentionally omitted — those live as
-  // YouTube/TikTok uploads until the on-site /n/[name] surface ships.
+  // Programmatic per-name "happy birthday [name] song" landing pages.
+  const uniqueNames = Array.from(new Set(SEED_NAMES));
+  const nameRoutes: MetadataRoute.Sitemap = uniqueNames.map((name) => ({
+    url: `${BASE}/happy-birthday/${name}`,
+    lastModified: now,
+    changeFrequency: "monthly",
+    priority: 0.6,
+  }));
 
-  return [...staticRoutes, ...venueRoutes];
+  return [...staticRoutes, ...venueRoutes, ...nameRoutes];
 }

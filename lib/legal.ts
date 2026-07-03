@@ -12,7 +12,7 @@ export const PROMO_PERMISSION_TEXT_VERSION = "V1.0";
 export const LEGAL_ACCEPTANCE_SURFACE = "checkout";
 export const LEGAL_ACCEPTANCE_VERSION = "V1.0";
 
-export type LegalDocSlug = "terms" | "privacy" | "cookies";
+export type LegalDocSlug = "terms" | "privacy" | "cookies" | "refunds";
 
 export const LEGAL_DOCS: Record<
   LegalDocSlug,
@@ -35,6 +35,12 @@ export const LEGAL_DOCS: Record<
     filename: "cookies-v1.0.txt",
     description:
       "How Sing My Birthday uses cookies, local storage, pixels, tags, and similar technologies.",
+  },
+  refunds: {
+    title: "Refund Policy",
+    filename: "refunds-v1.0.txt",
+    description:
+      "Our 100% satisfaction guarantee — how refunds work on Sing My Birthday song and bundle purchases.",
   },
 };
 

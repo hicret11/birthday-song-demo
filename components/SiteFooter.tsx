@@ -15,6 +15,9 @@ export default function SiteFooter() {
         <Link className="font-semibold hover:text-gray-950" href="/privacy">
           Privacy
         </Link>
+        <Link className="font-semibold hover:text-gray-950" href="/refund">
+          Refunds
+        </Link>
         <Link className="font-semibold hover:text-gray-950" href="/cookies">
           Cookies
         </Link>
