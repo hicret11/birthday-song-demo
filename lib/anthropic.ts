@@ -78,7 +78,7 @@ Output a JSON object exactly matching this schema:
 }
 
 Constraints:
-- Total length: Exactly 4 short lines total, structured to feel complete in a 30 to 45 second song. Use the traditional birthday repetition pattern: 2 lines of verse, then 2 lines that resolve to the birthday person's name. No intro, no outro, no additional verses.
+- Total length: A complete, full song of about 60 seconds — roughly 8 to 12 lines: a verse, a chorus that clearly wishes them a happy birthday and lands their name, and a short bridge or a repeat of the chorus to finish. Keep every line singable and tight — a real full song, not a 30-second snippet, but no long intros, outros, or filler.
 - MANDATORY: the lyrics MUST explicitly wish ${input.name} a happy birthday in ${input.language} (the natural local phrase, e.g. Spanish "Feliz cumpleaños", French "Joyeux anniversaire", Russian "С днём рождения", Arabic "كل عام وأنت بخير", Turkish "İyi ki doğdun", Hindi "Janam din mubarak"). This greeting must appear in the chorus — it is the entire point of the song and must never be omitted, no matter what other theme (a team welcome, a tribute, an inside joke) the inputs suggest.
 - Use ${input.name} in the chorus and ideally in the verse too.
 - Reference advanced fields naturally if provided.

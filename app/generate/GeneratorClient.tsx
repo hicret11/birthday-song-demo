@@ -32,6 +32,7 @@ import { toAudioProxyUrl } from "@/lib/audio-proxy";
 import Confetti from "@/components/Confetti";
 import { track } from "@vercel/analytics";
 import { getAnonId, logClientEvent } from "@/lib/client-events";
+import { getDictionary, type Locale } from "@/lib/i18n";
 
 const LOADING_MESSAGES = [
   "Sprinkling the candles…",
@@ -366,9 +367,11 @@ export type VenueContext = {
 
 type Props = {
   venue: VenueContext | null;
+  locale?: Locale;
 };
 
-export default function GeneratorClient({ venue }: Props) {
+export default function GeneratorClient({ venue, locale = "en" }: Props) {
+  const t = getDictionary(locale);
   const [tab, setTab] = useState<TabKey>("basic");
   const [themeKey, setThemeKey] = useState<ThemeKey>("dark");
   const [themeOpen, setThemeOpen] = useState(false);
@@ -529,6 +532,17 @@ export default function GeneratorClient({ venue }: Props) {
       stopMicStream();
     };
   }, []);
+
+  // Funnel analytics: fire once on mount so we can measure top-of-funnel
+  // traffic to the generator. Best-effort — never throw into the UI.
+  useEffect(() => {
+    try {
+      track("generate_page_view", { venue_slug: venue?.slug ?? "none" });
+    } catch {
+      // Analytics is non-critical; swallow.
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
+  }, []);
   const [senderName, setSenderName] = useState("");
   const [ageInput, setAgeInput] = useState("");
   const [emailInput, setEmailInput] = useState("");
@@ -579,6 +593,10 @@ export default function GeneratorClient({ venue }: Props) {
     useState<WaitCaptureRelationship | "">("");
   const [waitLocation, setWaitLocation] = useState<WaitCaptureLocation | "">("");
   const [waitYearReminder, setWaitYearReminder] = useState(false);
+  // Optional recipient birthday ("YYYY-MM-DD" from <input type="date">). Drives
+  // the annual reminder when the buyer also opts into the year reminder. Purely
+  // additive — never blocks song creation or sharing.
+  const [waitBirthdayDate, setWaitBirthdayDate] = useState("");
   // "While you wait" panels — both default collapsed so the main wait
   // surface stays clean. User opts in by tapping the header chevron.
   const [previewPanelOpen, setPreviewPanelOpen] = useState(false);
@@ -625,11 +643,14 @@ export default function GeneratorClient({ venue }: Props) {
   const [shareTier, setShareTier] = useState<"A" | "B" | "C" | null>(null);
   const [unlocking, setUnlocking] = useState(false);
   const [previewEnded, setPreviewEnded] = useState(false);
+  const [unlockPlan, setUnlockPlan] = useState<"full" | "deluxe">("full");
   const songAudioRef = useRef<HTMLAudioElement | null>(null);
-  const PREVIEW_SECONDS = 20;
-  // Display-only mirror of TIER_PRICE_DISPLAY in lib/pricing-tiers.ts. The real
-  // charge is always the Stripe price_id; keep these in sync for the CTA label.
+  const PREVIEW_SECONDS = 15;
+  // Display-only mirror of TIER_PRICE_DISPLAY / TIER_PRICE_DISPLAY_DELUXE in
+  // lib/pricing-tiers.ts. The real charge is always the Stripe price_id; keep
+  // these in sync for the CTA labels.
   const TIER_PRICE_LABEL: Record<"A" | "B" | "C", string> = { A: "$9.99", B: "$5.99", C: "$2.99" };
+  const DELUXE_PRICE_LABEL: Record<"A" | "B" | "C", string> = { A: "$14.99", B: "$9.99", C: "$5.99" };
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const cleanupRef = useRef<null | (() => void)>(null);
@@ -657,6 +678,26 @@ export default function GeneratorClient({ venue }: Props) {
     const t = setTimeout(() => setShowConfetti(false), 3500);
     return () => clearTimeout(t);
   }, [audioUrl]);
+
+  // Funnel analytics: the preview + unlock card become visible as soon as the
+  // song's audio is ready. Fire once per song. Best-effort — never throws.
+  const paywallViewedRef = useRef(false);
+  useEffect(() => {
+    if (!audioUrl) {
+      paywallViewedRef.current = false;
+      return;
+    }
+    if (paywallViewedRef.current) return;
+    paywallViewedRef.current = true;
+    try {
+      track("paywall_viewed", {
+        venue_slug: venue?.slug ?? "none",
+        tier: shareTier ?? "unknown",
+      });
+    } catch {
+      // Analytics is non-critical; swallow.
+    }
+  }, [audioUrl, shareTier, venue?.slug]);
   // Second confetti burst when the share artifact finally lands — gives the
   // "Open share page" button its own reveal moment after the audio reveal.
   useEffect(() => {
@@ -795,22 +836,61 @@ export default function GeneratorClient({ venue }: Props) {
   const theme = themes[themeKey];
   const trimmedEmail = emailInput.trim();
   const emailValid = EMAIL_RE.test(trimmedEmail);
-  const missingMessage = !name.trim()
-    ? "Add their name"
+  // Progressive commitment: the first free action (Write Lyrics) needs only the
+  // minimum to personalize — name, age, and genre. Age stays here because it
+  // drives the minor-consent branch (recipientIsMinor). Email + attestation are
+  // deferred to the music step (the real payoff), so we never gate the first
+  // taste of value behind five barriers.
+  const missingForLyrics = !name.trim()
+    ? t.generate.missingAddName
     : recipientAge === null
-      ? "Tell us how old they're turning"
+      ? t.generate.missingAge
       : !genre
-        ? "Pick a genre"
-        : !trimmedEmail
-          ? "Add an email"
-          : !emailValid
-            ? "Check the email format"
-            : !attested
-              ? "Tick the box to continue"
-              : null;
-  const canGenerate = missingMessage === null;
+        ? t.generate.missingGenre
+        : null;
+  const canGenerateLyrics = missingForLyrics === null;
+  // The music step is the commitment point — this is where we require the email
+  // (so delivery, auto-share, and abandoned-recovery enrollment all work) and
+  // the age attestation / parental-consent box. Lyrics must already exist.
+  const missingForMusic = !lyrics
+    ? t.generate.missingWriteLyricsFirst
+    : !trimmedEmail
+      ? t.generate.missingAddEmail
+      : !emailValid
+        ? t.generate.missingEmailFormat
+        : !attested
+          ? recipientIsMinor
+            ? t.generate.missingGuardian
+            : t.generate.missingTickBox
+          : null;
+  const canGenerateMusic = missingForMusic === null;
   const musicLocked = loadingMusic || jobId !== null || audioUrl !== null;
   const audioProxyUrl = audioUrl ? toAudioProxyUrl(audioUrl) : null;
+
+  // Guided 3-step flow — derived purely from existing state so it can never
+  // desync from the actual render conditions (no parallel state machine):
+  //   Step 1 "About them"  → no lyrics yet (the details form).
+  //   Step 2 "Your lyrics" → lyrics exist but the song isn't ready (incl. the
+  //                          music-rendering wait, which lives on step 2).
+  //   Step 3 "The song"    → audio is ready (reveal + preview + paywall).
+  const step: 1 | 2 | 3 = audioUrl ? 3 : lyrics ? 2 : 1;
+  const stepLabels: [string, string, string] = [
+    t.generate.stepDetails,
+    t.generate.stepLyrics,
+    t.generate.stepSong,
+  ];
+
+  // Smooth-scroll to the top of the flow whenever the step advances. SSR-guarded
+  // and best-effort — never throws into the UI.
+  const flowTopRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      flowTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch {
+      // Older browsers may reject the options object; ignore.
+    }
+  }, [step]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -927,12 +1007,17 @@ export default function GeneratorClient({ venue }: Props) {
   }, [loadingLyrics, loadingMusic]);
 
   async function generateLyricsHandler() {
-    if (!canGenerate || loadingLyrics || loadingMusic) return;
+    if (!canGenerateLyrics || loadingLyrics || loadingMusic) return;
 
     track("gen_lyrics_click", { venue_slug: venue?.slug ?? "none" });
 
-    const captureOk = await ensureCapture();
-    if (!captureOk) return;
+    // Progressive commitment: lyrics don't require an email. If the user has
+    // already entered a valid one, opportunistically capture it (fire-and-
+    // forget — never block the lyrics on it); otherwise we defer capture to
+    // the music step where email + consent are guaranteed present.
+    if (emailValid) {
+      void ensureCapture();
+    }
 
     if (completeDelayRef.current) {
       clearTimeout(completeDelayRef.current);
@@ -980,6 +1065,14 @@ export default function GeneratorClient({ venue }: Props) {
         return;
       }
       const ok = data as GenerateLyricsResponse;
+      try {
+        track("lyrics_generated", {
+          venue_slug: venue?.slug ?? "none",
+          genre: ok.resolvedGenre ?? genre,
+        });
+      } catch {
+        // Analytics is non-critical; swallow.
+      }
       setLyrics(ok.lyrics);
       setEditableSections(
         ok.lyrics.sections.map((s) => ({ tag: s.tag, text: s.lines.join("\n") })),
@@ -993,10 +1086,21 @@ export default function GeneratorClient({ venue }: Props) {
   }
 
   async function generateMusicHandler() {
-    if (!lyrics || loadingLyrics || loadingMusic) return;
+    // The explicit `!lyrics` check also narrows `lyrics` to non-null for the
+    // payload below; canGenerateMusic already requires it, but TS can't infer
+    // that through the derived boolean.
+    if (!lyrics || !canGenerateMusic || loadingLyrics || loadingMusic) return;
 
     track("gen_music_click", { venue_slug: venue?.slug ?? "none" });
+    try {
+      track("music_generate_click", { venue_slug: venue?.slug ?? "none" });
+    } catch {
+      // Analytics is non-critical; swallow.
+    }
 
+    // Commitment point — email + consent are guaranteed present here, so this
+    // is where we capture them (drives delivery email + abandoned-recovery
+    // enrollment downstream). Must succeed before submitting the music job.
     const captureOk = await ensureCapture();
     if (!captureOk) return;
 
@@ -1154,6 +1258,7 @@ export default function GeneratorClient({ venue }: Props) {
         ? { pronunciation_hint: pronunciationHint.trim() }
         : {}),
       ...(waitCaptureHasValue ? { wait_capture: waitCapture } : {}),
+      ...(waitBirthdayDate.trim() ? { birthday_date: waitBirthdayDate.trim() } : {}),
       ...(cakeStyle ? { cake_style: cakeStyle } : {}),
       ...(candleColor ? { candle_color: candleColor } : {}),
       ...(personalNote.trim() ? { personal_note: personalNote.trim() } : {}),
@@ -1194,11 +1299,11 @@ export default function GeneratorClient({ venue }: Props) {
     setUnlocking(true);
     setShareError(null);
     try {
-      track("unlock_click", { share_id: shareId, tier: shareTier ?? "unknown" });
+      track("unlock_click", { share_id: shareId, tier: shareTier ?? "unknown", plan: unlockPlan });
       const res = await fetch("/api/stripe/checkout-song", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ shareId }),
+        body: JSON.stringify({ shareId, plan: unlockPlan }),
       });
       const data = await res.json();
       if (data?.url) {
@@ -1451,12 +1556,12 @@ export default function GeneratorClient({ venue }: Props) {
     <div className="space-y-4 sm:space-y-5">
       <div>
         <label className="mb-2 block text-[clamp(12px,2.5vw,14px)] font-bold">
-          👤 Who’s the birthday star?
+          {t.generate.nameLabel}
         </label>
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Enter their name..."
+          placeholder={t.generate.namePlaceholder}
           className={`w-full rounded-2xl border px-4 py-3.5 text-[clamp(14px,3vw,16px)] outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
         />
       </div>
@@ -1526,7 +1631,7 @@ export default function GeneratorClient({ venue }: Props) {
 
       <div>
         <label htmlFor="recipient-age" className="mb-2 block text-[clamp(12px,2.5vw,14px)] font-bold">
-          🎂 How old are they turning?
+          {t.generate.ageLabel}
         </label>
         <input
           id="recipient-age"
@@ -1536,9 +1641,27 @@ export default function GeneratorClient({ venue }: Props) {
           max={MAX_AGE}
           value={ageInput}
           onChange={(e) => setAgeInput(e.target.value)}
-          placeholder="e.g., 30"
+          placeholder={t.generate.agePlaceholder}
           className={`w-full rounded-2xl border px-4 py-3.5 text-[clamp(14px,3vw,16px)] outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
         />
+        {/* Quick-pick milestone ages — additive convenience; typing still
+            works and drives the same ageInput state / recipientAge parsing. */}
+        <div className="mt-2 flex flex-wrap gap-2">
+          {[1, 18, 21, 30, 40, 50, 60].map((milestone) => (
+            <button
+              key={milestone}
+              type="button"
+              onClick={() => setAgeInput(String(milestone))}
+              className={`rounded-full border px-3 py-1.5 text-xs font-bold transition hover:-translate-y-0.5 ${
+                ageInput === String(milestone)
+                  ? `border-transparent bg-gradient-to-r ${theme.accent} text-white shadow-lg`
+                  : "border-white/15 bg-white/5 hover:bg-white/10"
+              }`}
+            >
+              {milestone}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div>
@@ -1557,7 +1680,7 @@ export default function GeneratorClient({ venue }: Props) {
 
       <div>
         <label className="mb-2 block text-[clamp(12px,2.5vw,14px)] font-bold">
-          🌍 Choose language
+          {t.generate.languageLabel}
         </label>
         <select
           value={language}
@@ -1574,7 +1697,7 @@ export default function GeneratorClient({ venue }: Props) {
 
       <div>
         <label className="mb-3 block text-[clamp(12px,2.5vw,14px)] font-bold">
-          🎵 Pick a genre
+          {t.generate.genreLabel}
         </label>
 
         <div className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-3">
@@ -1771,9 +1894,71 @@ export default function GeneratorClient({ venue }: Props) {
         </p>
       </header>
 
+      {/* Scroll anchor — the step-change effect scrolls this into view so each
+          new step lands at the top of the flow. */}
+      <div ref={flowTopRef} className="relative z-20 mx-auto max-w-xl scroll-mt-4" />
+
+      {/* Guided-flow progress header — three labeled segments, current step in
+          the brand gradient, completed steps marked done. Purely presentational;
+          `step` is derived from existing state (see above), so this never gates
+          or drives any logic. */}
+      <nav
+        aria-label="Progress"
+        className="relative z-20 mx-auto mb-6 max-w-xl px-1"
+      >
+        <ol className="flex items-center gap-2 sm:gap-3">
+          {stepLabels.map((label, i) => {
+            const n = (i + 1) as 1 | 2 | 3;
+            const isCurrent = step === n;
+            const isDone = step > n;
+            return (
+              <li key={label} className="flex flex-1 items-center gap-2 sm:gap-3">
+                <div
+                  className={`flex min-w-0 flex-1 items-center gap-2 rounded-2xl border px-3 py-2 transition ${
+                    isCurrent
+                      ? "border-transparent bg-gradient-to-r from-pink-500 via-fuchsia-500 to-amber-400 text-white shadow-lg"
+                      : isDone
+                        ? "border-emerald-300/40 bg-emerald-400/10 text-emerald-100"
+                        : "border-white/15 bg-white/5 opacity-70"
+                  }`}
+                >
+                  <span
+                    aria-hidden
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-extrabold ${
+                      isCurrent
+                        ? "bg-white/25 text-white"
+                        : isDone
+                          ? "bg-emerald-400/30 text-emerald-100"
+                          : "bg-white/10 text-white/70"
+                    }`}
+                  >
+                    {isDone ? "✓" : n}
+                  </span>
+                  <span className="truncate text-[clamp(11px,2.6vw,13px)] font-bold">
+                    {label}
+                  </span>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      </nav>
+
+      {/* Step 1 — "About them": the details form. Also kept mounted while the
+          music is rendering (loadingMusic) because the rich wait UI — live
+          lyric reveal, template picker, "make it yours", wait-capture — lives
+          inside this section and is the step-2 wait experience. The form's
+          own fields/CTAs are guarded so they hide once lyrics exist (steps 2-3),
+          while the wait block still renders during loadingMusic. */}
+      {(step === 1 || loadingMusic) && (
       <section
         className={`relative z-10 mx-auto max-w-xl rounded-[2rem] border ${theme.card} p-[clamp(18px,4vw,32px)] shadow-2xl backdrop-blur-2xl`}
       >
+        {/* Step 1 form fields + lyrics CTA. Hidden once lyrics exist so steps
+            2-3 don't re-show the details form (the loadingMusic wait UI below
+            stays visible during the music render). */}
+        {!lyrics && (
+        <>
         <div className="mb-5 flex gap-3">
           <button
             type="button"
@@ -1843,78 +2028,39 @@ export default function GeneratorClient({ venue }: Props) {
           </div>
         )}
 
-        <div className="mt-6">
-          <label htmlFor="contact-email" className="mb-2 block text-[clamp(12px,2.5vw,14px)] font-bold">
-            📬 Where should we send the song?
-          </label>
-          <input
-            id="contact-email"
-            type="email"
-            autoComplete="email"
-            value={emailInput}
-            onChange={(e) => setEmailInput(e.target.value)}
-            placeholder="you@example.com"
-            className={`w-full rounded-2xl border px-4 py-3.5 text-[clamp(14px,3vw,16px)] outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
-          />
-          <p className="mt-1.5 text-xs opacity-70">So we can save your song.</p>
-        </div>
-
-        <label
-          className={`mt-5 flex items-start gap-3 rounded-2xl border p-3 text-sm transition ${
-            recipientIsMinor
-              ? "border-amber-300/30 bg-amber-300/5"
-              : "border-white/10 bg-white/5"
-          }`}
-        >
-          <input
-            type="checkbox"
-            checked={attested}
-            onChange={(e) => setAttested(e.target.checked)}
-            disabled={recipientAge === null}
-            className={`mt-1 h-4 w-4 shrink-0 rounded border-white/30 bg-white/10 ${
-              recipientIsMinor ? "accent-amber-400" : "accent-purple-500"
-            }`}
-          />
-          <span className="opacity-90">
-            {recipientIsMinor
-              ? `I am 18 or older and the parent or legal guardian of ${name.trim() || "this child"}.`
-              : "I am 18 or older."}
-          </span>
-        </label>
-
-        {/* Optional reminder/marketing opt-in. Hidden on child-recipient flows
-            so we never solicit marketing in a child-directed session. */}
-        {!recipientIsMinor && (
-          <label className="mt-3 flex items-start gap-3 text-sm">
-            <input
-              type="checkbox"
-              checked={marketingConsent}
-              onChange={(e) => setMarketingConsent(e.target.checked)}
-              className="mt-1 h-4 w-4 shrink-0 rounded border-white/30 bg-white/10 accent-purple-500"
-            />
-            <span className="opacity-70">
-              Email me a birthday reminder next year and the occasional offer. (Optional)
-            </span>
-          </label>
-        )}
+        {/* Email + attestation + marketing opt-in are intentionally NOT here.
+            Progressive commitment: they're collected at the music step (right
+            before the real payoff), so the first free action — Write Lyrics —
+            only needs name + age + genre. See the lyrics section. */}
 
         <button
           type="button"
           onClick={generateLyricsHandler}
-          disabled={!canGenerate || loadingLyrics || loadingMusic}
-          className={`mt-4 w-full rounded-2xl bg-gradient-to-r ${theme.accent} py-4 text-[clamp(15px,3vw,18px)] font-extrabold text-white shadow-xl transition hover:-translate-y-1 disabled:cursor-not-allowed disabled:opacity-40`}
+          disabled={!canGenerateLyrics || loadingLyrics || loadingMusic}
+          className={`mt-4 w-full min-h-[44px] rounded-2xl bg-gradient-to-r ${theme.accent} py-4 text-[clamp(15px,3vw,18px)] font-extrabold text-white shadow-xl transition hover:-translate-y-1 disabled:cursor-not-allowed disabled:opacity-40`}
         >
-          {loadingLyrics ? "Writing lyrics..." : "✨ Write Lyrics"}
+          {loadingLyrics ? t.generate.writingLyrics : t.generate.writeLyrics}
         </button>
 
-        {!canGenerate && !loadingLyrics && !loadingMusic && missingMessage && (
-          <p className="mt-2 text-center text-xs text-gray-400">{missingMessage}</p>
-        )}
-
-        {captureError && (
-          <p role="alert" className="mt-2 text-center text-xs text-rose-300">
-            {captureError}
+        {/* Trust / reassurance strip — honest signals only (no fabricated
+            numbers or reviews). Compact, muted, wraps on mobile. */}
+        <div className="mt-3 space-y-1.5 text-center">
+          <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[11px] text-gray-400">
+            <span>{t.generate.trustFreePreview}</span>
+            <span aria-hidden className="opacity-40">·</span>
+            <span>{t.generate.trustNoSignup}</span>
+            <span aria-hidden className="opacity-40">·</span>
+            <span>{t.generate.trustMoneyBack}</span>
+            <span aria-hidden className="opacity-40">·</span>
+            <span>{t.generate.trustSecureStripe}</span>
           </p>
+          <p className="text-[11px] text-gray-400">
+            {t.generate.trustRewriteFree}
+          </p>
+        </div>
+
+        {!canGenerateLyrics && !loadingLyrics && !loadingMusic && missingForLyrics && (
+          <p className="mt-2 text-center text-xs text-gray-400">{missingForLyrics}</p>
         )}
 
         {loadingLyrics && (
@@ -1927,12 +2073,14 @@ export default function GeneratorClient({ venue }: Props) {
             </div>
           </div>
         )}
+        </>
+        )}
 
         {loadingMusic && (
           <div className="mt-6">
             {/* Personality layer — rotating microcopy stays at the top. */}
             <p className="text-center text-base font-bold opacity-90">
-              {audioUrl ? "Done! 🎉" : LOADING_MESSAGES[loadingMsgIdx]}
+              {audioUrl ? t.generate.waitReady : LOADING_MESSAGES[loadingMsgIdx]}
             </p>
 
             {/* Simulated progress: 75s linear → 95%, jumps to 100% on completion. */}
@@ -1950,10 +2098,10 @@ export default function GeneratorClient({ venue }: Props) {
             {/* Countdown label */}
             <p className="mt-2 text-center text-xs opacity-70">
               {audioUrl
-                ? "Your song is ready"
+                ? t.generate.waitSongReady
                 : elapsedMs < 60_000
-                  ? "Your song will be ready in about a minute"
-                  : "Almost there…"}
+                  ? t.generate.waitAboutAMinute
+                  : t.generate.waitAlmostThere}
             </p>
 
             {/* Live lyric reveal — Claude's response already exists by the
@@ -1964,7 +2112,7 @@ export default function GeneratorClient({ venue }: Props) {
               <div className="mt-6">
                 <div className="mb-2 flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest opacity-60">
                   <span aria-hidden className="inline-block animate-pulse">🎵</span>
-                  <span>Writing your song</span>
+                  <span>{t.generate.waitWritingSong}</span>
                 </div>
                 <div
                   className="max-h-48 overflow-y-auto rounded-2xl border border-white/15 bg-black/30 px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap"
@@ -2207,6 +2355,21 @@ export default function GeneratorClient({ venue }: Props) {
                 />
                 Remind me next year?
               </label>
+              <div>
+                <label
+                  htmlFor="wait-birthday"
+                  className="mb-1 block text-xs font-semibold opacity-90"
+                >
+                  Their birthday (optional — we&apos;ll remind you next year)
+                </label>
+                <input
+                  id="wait-birthday"
+                  type="date"
+                  value={waitBirthdayDate}
+                  onChange={(e) => setWaitBirthdayDate(e.target.value)}
+                  className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-purple-400"
+                />
+              </div>
             </div>
 
             {/* "While you wait" panels — both collapsed by default so the
@@ -2297,6 +2460,7 @@ export default function GeneratorClient({ venue }: Props) {
           </div>
         )}
       </section>
+      )}
 
       {errorMsg && (
         <section className={`relative z-20 mx-auto mt-6 max-w-xl rounded-[2rem] border ${theme.card} p-6 shadow-2xl backdrop-blur-2xl`}>
@@ -2310,6 +2474,33 @@ export default function GeneratorClient({ venue }: Props) {
             Try again
           </button>
         </section>
+      )}
+
+      {/* Collapsed details summary — replaces the big step-1 form once lyrics
+          exist (steps 2-3), so the flow feels stepped. Non-destructive: "Edit"
+          scrolls back to the flow top rather than mutating state, which keeps
+          the melody-lock rule intact (lyrics/song aren't reset). */}
+      {lyrics && (
+        <div className="relative z-20 mx-auto mt-2 mb-1 flex max-w-xl flex-wrap items-center gap-2 rounded-2xl border border-emerald-300/30 bg-emerald-400/10 px-4 py-2.5 text-sm font-semibold text-emerald-50">
+          <span aria-hidden className="text-emerald-300">✓</span>
+          <span className="min-w-0 truncate">
+            For {name.trim() || "them"} · {resolvedGenre ?? genre} · {language}
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof window === "undefined") return;
+              try {
+                flowTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+              } catch {
+                // Older browsers may reject the options object; ignore.
+              }
+            }}
+            className="ml-auto min-h-[44px] rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold transition hover:bg-white/20"
+          >
+            Edit
+          </button>
+        </div>
       )}
 
       {lyrics && (
@@ -2351,18 +2542,78 @@ export default function GeneratorClient({ venue }: Props) {
                 }}
               />
               <p className="text-[11px] font-semibold uppercase tracking-wide text-fuchsia-300/90">
-                🎁 Free preview · first {PREVIEW_SECONDS} seconds
+                {t.paywall.previewLabelPrefix}{PREVIEW_SECONDS}{t.paywall.previewLabelSuffix}
               </p>
 
               {/* The buy moment — the preview hooked them; now unlock everything. */}
               <div className="rounded-3xl border border-fuchsia-300/30 bg-gradient-to-br from-fuchsia-500/15 via-purple-500/10 to-amber-400/10 p-5">
                 <p className="text-base font-extrabold">
-                  {previewEnded ? `Loved it? Unlock ${name}'s full song 🎶` : `Unlock ${name}'s full song 🎶`}
+                  {previewEnded
+                    ? `${t.paywall.unlockHeadlineLovedPrefix}${t.paywall.unlockHeadlinePrefix}${name}${t.paywall.unlockHeadlineSuffix}`
+                    : `${t.paywall.unlockHeadlinePrefix}${name}${t.paywall.unlockHeadlineSuffix}`}
                 </p>
-                <p className="mt-1 text-xs leading-relaxed opacity-80">
-                  Full one-minute song, MP3 download, a shareable video, and a photo
-                  slideshow — keep it forever and send it to family.
-                </p>
+
+                {/* Good-better-best: Standard vs Deluxe. Default = Standard. */}
+                <div className="mt-3 space-y-2.5 text-left">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUnlockPlan("full");
+                      try {
+                        track("plan_selected", { plan: "full", tier: shareTier ?? "unknown" });
+                      } catch {
+                        // Analytics is non-critical; swallow.
+                      }
+                    }}
+                    aria-pressed={unlockPlan === "full"}
+                    className={`block w-full rounded-2xl border p-3.5 text-left transition ${
+                      unlockPlan === "full"
+                        ? "border-fuchsia-300/70 bg-fuchsia-500/10 ring-1 ring-fuchsia-300/40"
+                        : "border-white/10 bg-white/5 hover:border-white/20"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-extrabold">{t.paywall.standard}</span>
+                      <span className="text-sm font-extrabold">{shareTier ? TIER_PRICE_LABEL[shareTier] : ""}</span>
+                    </div>
+                    <ul className="mt-1.5 space-y-1 text-xs">
+                      <li className="flex items-start gap-2"><span className="text-emerald-300">✓</span><span>{t.paywall.bulletCompleteSong}</span></li>
+                      <li className="flex items-start gap-2"><span className="text-emerald-300">✓</span><span>{t.paywall.bulletMp3}</span></li>
+                      <li className="flex items-start gap-2"><span className="text-emerald-300">✓</span><span>{t.paywall.bulletShareVideo}</span></li>
+                      <li className="flex items-start gap-2"><span className="text-emerald-300">✓</span><span>{t.paywall.bulletReplay}</span></li>
+                    </ul>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUnlockPlan("deluxe");
+                      try {
+                        track("plan_selected", { plan: "deluxe", tier: shareTier ?? "unknown" });
+                      } catch {
+                        // Analytics is non-critical; swallow.
+                      }
+                    }}
+                    aria-pressed={unlockPlan === "deluxe"}
+                    className={`block w-full rounded-2xl border p-3.5 text-left transition ${
+                      unlockPlan === "deluxe"
+                        ? "border-amber-300/70 bg-amber-400/10 ring-1 ring-amber-300/40"
+                        : "border-white/10 bg-white/5 hover:border-white/20"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-extrabold">
+                        {t.paywall.deluxe} <span className="ml-1 rounded-full bg-gradient-to-r from-pink-500 via-fuchsia-500 to-amber-400 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">{t.paywall.bestValue}</span>
+                      </span>
+                      <span className="text-sm font-extrabold">{shareTier ? DELUXE_PRICE_LABEL[shareTier] : ""}</span>
+                    </div>
+                    <ul className="mt-1.5 space-y-1 text-xs">
+                      <li className="flex items-start gap-2"><span className="text-emerald-300">✓</span><span>{t.paywall.bulletEverythingStandard}</span></li>
+                      <li className="flex items-start gap-2"><span className="text-amber-300">★</span><span className="font-semibold">{t.paywall.bulletSlideshow}</span></li>
+                    </ul>
+                  </button>
+                </div>
+
                 <button
                   type="button"
                   onClick={unlockFullSong}
@@ -2370,13 +2621,18 @@ export default function GeneratorClient({ venue }: Props) {
                   className="mt-3 w-full rounded-2xl bg-gradient-to-r from-pink-500 via-fuchsia-500 to-amber-400 py-3.5 text-sm font-extrabold text-white shadow-xl transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {unlocking
-                    ? "Opening secure checkout…"
+                    ? t.paywall.openingCheckout
                     : !shareUrl
-                      ? "Preparing your song…"
-                      : `Unlock the full song${shareTier ? ` · ${TIER_PRICE_LABEL[shareTier]}` : ""} →`}
+                      ? t.paywall.preparingSong
+                      : unlockPlan === "deluxe"
+                        ? `${t.paywall.unlockDeluxePrefix}${shareTier ? ` · ${DELUXE_PRICE_LABEL[shareTier]}` : ""} →`
+                        : `${t.paywall.unlockStandardPrefix}${shareTier ? ` · ${TIER_PRICE_LABEL[shareTier]}` : ""} →`}
                 </button>
-                <p className="mt-2 text-center text-[11px] opacity-60">
-                  One-time payment · instant unlock · secure checkout by Stripe
+                <p className="mt-3 flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-300">
+                  <span aria-hidden>✓</span> {t.paywall.moneyBack}
+                </p>
+                <p className="mt-1 text-center text-[11px] opacity-60">
+                  {t.paywall.secureCheckout}
                 </p>
               </div>
 
@@ -2491,30 +2747,100 @@ export default function GeneratorClient({ venue }: Props) {
               <div className="flex items-start gap-2 rounded-2xl border border-amber-300/30 bg-amber-300/10 px-4 py-3 text-xs leading-relaxed text-amber-100">
                 <span aria-hidden className="mt-px shrink-0">💡</span>
                 <span>
-                  Once you generate the music, the song&rsquo;s melody is locked
-                  in. Tweak the lyrics now if anything&rsquo;s off — you can
-                  re-write them as many times as you want.
+                  {t.generate.commitmentHint}
                 </span>
               </div>
+
+              {/* Progressive-commitment capture: email + attestation are
+                  collected HERE, right before the music payoff. Bound to the
+                  same emailInput / attested / marketingConsent state used by
+                  ensureCapture() and createShareLink(), so email lands before
+                  the music job → before song-ready → before auto-share and
+                  abandoned-recovery enrollment. */}
+              <div>
+                <label htmlFor="contact-email" className="mb-2 block text-[clamp(12px,2.5vw,14px)] font-bold">
+                  {t.generate.emailLabel}
+                </label>
+                <input
+                  id="contact-email"
+                  type="email"
+                  autoComplete="email"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  placeholder={t.generate.emailPlaceholder}
+                  className={`w-full rounded-2xl border px-4 py-3.5 text-[clamp(14px,3vw,16px)] outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
+                />
+                <p className="mt-1.5 text-xs opacity-70">{t.generate.emailHint}</p>
+              </div>
+
+              <label
+                className={`flex items-start gap-3 rounded-2xl border p-3 text-sm transition ${
+                  recipientIsMinor
+                    ? "border-amber-300/30 bg-amber-300/5"
+                    : "border-white/10 bg-white/5"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={attested}
+                  onChange={(e) => setAttested(e.target.checked)}
+                  disabled={recipientAge === null}
+                  className={`mt-1 h-4 w-4 shrink-0 rounded border-white/30 bg-white/10 ${
+                    recipientIsMinor ? "accent-amber-400" : "accent-purple-500"
+                  }`}
+                />
+                <span className="opacity-90">
+                  {recipientIsMinor
+                    ? `${t.generate.attestationGuardianPrefix}${name.trim() || t.generate.attestationGuardianFallback}.`
+                    : t.generate.attestationAdult}
+                </span>
+              </label>
+
+              {/* Optional reminder/marketing opt-in. Hidden on child-recipient
+                  flows so we never solicit marketing in a child-directed
+                  session. */}
+              {!recipientIsMinor && (
+                <label className="flex items-start gap-3 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={marketingConsent}
+                    onChange={(e) => setMarketingConsent(e.target.checked)}
+                    className="mt-1 h-4 w-4 shrink-0 rounded border-white/30 bg-white/10 accent-purple-500"
+                  />
+                  <span className="opacity-70">
+                    {t.generate.marketingConsent}
+                  </span>
+                </label>
+              )}
 
               <div className="flex flex-col gap-3 sm:flex-row">
                 <button
                   type="button"
                   onClick={generateMusicHandler}
-                  disabled={loadingLyrics || loadingMusic}
-                  className={`flex-1 rounded-2xl bg-gradient-to-r ${theme.accent} py-3.5 text-sm font-extrabold text-white shadow-xl transition hover:-translate-y-1 disabled:cursor-not-allowed disabled:opacity-40`}
+                  disabled={!canGenerateMusic || loadingLyrics || loadingMusic}
+                  className={`flex-1 min-h-[44px] rounded-2xl bg-gradient-to-r ${theme.accent} py-3.5 text-sm font-extrabold text-white shadow-xl transition hover:-translate-y-1 disabled:cursor-not-allowed disabled:opacity-40`}
                 >
-                  {loadingMusic ? "Generating music..." : "🎵 Generate music with these lyrics"}
+                  {loadingMusic ? t.generate.generatingMusic : t.generate.generateMusic}
                 </button>
                 <button
                   type="button"
                   onClick={generateLyricsHandler}
                   disabled={loadingLyrics || loadingMusic}
-                  className="flex-1 rounded-2xl border border-white/20 bg-white/10 py-3.5 text-sm font-bold transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="flex-1 min-h-[44px] rounded-2xl border border-white/20 bg-white/10 py-3.5 text-sm font-bold transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  {loadingLyrics ? "Writing..." : "✍️ Re-write lyrics"}
+                  {loadingLyrics ? t.generate.rewriting : t.generate.rewriteLyrics}
                 </button>
               </div>
+
+              {!canGenerateMusic && !loadingLyrics && !loadingMusic && missingForMusic && (
+                <p className="text-center text-xs text-gray-400">{missingForMusic}</p>
+              )}
+
+              {captureError && (
+                <p role="alert" className="text-center text-xs text-rose-300">
+                  {captureError}
+                </p>
+              )}
             </div>
           )}
         </section>

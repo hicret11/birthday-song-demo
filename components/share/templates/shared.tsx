@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ShareTemplate, SharedSong } from "@/lib/api-types";
 import { toAudioProxyUrl } from "@/lib/audio-proxy";
 import { logClientEvent } from "@/lib/client-events";
@@ -42,13 +42,31 @@ const OVERLAY_STYLES: Record<ShareTemplate, React.CSSProperties> = {
 export function SharedSongBody({ song, className }: { song: SharedSong; className?: string }) {
   const overlayStyle = OVERLAY_STYLES[song.template] ?? OVERLAY_STYLES.classic;
 
-  const [currentAudio, setCurrentAudio] = useState<string>(song.audioUrl);
-  const [currentVideo, setCurrentVideo] = useState<string | undefined>(song.videoUrl);
+  // Prefer the tight highlight cut (lib/audio-cut.ts) — the polished,
+  // repeat-free song. Falls back to the raw Suno track when no cut exists.
+  // NOTE: on a LOCKED song the server (toPublicSong) strips these URLs, so
+  // this is "" and the player uses the gated preview route instead (see below).
+  const [currentAudio, setCurrentAudio] = useState<string>(
+    song.highlightAudioUrl ?? song.audioUrl ?? "",
+  );
+  // Prefer the premium Remotion video when the render worker has produced one;
+  // otherwise fall back to the ffmpeg-rendered videoUrl so nothing breaks before
+  // the worker is configured.
+  const [currentVideo, setCurrentVideo] = useState<string | undefined>(
+    song.premiumVideoUrl ?? song.videoUrl,
+  );
   const [retriesUsed, setRetriesUsed] = useState<number>(song.retryCount ?? 0);
   const [regenStatus, setRegenStatus] = useState<"idle" | "loading" | "error">("idle");
   const [regenError, setRegenError] = useState<string | null>(null);
   const [retryStyleNotes, setRetryStyleNotes] = useState<string>(song.styleNotes ?? "");
   const [showStyleEditor, setShowStyleEditor] = useState<boolean>(false);
+
+  // Deluxe photo slideshow: rendered on-demand from the unlocked share view.
+  // `slideshowUrl` is seeded from the persisted URL so a return visit shows it
+  // straight away; a fresh render updates it in place (no manual refresh).
+  const [slideshowUrl, setSlideshowUrl] = useState<string | undefined>(song.slideshowVideoUrl);
+  const [slideshowStatus, setSlideshowStatus] = useState<"idle" | "rendering" | "error">("idle");
+  const slideshowTriggeredRef = useRef(false);
 
   const [toast, setToast] = useState<string | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -156,6 +174,42 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
   const downloadExt = currentVideo ? "mp4" : "mp3";
   const unlocked = !!song.unlocked;
 
+  // Auto-trigger the Deluxe photo slideshow render once the song is unlocked.
+  // Nothing else calls /api/slideshow/render, so without this Deluxe buyers
+  // never get their slideshow. One-shot (guarded by a ref) — the ffmpeg render
+  // can take ~30–90s, so we don't impose any client-side timeout; the buyer
+  // sees an in-progress state and the <video> appears when the URL comes back.
+  useEffect(() => {
+    if (slideshowTriggeredRef.current) return;
+    if (!unlocked) return;
+    if (song.plan !== "deluxe") return;
+    if ((song.photoUrls?.length ?? 0) === 0) return;
+    if (slideshowUrl) return; // already rendered (persisted or from a prior run)
+    slideshowTriggeredRef.current = true;
+    setSlideshowStatus("rendering");
+    void (async () => {
+      try {
+        const res = await fetch("/api/slideshow/render", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ shareId: song.id }),
+        });
+        const data = (await res.json().catch(() => ({}))) as { url?: unknown };
+        if (res.ok && typeof data.url === "string") {
+          setSlideshowUrl(data.url);
+          setSlideshowStatus("idle");
+        } else {
+          setSlideshowStatus("error");
+        }
+      } catch {
+        setSlideshowStatus("error");
+      }
+    })();
+  }, [unlocked, song.plan, song.photoUrls, song.id, slideshowUrl]);
+
+  const showSlideshowArea =
+    unlocked && song.plan === "deluxe" && (song.photoUrls?.length ?? 0) > 0;
+
   return (
     <div className={className}>
       <p className="text-center text-sm opacity-70">
@@ -188,9 +242,17 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
           unlock CTA when locked. */}
       <UnlockableAudio
         shareId={song.id}
-        audioSrc={toAudioProxyUrl(currentAudio)}
+        audioSrc={
+          unlocked ? toAudioProxyUrl(currentAudio) : `/api/share/${song.id}/preview`
+        }
         unlocked={unlocked}
         recipientName={song.name}
+        tier={song.tier}
+        fullAudioSrc={
+          unlocked && song.plan === "deluxe" && song.fullAudioUrl
+            ? `/api/share/${song.id}/download?full=1`
+            : undefined
+        }
       />
 
       {/* Unlocked-only downloads: branded video + photo slideshow. */}
@@ -204,21 +266,44 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
         </a>
       )}
 
-      {unlocked && song.slideshowVideoUrl && (
+      {showSlideshowArea && (
         <div className="mt-6">
-          <video
-            controls
-            playsInline
-            src={song.slideshowVideoUrl}
-            className="w-full rounded-2xl bg-black shadow-lg"
-          />
-          <a
-            href={song.slideshowVideoUrl}
-            download
-            className="mt-3 block w-full rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-center text-sm font-bold transition hover:bg-white/15"
-          >
-            <span aria-hidden>⬇</span> Download slideshow
-          </a>
+          {slideshowUrl ? (
+            <>
+              <video
+                key={slideshowUrl}
+                controls
+                playsInline
+                src={slideshowUrl}
+                className="w-full rounded-2xl bg-black shadow-lg"
+              />
+              <a
+                href={slideshowUrl}
+                download
+                className="mt-3 block w-full rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-center text-sm font-bold transition hover:bg-white/15"
+              >
+                <span aria-hidden>⬇</span> Download slideshow
+              </a>
+            </>
+          ) : slideshowStatus === "error" ? (
+            <p
+              role="status"
+              className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-center text-sm opacity-70"
+            >
+              Couldn&apos;t build the slideshow — refresh to retry.
+            </p>
+          ) : (
+            <div
+              role="status"
+              aria-live="polite"
+              className="flex flex-col items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-5 py-6 text-center text-sm font-semibold text-white/90 shadow-lg backdrop-blur"
+            >
+              <span className="text-lg">🎬 Creating your photo slideshow…</span>
+              <span className="text-xs font-normal opacity-60">
+                Stitching your photos to the song — this can take a minute.
+              </span>
+            </div>
+          )}
         </div>
       )}
 
@@ -333,13 +418,14 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
         ))}
       </div>
 
-      {/* Re-conversion CTA — turns recipients into creators. Always shown. */}
+      {/* Re-conversion / post-purchase cross-sell — turns recipients into
+          creators, and nudges buyers to make a second song. One tasteful CTA. */}
       <div className="mt-12">
         <a
           href="/generate"
           className="block w-full rounded-2xl bg-gradient-to-r from-pink-500 via-fuchsia-500 to-amber-400 px-5 py-4 text-center text-base font-extrabold text-white shadow-2xl shadow-fuchsia-500/30 transition hover:-translate-y-1 hover:shadow-fuchsia-500/50"
         >
-          🎂 Make your own birthday song →
+          {unlocked ? "🎂 Make another birthday song →" : "🎂 Make your own birthday song →"}
         </a>
       </div>
 
