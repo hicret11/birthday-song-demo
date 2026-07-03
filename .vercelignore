@@ -3,3 +3,6 @@ node_modules
 .next
 .git
 *.tsbuildinfo
+# Separate Remotion render worker — deployed independently (Fly/Railway/Render),
+# never bundled into the Vercel Next app (which must not ship remotion/Chromium).
+remotion

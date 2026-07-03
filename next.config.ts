@@ -15,6 +15,13 @@ const nextConfig: NextConfig = {
       "./node_modules/@ffmpeg-installer/**/*",
       "./public/video-fonts/**/*",
     ],
+    "/api/slideshow/render": [
+      "./node_modules/@ffmpeg-installer/**/*",
+      "./public/video-fonts/**/*",
+    ],
+    "/api/share/[id]/preview": [
+      "./node_modules/@ffmpeg-installer/**/*",
+    ],
     "/api/transcribe-name": [
       "./node_modules/@ffmpeg-installer/**/*",
     ],

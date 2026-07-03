@@ -33,6 +33,10 @@ const FPS = 30;
 // hold for a slow, gentle drift.
 const PHOTO_HOLD_SEC = 2.5;
 const XFADE_SEC = 0.8;
+// Inter Bold from public/video-fonts/ (same asset lib/video.ts uses) for the
+// brand watermark drawtext. On Vercel cwd is /var/task; the route's
+// outputFileTracingIncludes must ship public/video-fonts/**.
+const FONT_PATH = path.join(process.cwd(), "public", "video-fonts", "Inter-Bold.ttf");
 const MAX_PHOTOS = 6;
 // Bound the muxed length so a long Suno overshoot can't produce a huge file.
 const MAX_SLIDESHOW_SEC = 75;
@@ -123,23 +127,33 @@ function buildFilterGraph(count: number): { filter: string; videoLabel: string }
     );
   }
 
+  let baseLabel: string;
   if (count === 1) {
-    return { filter: parts.join(";"), videoLabel: "[v0]" };
+    baseLabel = "[v0]";
+  } else {
+    // Chain xfade transitions. Each clip is (hold + xfade) long; transition N
+    // starts at the cumulative hold of all prior clips.
+    let prevLabel = "[v0]";
+    for (let i = 1; i < count; i += 1) {
+      const outLabel = i === count - 1 ? "[vout]" : `[x${i}]`;
+      const offset = (PHOTO_HOLD_SEC * i).toFixed(3);
+      parts.push(
+        `${prevLabel}[v${i}]xfade=transition=fade:duration=${XFADE_SEC}:offset=${offset}${outLabel}`,
+      );
+      prevLabel = outLabel;
+    }
+    baseLabel = "[vout]";
   }
 
-  // Chain xfade transitions. Each clip is (hold + xfade) long; transition N
-  // starts at the cumulative hold of all prior clips.
-  let prevLabel = "[v0]";
-  for (let i = 1; i < count; i += 1) {
-    const outLabel = i === count - 1 ? "[vout]" : `[x${i}]`;
-    const offset = (PHOTO_HOLD_SEC * i).toFixed(3);
-    parts.push(
-      `${prevLabel}[v${i}]xfade=transition=fade:duration=${XFADE_SEC}:offset=${offset}${outLabel}`,
-    );
-    prevLabel = outLabel;
-  }
+  // Brand watermark — discreet, persistent, bottom-right. Every reshared
+  // slideshow then carries singmybirthday.com, turning shares into free reach.
+  parts.push(
+    `${baseLabel}drawtext=fontfile=${FONT_PATH}:text='singmybirthday.com':` +
+      `fontcolor=white@0.85:fontsize=34:x=w-tw-36:y=h-th-44:` +
+      `box=1:boxcolor=black@0.35:boxborderw=12[wm]`,
+  );
 
-  return { filter: parts.join(";"), videoLabel: "[vout]" };
+  return { filter: parts.join(";"), videoLabel: "[wm]" };
 }
 
 function runFfmpeg(args: {

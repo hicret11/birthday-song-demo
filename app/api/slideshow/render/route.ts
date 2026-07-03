@@ -71,6 +71,12 @@ export async function POST(request: Request): Promise<Response> {
     return jsonError("LOCKED", "Unlock the song to render its photo slideshow.", 402);
   }
 
+  // The photo slideshow is a Deluxe-only entitlement. A Standard ("full")
+  // unlock does not include it.
+  if (song.plan !== "deluxe") {
+    return jsonError("DELUXE_REQUIRED", "Deluxe required to render the photo slideshow.", 402);
+  }
+
   if (!song.photoUrls || song.photoUrls.length === 0) {
     return jsonError("INVALID_INPUT", "No photos were added for this song.", 400);
   }

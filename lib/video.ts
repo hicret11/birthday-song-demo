@@ -23,7 +23,7 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
 import ffmpeg from "fluent-ffmpeg";
-import type { ShareTemplate } from "./api-types";
+import type { Lyrics, ShareTemplate } from "./api-types";
 import { templateVideoPath } from "./video-style";
 
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
@@ -79,6 +79,12 @@ export type RenderVideoInput = {
   genre?: string;
   /** Optional — stable seed (e.g. share id) for deterministic background variety. */
   backgroundSeed?: string;
+  /**
+   * Optional normalized lyrics. When present, the premium 9:16 lyric-audiogram
+   * renderer reveals the lyric lines timed across the song. Absent (or on any
+   * premium-render failure) the pipeline falls back to the simple renderer.
+   */
+  lyrics?: Lyrics;
 };
 
 export type RenderVideoResult = {
@@ -362,7 +368,13 @@ function runFfmpeg(args: {
   });
 }
 
-export async function renderShareVideo(input: RenderVideoInput): Promise<RenderVideoResult> {
+/**
+ * Legacy 16:9 renderer. Kept as the guaranteed fallback so shares never break
+ * if the premium 9:16 lyric-audiogram pipeline throws (bad lyrics, an ffmpeg
+ * filter quirk, etc.). This is the exact pipeline that shipped before the
+ * audiogram upgrade — flat static drawtext over the scaled template loop.
+ */
+async function renderShareVideoSimple(input: RenderVideoInput): Promise<RenderVideoResult> {
   const logId = input.logId ?? randomUUID().slice(0, 8);
   const totalStart = Date.now();
 
@@ -426,5 +438,389 @@ export async function renderShareVideo(input: RenderVideoInput): Promise<RenderV
     return { mp4, durationSec };
   } finally {
     rm(workDir, { recursive: true, force: true }).catch(() => undefined);
+  }
+}
+
+// ============================================================================
+// PREMIUM 9:16 LYRIC-AUDIOGRAM PIPELINE
+// ----------------------------------------------------------------------------
+// The shareable soul of the product. Renders a vertical (portrait) video that
+// reads as a living audio product: the template plays as a darkened/blurred
+// background so the foreground pops, an animated waveform (showwaves, brand
+// pink) pulses to the audio, a headline scales in over the first ~1.2s, and
+// the lyric lines are revealed one at a time timed across the song — the
+// "lyric video" feel that drives 5–8× more social engagement than static
+// text over a 16:9 loop.
+//
+// CANVAS: 720x1280 (9:16). We deliberately stay 720-wide, NOT the 1080-wide
+// source asset, for the same reason the legacy renderer downscaled to 720p:
+// re-encoding a full-res vertical clip with libx264 + several drawtext layers
+// + a live waveform overlay exceeds the Vercel single-vCPU function budget.
+// 720x1280 is ~44% of the pixel work of 1080x1920, indistinguishable on a
+// phone, and keeps us comfortably under the 120s route ceiling.
+//
+// TEMPLATE ASSETS: the R2 template MP4s are ALREADY 1080x1920 (9:16 portrait),
+// per the video-style.ts asset comment — so NO re-render of the source assets
+// is required. We only downscale/crop them to the 720x1280 working canvas.
+// ============================================================================
+
+const PREMIUM_WIDTH = 720;
+const PREMIUM_HEIGHT = 1280;
+const PREMIUM_FPS = 30;
+// Cap premium output length. Songs are ~35s (60s hard ceiling), but we also
+// clamp to ~45s so a long Suno overshoot can't blow the render budget on the
+// heavier premium filtergraph. -shortest lands us at min(song, template, cap).
+const PREMIUM_MAX_SEC = 45;
+// Brand accent used for the waveform + headline. Bright pink reads well on the
+// darkened background and matches the marketing palette (#ec4899).
+const BRAND_PINK_HEX = "ec4899";
+
+// Localized "Happy Birthday" headline prefix. Falls back to English for any
+// language we don't have a mapping for. Keys match the app's Language enum
+// values (see lib/api-types.ts LANGUAGES) plus common lowercase variants.
+const HAPPY_BIRTHDAY_BY_LANG: Record<string, string> = {
+  english: "Happy Birthday",
+  spanish: "Feliz Cumpleaños",
+  turkish: "İyi ki Doğdun",
+  french: "Joyeux Anniversaire",
+  arabic: "عيد ميلاد سعيد",
+  hindi: "जन्मदिन मुबारक",
+  russian: "С Днём Рождения",
+};
+
+function localizedHappyBirthday(language: string): string {
+  const key = language.trim().toLowerCase();
+  return HAPPY_BIRTHDAY_BY_LANG[key] ?? "Happy Birthday";
+}
+
+/**
+ * Flatten the normalized lyrics into an ordered list of display lines,
+ * skipping blank/whitespace lines and section tags. Each line is greedy
+ * word-wrapped to ~`maxChars` chars so it fits the 720-wide frame at the
+ * lyric font size, capped at 2 physical rows per lyric line (longer lines
+ * are truncated with an ellipsis rather than overflowing the frame).
+ *
+ * Returns an array of arrays: each entry is the 1–2 wrapped rows for one
+ * lyric line, revealed together as a single beat.
+ */
+function buildLyricBeats(lyrics: Lyrics | undefined, maxChars: number): string[][] {
+  if (!lyrics || !Array.isArray(lyrics.sections)) return [];
+  const beats: string[][] = [];
+  for (const section of lyrics.sections) {
+    if (!section || !Array.isArray(section.lines)) continue;
+    for (const rawLine of section.lines) {
+      if (typeof rawLine !== "string") continue;
+      const line = rawLine.replace(/\s+/g, " ").trim();
+      if (!line) continue;
+      // Reuse the greedy word-wrap; cap at 2 rows. If a line still overflows
+      // its second row we let wrapPersonalNote pack it (accepted per the
+      // helper's contract) — real lyric lines are short.
+      const rows = wrapPersonalNote(line, maxChars, 2);
+      beats.push(rows);
+    }
+  }
+  return beats;
+}
+
+/**
+ * Build the premium 9:16 filtergraph.
+ *
+ * High level (single ffmpeg pass, two inputs: [0:v]=template, [1:a]=audio):
+ *   1. BACKGROUND: scale template to COVER 720x1280 + crop to exact, then a
+ *      subtle boxblur + brightness cut so the foreground text/waveform pop.
+ *      Motion is preserved.
+ *   2. WAVEFORM: showwaves on the (trimmed) audio → a brand-pink band, scaled
+ *      to full width, overlaid in the lower third. This is the "audiogram".
+ *   3. HEADLINE: "Happy Birthday, {name}" top third, fades+implied-scales in
+ *      over the first 1.2s via drawtext alpha, strong stroke for legibility.
+ *   4. LYRICS: one beat (1–2 rows) visible at a time, evenly spaced across the
+ *      song via enable='between(t, i*D/N, (i+1)*D/N)', centered mid-frame.
+ *   5. SENDER NOTE: optional, brief, near the end — kept calm.
+ *   6. WATERMARK: discreet singmybirthday.com bottom-center (persistent).
+ *
+ * Labels are threaded explicitly ([bg]→[bgw]→[base]→...) so the graph stays
+ * valid; every drawtext consumes one labelled stream and emits the next.
+ */
+function buildPremiumFilterGraph(args: {
+  recipientName: string;
+  language: string;
+  senderName?: string;
+  personalNote?: string;
+  lyricBeats: string[][];
+  effectiveDurationSec: number;
+}): { filter: string; videoLabel: string; audioLabel: string } {
+  const D = args.effectiveDurationSec;
+  const dur = D.toFixed(2);
+
+  // ---- Font sizing (px on the 720-wide canvas) ----
+  const HEADLINE_SIZE = 58;
+  const NAME_SIZE = 86;
+  const LYRIC_SIZE = 46;
+  const NOTE_SIZE = 34;
+  const WM_SIZE = 26;
+
+  const chains: string[] = [];
+
+  // ---- 1. Background: cover-crop → blur + darken ----
+  // increase-fit then crop to exact so there's no letterboxing; boxblur=6:1
+  // softens it and eq brightness=-0.14 darkens so overlays read. Kept to a
+  // single blur pass (cheap) — heavier gblur was avoided for the vCPU budget.
+  chains.push(
+    `[0:v]scale=${PREMIUM_WIDTH}:${PREMIUM_HEIGHT}:force_original_aspect_ratio=increase,` +
+      `crop=${PREMIUM_WIDTH}:${PREMIUM_HEIGHT},` +
+      `boxblur=6:1,eq=brightness=-0.14:saturation=1.05,` +
+      `setsar=1,fps=${PREMIUM_FPS},format=yuv420p[bg]`,
+  );
+
+  // ---- 2. Waveform (audiogram core) ----
+  // showwaves renders the audio as a moving line. We give it its own scratch
+  // audio split so the muxed audio stays untouched. Band is ~28% of height,
+  // full width, brand pink, drawn as a filled "cline" mode for a fuller look.
+  const waveH = Math.round(PREMIUM_HEIGHT * 0.22);
+  chains.push(
+    `[1:a]asplit=2[awave][aout]`,
+  );
+  chains.push(
+    `[awave]atrim=0:${dur},asetpts=PTS-STARTPTS,` +
+      `showwaves=s=${PREMIUM_WIDTH}x${waveH}:mode=cline:rate=${PREMIUM_FPS}:` +
+      `colors=0x${BRAND_PINK_HEX}:scale=sqrt,format=rgba,` +
+      // Slight transparency so it blends into the background rather than
+      // looking like a pasted-on strip.
+      `colorchannelmixer=aa=0.9[wave]`,
+  );
+  // Overlay the waveform in the lower third (centered horizontally). y places
+  // its top at ~62% of the frame, leaving room for lyrics above and the
+  // watermark below.
+  const waveY = Math.round(PREMIUM_HEIGHT * 0.62);
+  chains.push(
+    `[bg][wave]overlay=x=0:y=${waveY}:format=auto[base]`,
+  );
+
+  // ---- 3. Headline: "Happy Birthday" + "{name}!" ----
+  // The prefix fades in over the first 1.2s (t/1.2 alpha ramp) which reads as
+  // a gentle scale/reveal. Name sits just under it, brand pink, dominant.
+  const hb = localizedHappyBirthday(args.language);
+  let label = "base";
+  chains.push(
+    `[${label}]drawtext=fontfile=${FONT_PATH}:text='${escapeDrawtext(hb)}':` +
+      `fontsize=${HEADLINE_SIZE}:fontcolor=white:borderw=3:bordercolor=black@0.85:` +
+      `shadowcolor=black@0.6:shadowx=2:shadowy=2:` +
+      `x=(w-text_w)/2:y=h*0.09:` +
+      `alpha='if(lt(t,1.2),t/1.2,1)'[hb]`,
+  );
+  label = "hb";
+  chains.push(
+    `[${label}]drawtext=fontfile=${FONT_PATH}:text='${escapeDrawtext(`${args.recipientName}!`)}':` +
+      `fontsize=${NAME_SIZE}:fontcolor=0x${BRAND_PINK_HEX}:borderw=4:bordercolor=black@0.9:` +
+      `shadowcolor=black@0.6:shadowx=2:shadowy=2:` +
+      `x=(w-text_w)/2:y=h*0.09+${HEADLINE_SIZE + 18}:` +
+      `alpha='if(lt(t,1.2),t/1.2,1)'[name]`,
+  );
+  label = "name";
+
+  // ---- 4. Lyric reveal ----
+  // No per-word timestamps exist, so we split the song evenly: N beats over
+  // duration D, beat i visible during [i*D/N, (i+1)*D/N). Each beat is 1–2
+  // rows, centered vertically around ~46% of the frame. This is the biggest
+  // premium upgrade — it turns a static card into a lyric video.
+  const beats = args.lyricBeats;
+  const N = beats.length;
+  if (N > 0) {
+    const slot = D / N;
+    const lineSpacing = Math.round(LYRIC_SIZE * 1.25);
+    for (let i = 0; i < N; i += 1) {
+      const start = (i * slot).toFixed(2);
+      const end = ((i + 1) * slot).toFixed(2);
+      const rows = beats[i];
+      // Vertically center this beat's rows around 0.46*h. For a 2-row beat the
+      // first row starts half a line-height above center.
+      const blockTop = `h*0.46-${Math.round(((rows.length - 1) * lineSpacing) / 2)}`;
+      for (let r = 0; r < rows.length; r += 1) {
+        const yExpr = r === 0 ? blockTop : `${blockTop}+${r * lineSpacing}`;
+        const out = `ly${i}_${r}`;
+        chains.push(
+          `[${label}]drawtext=fontfile=${FONT_PATH}:text='${escapeDrawtext(rows[r])}':` +
+            `fontsize=${LYRIC_SIZE}:fontcolor=white:borderw=3:bordercolor=black@0.9:` +
+            `shadowcolor=black@0.55:shadowx=2:shadowy=2:` +
+            `x=(w-text_w)/2:y=${yExpr}:` +
+            `enable='between(t,${start},${end})'[${out}]`,
+        );
+        label = out;
+      }
+    }
+  }
+
+  // ---- 5. Sender note (optional, calm, near the end) ----
+  // Shown only in the last ~5s so the mid-song frame stays clean. Combines the
+  // personal note (if any) and/or "with love from {sender}".
+  const noteTrimmed = args.personalNote?.replace(/\s*\n+\s*/g, " ").trim();
+  const senderTrimmed = args.senderName?.trim();
+  let closing: string | null = null;
+  if (noteTrimmed) closing = noteTrimmed;
+  else if (senderTrimmed) closing = `with love from ${senderTrimmed}`;
+  if (closing && D > 6) {
+    const rows = wrapPersonalNote(closing, 32, 2);
+    const showFrom = Math.max(0, D - 5).toFixed(2);
+    const spacing = Math.round(NOTE_SIZE * 1.2);
+    const blockTop = `h*0.80`;
+    for (let r = 0; r < rows.length; r += 1) {
+      const yExpr = r === 0 ? blockTop : `${blockTop}+${r * spacing}`;
+      const out = `note${r}`;
+      chains.push(
+        `[${label}]drawtext=fontfile=${FONT_PATH}:text='${escapeDrawtext(rows[r])}':` +
+          `fontsize=${NOTE_SIZE}:fontcolor=white@0.95:borderw=2:bordercolor=black@0.85:` +
+          `x=(w-text_w)/2:y=${yExpr}:` +
+          `enable='gte(t,${showFrom})'[${out}]`,
+      );
+      label = out;
+    }
+  }
+
+  // ---- 6. Watermark: discreet, persistent, bottom-center ----
+  chains.push(
+    `[${label}]drawtext=fontfile=${FONT_PATH}:text='singmybirthday.com':` +
+      `fontsize=${WM_SIZE}:fontcolor=white@0.85:borderw=1:bordercolor=black@0.6:` +
+      `box=1:boxcolor=black@0.3:boxborderw=10:` +
+      `x=(w-text_w)/2:y=h-text_h-28[v]`,
+  );
+
+  // ---- Audio chain: hard-cap to D then 1s tail fade (same policy as legacy) ----
+  const fadeStart = Math.max(0, D - AUDIO_TAIL_FADE_SEC).toFixed(2);
+  chains.push(
+    `[aout]atrim=0:${dur},asetpts=PTS-STARTPTS,` +
+      `afade=t=out:st=${fadeStart}:d=${AUDIO_TAIL_FADE_SEC}[a]`,
+  );
+
+  return { filter: chains.join(";"), videoLabel: "[v]", audioLabel: "[a]" };
+}
+
+function runPremiumFfmpeg(args: {
+  templateUrl: string;
+  audioPath: string;
+  outputPath: string;
+  recipientName: string;
+  language: string;
+  senderName?: string;
+  personalNote?: string;
+  lyricBeats: string[][];
+  effectiveDurationSec: number;
+}): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const { filter, videoLabel, audioLabel } = buildPremiumFilterGraph({
+      recipientName: args.recipientName,
+      language: args.language,
+      senderName: args.senderName,
+      personalNote: args.personalNote,
+      lyricBeats: args.lyricBeats,
+      effectiveDurationSec: args.effectiveDurationSec,
+    });
+
+    ffmpeg()
+      .input(args.templateUrl)
+      .input(args.audioPath)
+      .complexFilter(filter)
+      .outputOptions([
+        "-map", videoLabel,
+        "-map", audioLabel,
+        "-c:v", "libx264",
+        "-preset", "veryfast",
+        "-crf", "23",
+        "-pix_fmt", "yuv420p",
+        "-r", String(PREMIUM_FPS),
+        "-c:a", "aac",
+        "-b:a", "192k",
+        // Belt-and-suspenders: -t caps at the effective duration and -shortest
+        // closes out cleanly if the template stream runs dry first.
+        "-t", args.effectiveDurationSec.toFixed(2),
+        "-shortest",
+        "-movflags", "+faststart",
+      ])
+      .on("error", (err: Error) => reject(err))
+      .on("end", () => resolve())
+      .save(args.outputPath);
+  });
+}
+
+async function renderShareVideoPremium(input: RenderVideoInput): Promise<RenderVideoResult> {
+  const logId = input.logId ?? randomUUID().slice(0, 8);
+  const totalStart = Date.now();
+
+  const workDir = await mkdtemp(path.join(tmpdir(), `bday-audiogram-${randomUUID()}-`));
+  const audioPath = path.join(workDir, "audio.mp3");
+  const outputPath = path.join(workDir, "out.mp4");
+  const templateUrl = templateVideoPath(input.template, {
+    genre: input.genre,
+    seed: input.backgroundSeed ?? input.logId,
+  });
+
+  try {
+    try {
+      await stat(FONT_PATH);
+    } catch {
+      throw new Error(
+        `font missing at ${FONT_PATH} — outputFileTracingIncludes for this route needs to include public/video-fonts/**/*`,
+      );
+    }
+
+    const audioStart = Date.now();
+    await downloadToTemp(input.audioUrl, audioPath);
+    logStage(logId, "audiogram-audio-fetch", audioStart);
+
+    const probeStart = Date.now();
+    const probedAudioSec = await probeDuration(audioPath);
+    const rawAudioSec = probedAudioSec > 0 ? probedAudioSec : PREMIUM_MAX_SEC;
+    // min(song length, template length, ~45s cap).
+    const effectiveDurationSec = Math.min(rawAudioSec, TEMPLATE_DURATION_SEC, PREMIUM_MAX_SEC);
+    logStage(logId, "audiogram-probe", probeStart, {
+      audio: rawAudioSec.toFixed(2),
+      effective: effectiveDurationSec.toFixed(2),
+    });
+
+    // ~24 chars/line fits the 720-wide frame at the lyric font size with the
+    // stroke; wider would clip against the edges on long words.
+    const lyricBeats = buildLyricBeats(input.lyrics, 24);
+
+    const ffmpegStart = Date.now();
+    await runPremiumFfmpeg({
+      templateUrl,
+      audioPath,
+      outputPath,
+      recipientName: input.name,
+      language: input.language,
+      senderName: input.senderName,
+      personalNote: input.personalNote,
+      lyricBeats,
+      effectiveDurationSec,
+    });
+    logStage(logId, "audiogram-mux", ffmpegStart, { beats: lyricBeats.length });
+
+    const readStart = Date.now();
+    const [mp4, durationSec] = await Promise.all([
+      readFile(outputPath),
+      probeDuration(outputPath),
+    ]);
+    logStage(logId, "audiogram-read+probe", readStart, { bytes: mp4.length });
+    logStage(logId, "audiogram-total", totalStart);
+
+    return { mp4, durationSec };
+  } finally {
+    rm(workDir, { recursive: true, force: true }).catch(() => undefined);
+  }
+}
+
+/**
+ * Public entry point. Renders the premium 9:16 lyric-audiogram; on ANY failure
+ * falls back to the legacy 16:9 simple renderer so shares never break. If the
+ * simple fallback ALSO throws, the error propagates to the share route, which
+ * already degrades to a raw-audio-only share.
+ */
+export async function renderShareVideo(input: RenderVideoInput): Promise<RenderVideoResult> {
+  const logId = input.logId ?? randomUUID().slice(0, 8);
+  try {
+    return await renderShareVideoPremium(input);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[share-create:audiogram-failed] id=${logId} falling back to simple renderer msg=${message}`);
+    return renderShareVideoSimple(input);
   }
 }
