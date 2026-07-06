@@ -18,6 +18,7 @@
 // template's background — same approach the discovery batch uses.
 
 import { mkdtemp, readFile, rm, writeFile, stat } from "node:fs/promises";
+import { execFile } from "node:child_process";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
@@ -117,8 +118,30 @@ async function downloadToTemp(url: string, dest: string): Promise<void> {
   }
 }
 
-function probeDuration(filePath: string): Promise<number> {
+// @ffmpeg-installer ships ffmpeg but NOT ffprobe, so ffmpeg.ffprobe() fails at
+// runtime on Vercel and returned 0 — which surfaced as bogus "duration=0.00s"
+// logs and a 60s duration fallback. Parse the duration from ffmpeg's own stderr
+// as a fallback so we always get a real number.
+function durationViaFfmpeg(filePath: string): Promise<number> {
   return new Promise((resolve) => {
+    execFile(
+      ffmpegInstaller.path,
+      ["-hide_banner", "-i", filePath],
+      (_err, _stdout, stderr) => {
+        const m = /Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/.exec(stderr || "");
+        if (!m) {
+          resolve(0);
+          return;
+        }
+        const seconds = Number(m[1]) * 3600 + Number(m[2]) * 60 + parseFloat(m[3]);
+        resolve(Number.isFinite(seconds) && seconds > 0 ? seconds : 0);
+      },
+    );
+  });
+}
+
+async function probeDuration(filePath: string): Promise<number> {
+  const viaProbe = await new Promise<number>((resolve) => {
     ffmpeg.ffprobe(filePath, (err: Error | null, data: ffmpeg.FfprobeData) => {
       if (err) {
         resolve(0);
@@ -128,6 +151,8 @@ function probeDuration(filePath: string): Promise<number> {
       resolve(Number.isFinite(seconds) && seconds > 0 ? seconds : 0);
     });
   });
+  if (viaProbe > 0) return viaProbe;
+  return durationViaFfmpeg(filePath);
 }
 
 // ffmpeg drawtext escapes (same shape the discovery batch uses).

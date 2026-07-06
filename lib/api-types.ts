@@ -244,13 +244,13 @@ export type SharedSong = {
   tier?: "A" | "B" | "C";
   /**
    * Audio highlight-cut (lib/audio-cut.ts). Suno always returns a full ~2–3
-   * min repetitive track; at share-create we carve a tight ~55s highlight and
-   * store it on R2 as `highlightAudioUrl` (the polished, repeat-free song).
-   * When present it is the preview + Standard playback + audiogram/karaoke
-   * source. `fullAudioUrl` is our persisted copy of the untouched full-length
-   * track (Suno tempfiles expire) — surfaced as the Deluxe "full version"
-   * download. Both absent when the cut failed or wasn't needed (short source),
-   * in which case the raw `audioUrl` is the only source.
+   * min repetitive track; at share-create we carve a tight ~55s highlight
+   * (`highlightAudioUrl`) used ONLY as the video/audiogram + karaoke source and
+   * as the basis for the 15s preview — NOT as the buyer's song. The buyer's
+   * deliverable is the complete track: `fullAudioUrl` is our persisted R2 copy
+   * of the untouched full-length recording (Suno tempfiles expire), and it is
+   * what Standard playback + MP3 download serve. Both absent when the cut failed
+   * or wasn't needed (short source), in which case the raw `audioUrl` is used.
    */
   highlightAudioUrl?: string;
   fullAudioUrl?: string;

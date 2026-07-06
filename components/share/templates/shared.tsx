@@ -42,12 +42,13 @@ const OVERLAY_STYLES: Record<ShareTemplate, React.CSSProperties> = {
 export function SharedSongBody({ song, className }: { song: SharedSong; className?: string }) {
   const overlayStyle = OVERLAY_STYLES[song.template] ?? OVERLAY_STYLES.classic;
 
-  // Prefer the tight highlight cut (lib/audio-cut.ts) — the polished,
-  // repeat-free song. Falls back to the raw Suno track when no cut exists.
-  // NOTE: on a LOCKED song the server (toPublicSong) strips these URLs, so
-  // this is "" and the player uses the gated preview route instead (see below).
+  // Unlocked playback = the full-length song (persisted to R2 so it doesn't
+  // expire), falling back to the raw Suno track. The highlight cut is only used
+  // for the 15s preview + the video, not as the Standard deliverable.
+  // NOTE: on a LOCKED song the server (toPublicSong) strips these URLs, so this
+  // is "" and the player uses the gated preview route instead (see below).
   const [currentAudio, setCurrentAudio] = useState<string>(
-    song.highlightAudioUrl ?? song.audioUrl ?? "",
+    song.fullAudioUrl ?? song.audioUrl ?? "",
   );
   // Prefer the premium Remotion video when the render worker has produced one;
   // otherwise fall back to the ffmpeg-rendered videoUrl so nothing breaks before
@@ -248,11 +249,6 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
         unlocked={unlocked}
         recipientName={song.name}
         tier={song.tier}
-        fullAudioSrc={
-          unlocked && song.plan === "deluxe" && song.fullAudioUrl
-            ? `/api/share/${song.id}/download?full=1`
-            : undefined
-        }
       />
 
       {/* Unlocked-only downloads: branded video + photo slideshow. */}

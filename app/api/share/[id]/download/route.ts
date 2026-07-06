@@ -29,18 +29,11 @@ export async function GET(
   const song = await loadSharedSong(id);
   if (!song) return new Response("Not found", { status: 404 });
 
-  // Paywall enforcement: downloads (full song, video, full-length track) are a
-  // paid entitlement. A locked song exposes only the gated 15s preview route,
-  // never this endpoint. 402 Payment Required is the honest status.
+  // Paywall enforcement: downloads (full song + video) are a paid entitlement.
+  // A locked song exposes only the gated 15s preview route, never this endpoint.
+  // 402 Payment Required is the honest status.
   if (!song.unlocked) {
     return new Response("Unlock required", { status: 402 });
-  }
-
-  // Deluxe gate: the full-length bonus track is Deluxe-only. Standard buyers get
-  // the polished highlight; only Deluxe unlocks the untouched full recording.
-  const wantsFullEarly = new URL(request.url).searchParams.get("full") === "1";
-  if (wantsFullEarly && song.plan !== "deluxe") {
-    return new Response("Deluxe required", { status: 402 });
   }
 
   // Best-effort durable event — never blocks the download.
@@ -54,17 +47,12 @@ export async function GET(
     }),
   );
 
-  // `?full=1` (validated above) requests the untouched full-length track. It
-  // always resolves to audio and bypasses the video.
-  const wantsFull = wantsFullEarly;
-
-  // Default: prefer the muxed video; else the highlight cut (the polished
-  // Standard song); else the raw Suno audio.
-  const hasVideo =
-    !wantsFull && typeof song.videoUrl === "string" && song.videoUrl.length > 0;
-  const audioFallback = wantsFull
-    ? song.fullAudioUrl ?? song.audioUrl
-    : song.highlightAudioUrl ?? song.audioUrl;
+  // Prefer the muxed share video; else the full-length song (persisted to R2 —
+  // Standard delivers the complete track), else the raw Suno audio as a last
+  // resort. The highlight cut is only ever used for the preview + video source,
+  // never as the buyer's downloaded song.
+  const hasVideo = typeof song.videoUrl === "string" && song.videoUrl.length > 0;
+  const audioFallback = song.fullAudioUrl ?? song.audioUrl;
   const sourceUrl = hasVideo ? (song.videoUrl as string) : audioFallback;
   const ext = hasVideo ? "mp4" : "mp3";
   const contentType = hasVideo ? "video/mp4" : "audio/mpeg";

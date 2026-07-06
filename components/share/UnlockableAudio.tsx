@@ -22,12 +22,6 @@ type Props = {
   tier?: "A" | "B" | "C";
   /** Display locale for paywall copy; defaults to English. */
   locale?: Locale;
-  /**
-   * Deluxe bonus: force-download URL for the untouched full-length track. When
-   * present (unlocked Deluxe only) an extra download link is shown beneath the
-   * Standard MP3. The player itself always plays the tight highlight cut.
-   */
-  fullAudioSrc?: string;
 };
 
 /**
@@ -46,7 +40,6 @@ export default function UnlockableAudio({
   recipientName,
   tier,
   locale = "en",
-  fullAudioSrc,
 }: Props) {
   const tr = getDictionary(locale);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -118,15 +111,6 @@ export default function UnlockableAudio({
         >
           <span aria-hidden>⬇</span> Download MP3
         </a>
-        {fullAudioSrc && (
-          <a
-            href={fullAudioSrc}
-            download
-            className="mt-2 block w-full rounded-2xl border border-amber-300/30 bg-amber-400/10 px-5 py-3 text-center text-sm font-bold text-amber-100 transition hover:bg-amber-400/15"
-          >
-            <span aria-hidden>★</span> Download full-length version
-          </a>
-        )}
       </div>
     );
   }
