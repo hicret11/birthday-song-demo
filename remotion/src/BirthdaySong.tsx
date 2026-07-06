@@ -95,6 +95,9 @@ export const BirthdaySong: React.FC<BirthdaySongProps> = (props) => {
       {/* 5. Confetti (headline burst + sparse background + outro burst) */}
       <Confetti outroStart={outroStart} />
 
+      {/* Slim song-progress bar hugging the bottom edge. */}
+      <ProgressBar outroStart={outroStart} accent={tokens.accent} />
+
       {/* Watermark (fades out under the outro card) */}
       <Watermark text={watermark} outroStart={outroStart} />
 
@@ -229,9 +232,10 @@ const KenBurnsPhoto: React.FC<{ url: string; durationInFrames: number; index: nu
           // cover-fit + crop to fill 1080x1920 with no letterbox.
           objectFit: "cover",
           objectPosition: "center",
-          // Natural color: only ~12% desaturation + a touch of contrast so the
-          // photo stays recognizable and premium.
-          filter: "saturate(0.88) contrast(1.03) brightness(0.97)",
+          // Richer, more cinematic grade: a touch MORE saturation + contrast so
+          // even flat/hazy phone photos read as intentional and premium, with a
+          // slight brightness pull-down so the overlays sit cleanly on top.
+          filter: "saturate(1.08) contrast(1.1) brightness(0.93)",
           transform: `scale(${scale}) translate(${panX}%, ${panY}%)`,
         }}
       />
@@ -246,47 +250,58 @@ const Waveform: React.FC<{ audioSrc: string; accent: string }> = ({ audioSrc, ac
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const audioData = useAudioData(audioSrc);
-  const bars = 48;
 
   if (!audioData) return null;
 
-  // visualizeAudio requires numberOfSamples to be a power of two (it doubles
-  // it internally for the FFT window). 64 is the smallest power of two >= our
-  // 48 bars; we take the first `bars` samples (the audible low band).
-  const samples = visualizeAudio({ fps, frame, audioData, numberOfSamples: 64 })
-    .slice(0, bars);
+  // Take the loud low/mid band, then MIRROR it so the energy peaks in the
+  // CENTER and tapers to both edges. This turns the raw (left-heavy) FFT graph
+  // into a balanced, always-full equalizer that looks good on any audio —
+  // including near-silence. Bars grow from a horizontal centerline (up + down).
+  const HALF = 24; // bars per side → 48 total
+  const raw = visualizeAudio({ fps, frame, audioData, numberOfSamples: 64 }).slice(0, HALF);
+  const mirrored = [...raw].reverse().concat(raw);
+  const MAXH = 300;
 
   return (
     <AbsoluteFill
-      style={{
-        justifyContent: "flex-end",
-        alignItems: "center",
-        // Lift the wave off the very bottom edge.
-        paddingBottom: 250,
-      }}
+      style={{ justifyContent: "flex-end", alignItems: "center", paddingBottom: 205 }}
     >
+      {/* Soft brand bloom behind the bars for depth. */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: 330,
+          width: "58%",
+          height: 10,
+          background: accent,
+          filter: "blur(36px)",
+          opacity: 0.5,
+        }}
+      />
       <div
         style={{
           display: "flex",
-          alignItems: "flex-end",
+          alignItems: "center",
           justifyContent: "center",
           gap: 7,
-          height: 380,
-          width: "85%",
+          height: MAXH,
+          width: "90%",
         }}
       >
-        {samples.map((v, i) => {
-          const height = Math.max(12, v * 1600);
+        {mirrored.map((v, i) => {
+          const height = Math.max(10, Math.min(MAXH, v * 2600));
+          // Slight brightness lift toward the center bars.
+          const centerDist = Math.abs(i - (mirrored.length - 1) / 2) / (mirrored.length / 2);
           return (
             <div
               key={i}
               style={{
                 flex: 1,
                 height,
-                borderRadius: 9,
-                background: `linear-gradient(180deg, ${accent}, rgba(255,255,255,0.78))`,
-                boxShadow: `0 0 16px ${accent}`,
-                opacity: 0.94,
+                borderRadius: 999,
+                background: `linear-gradient(180deg, rgba(255,255,255,0.97), ${accent} 78%)`,
+                boxShadow: `0 0 12px ${accent}`,
+                opacity: 0.9 - centerDist * 0.18,
               }}
             />
           );
@@ -472,24 +487,31 @@ const Captions: React.FC<{
         }}
       >
         {words.map((w, i) => {
-          const isActive = i <= activeIndex;
+          const sung = i < activeIndex; // already passed
+          const current = i === activeIndex; // the word being sung right now
+          // Three states: sung words carry the accent (progress), the CURRENT
+          // word pops — bigger, brighter, strong glow — and upcoming words stay
+          // dimmed white so they read on any background without stealing focus.
+          const color = current || sung ? active : "rgba(255,255,255,0.5)";
           return (
             <span
               key={`${w}-${i}`}
               style={{
+                display: "inline-block",
                 fontFamily,
                 fontWeight: 900,
                 fontSize: 74,
                 lineHeight: 1.15,
-                // Idle words stay bright white (dimmed) so they read on any bg;
-                // active words take the brand accent + glow.
-                color: isActive ? active : "rgba(255,255,255,0.62)",
+                color,
                 WebkitTextStroke: `4px ${stroke}`,
                 paintOrder: "stroke fill",
-                textShadow: isActive
-                  ? `0 0 22px ${active}, 0 3px 14px rgba(0,0,0,0.85)`
-                  : "0 3px 14px rgba(0,0,0,0.85)",
-                transform: i === activeIndex ? "translateY(-4px)" : "none",
+                textShadow: current
+                  ? `0 0 30px ${active}, 0 0 14px ${active}, 0 3px 14px rgba(0,0,0,0.9)`
+                  : sung
+                    ? `0 0 12px ${active}, 0 2px 12px rgba(0,0,0,0.85)`
+                    : "0 3px 14px rgba(0,0,0,0.85)",
+                transform: current ? "translateY(-8px) scale(1.1)" : "none",
+                transformOrigin: "center bottom",
               }}
             >
               {w}
@@ -676,6 +698,36 @@ const Outro: React.FC<{
         >
           {cta}
         </p>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+// ---------------------------------------------------------------------------
+// Slim song-progress bar along the very bottom edge — a subtle premium cue that
+// fills left→right across the whole video and fades out under the outro card.
+// ---------------------------------------------------------------------------
+const ProgressBar: React.FC<{ outroStart: number; accent: string }> = ({ outroStart, accent }) => {
+  const frame = useCurrentFrame();
+  const { fps, durationInFrames } = useVideoConfig();
+  const pct = Math.min(1, frame / Math.max(1, durationInFrames - 1));
+  const opacity = interpolate(
+    frame,
+    [outroStart - fps * 0.3, outroStart + fps * 0.3],
+    [1, 0],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
+  );
+  return (
+    <AbsoluteFill style={{ justifyContent: "flex-end", opacity, pointerEvents: "none" }}>
+      <div style={{ height: 6, width: "100%", background: "rgba(255,255,255,0.12)" }}>
+        <div
+          style={{
+            height: "100%",
+            width: `${pct * 100}%`,
+            background: `linear-gradient(90deg, ${accent}, rgba(255,255,255,0.92))`,
+            boxShadow: `0 0 12px ${accent}`,
+          }}
+        />
       </div>
     </AbsoluteFill>
   );
