@@ -25,7 +25,9 @@ export const runtime = "nodejs";
 export const maxDuration = 15;
 
 const MAX_NAME_LEN = 80;
-const MAX_ADVANCED_LEN = 500;
+// Advanced free-text fields (style notes, memory, etc.) — generous so long
+// descriptions pass through to the lyric generator instead of being truncated.
+const MAX_ADVANCED_LEN = 2000;
 
 function errorResponse(code: ApiErrorCode, message: string, status: number): Response {
   const body: ApiError = { error: { code, message } };

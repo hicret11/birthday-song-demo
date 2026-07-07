@@ -22,8 +22,13 @@ import {
 import { getClientIp, rateLimitFixedWindow } from "@/lib/rate-limit";
 import { recordSpendCents } from "@/lib/spend-cap";
 
-const MAX_STYLE_NOTES_LEN = 200;
-const MAX_STYLE_TOTAL_LEN = 320;
+// Generous cap on the user's free-text style notes — effectively "any length"
+// for real use. It's not a hard product limit; the notes are refined by Claude
+// into a compact Suno descriptor anyway, so a long note never reaches Suno raw.
+const MAX_STYLE_NOTES_LEN = 2000;
+// The final Suno-bound style string still gets a sane ceiling (Suno's own field
+// is short), independent of how long the user's raw notes were.
+const MAX_STYLE_TOTAL_LEN = 600;
 // Haiku-refined descriptor costs roughly $0.0001/call; track 1 cent
 // (rounded up) against the same daily anthropic budget that gates lyrics.
 const ANTHROPIC_STYLE_REFINE_COST_CENTS = 1;

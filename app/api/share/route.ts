@@ -264,7 +264,7 @@ export async function POST(request: Request): Promise<Response> {
       if (code < 0x20 || code === 0x7f) continue;
       cleaned += ch;
     }
-    cleaned = cleaned.trim().slice(0, 200);
+    cleaned = cleaned.trim().slice(0, 2000);
     if (cleaned) styleNotes = cleaned;
   }
 

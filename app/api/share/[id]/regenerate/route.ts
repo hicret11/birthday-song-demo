@@ -24,8 +24,8 @@ export const maxDuration = 120;
 const MAX_REGEN_RETRIES = 2;
 const POLL_INTERVAL_MS = 4_000;
 const SUNO_TIMEOUT_MS = 50_000;
-const MAX_STYLE_NOTES_LEN = 200;
-const MAX_STYLE_TOTAL_LEN = 320;
+const MAX_STYLE_NOTES_LEN = 2000;
+const MAX_STYLE_TOTAL_LEN = 600;
 
 const ID_RE = /^[a-zA-Z0-9]{1,32}$/;
 
