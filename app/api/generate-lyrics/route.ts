@@ -22,7 +22,7 @@ import { checkCapStatus, recordSpendCents } from "@/lib/spend-cap";
 const ANTHROPIC_COST_PER_LYRICS_CENTS = 1;
 
 export const runtime = "nodejs";
-export const maxDuration = 15;
+export const maxDuration = 30;
 
 const MAX_NAME_LEN = 80;
 // Advanced free-text fields (style notes, memory, etc.) — generous so long

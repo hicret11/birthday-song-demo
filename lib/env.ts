@@ -18,7 +18,7 @@ export const env = {
   },
   // Lyrics: a stronger model for better instruction-following + JSON reliability.
   get openaiLyricsModel(): string {
-    return optional("OPENAI_LYRICS_MODEL", "gpt-5");
+    return optional("OPENAI_LYRICS_MODEL", "gpt-5-mini");
   },
   // Style-refine: a cheaper model with the web_search tool for niche references.
   get openaiRefineModel(): string {
