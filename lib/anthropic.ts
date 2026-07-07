@@ -1,4 +1,8 @@
-import Anthropic from "@anthropic-ai/sdk";
+// NOTE: file name is legacy. Lyric generation + style refinement now run on
+// OpenAI (Responses API): structured outputs for reliable JSON, and the hosted
+// web_search tool for niche music references. The exported function names are
+// unchanged so call sites don't move. (Anthropic is no longer used here.)
+import OpenAI from "openai";
 import { createHash } from "node:crypto";
 import { kv } from "@vercel/kv";
 import { env } from "./env";
@@ -19,6 +23,12 @@ export type LyricsInput = {
   styleNotes?: string;
 };
 
+let openaiClient: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!openaiClient) openaiClient = new OpenAI({ apiKey: env.openaiApiKey });
+  return openaiClient;
+}
+
 const SYSTEM_PROMPT = `You are a professional birthday song lyricist who writes warm, personal, and singable lyrics in any language. You write lyrics natively in the target language — never translate from English. You respect cultural birthday traditions:
 - Turkish: echoes of "İyi ki doğdun" / "Mutlu yıllar sana" cadences are welcome.
 - Spanish: "Las Mañanitas" warmth, or "Cumpleaños Feliz" feel.
@@ -32,9 +42,38 @@ You match the requested genre's lyrical conventions (Hip-Hop = rhyme density and
 
 NON-NEGOTIABLE: every song MUST contain an explicit, clearly sung "happy birthday" greeting addressed to the person, written in the target language — e.g. Spanish "Feliz cumpleaños", French "Joyeux anniversaire", Russian "С днём рождения", Arabic "كل عام وأنت بخير" / "عيد ميلاد سعيد", Turkish "İyi ki doğdun" / "Doğum günün kutlu olsun", Hindi "Janam din mubarak". A birthday song that never actually wishes a happy birthday has failed its only job. Put the greeting in the chorus so it is unmissable.
 
-You output ONLY valid JSON matching the schema. No prose, no markdown fences.`;
+Honor every specific detail the user gives (nicknames, hobbies, memories, requested phrases) — if they ask you to work in a particular word or fact, include it.`;
 
-const STRICT_RETRY_REMINDER = `Your previous response could not be parsed as JSON. Respond with valid JSON only — no prose, no markdown fences, no commentary before or after the JSON object.`;
+// Strict JSON Schema for OpenAI Structured Outputs. `strict: true` guarantees
+// the model returns valid JSON matching this shape, so the old parse/retry
+// dance is gone. All properties are required and additionalProperties is false
+// (both mandatory for strict mode).
+const LYRICS_JSON_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  additionalProperties: false,
+  required: ["title", "style", "sections"],
+  properties: {
+    title: { type: "string", description: "Short song title in the target language." },
+    style: {
+      type: "string",
+      description:
+        "1-2 sentence ENGLISH description of genre + mood for the music model (e.g. 'upbeat pop with warm acoustic guitar and bright vocals').",
+    },
+    sections: {
+      type: "array",
+      minItems: 1,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["tag", "lines"],
+        properties: {
+          tag: { type: "string", enum: ["Verse", "Chorus", "Bridge", "Outro"] },
+          lines: { type: "array", minItems: 1, items: { type: "string" } },
+        },
+      },
+    },
+  },
+};
 
 function stripEmojiPrefix(genre: string): string {
   return genre.replace(/^[^\p{L}]+/u, "").trim() || genre;
@@ -52,14 +91,14 @@ function buildUserMessage(input: LyricsInput): string {
   const advancedBlock = advancedLines.length > 0 ? `\n${advancedLines.join("\n")}` : "";
 
   const styleNotesLine = input.styleNotes?.trim()
-    ? `\n- Style notes: ${input.styleNotes.trim()} (let this guide the lyrics' tone, energy, and vocabulary — match the requested mood)`
+    ? `\n- Style notes: ${input.styleNotes.trim()} (let this guide the lyrics' tone, energy, and vocabulary — match the requested mood, and weave in any specific words/facts requested)`
     : "";
 
   // NOTE: No pronunciation instruction is included in the lyric prompt.
-  // Claude always writes the name using its original spelling. The
-  // pronunciation form is applied as a post-process string substitution
-  // ONLY on the Suno-bound copy (see applyPronunciationHint below) so the
-  // displayed lyrics on /share/[id] never show the phonetic form.
+  // The name is always written using its original spelling. The pronunciation
+  // form is applied as a post-process string substitution ONLY on the
+  // Suno-bound copy (see applyPronunciationHint below) so the displayed lyrics
+  // on /share/[id] never show the phonetic form.
 
   return `Write a personalized birthday song with these inputs:
 
@@ -67,50 +106,29 @@ function buildUserMessage(input: LyricsInput): string {
 - Language: ${input.language} (write all lyrics in this language)
 - Genre: ${genreClean}${styleNotesLine}${advancedBlock}
 
-Output a JSON object exactly matching this schema:
-
-{
-  "title": "string — short, in the target language",
-  "sections": [
-    { "tag": "Verse" | "Chorus" | "Bridge" | "Outro", "lines": ["string", "..."] }
-  ],
-  "style": "string — 1-2 sentence English description of genre + mood for the music model (e.g. 'upbeat pop with warm acoustic guitar and bright vocals')"
-}
-
 Constraints:
 - Total length: A complete, full song of about 60 seconds — roughly 8 to 12 lines: a verse, a chorus that clearly wishes them a happy birthday and lands their name, and a short bridge or a repeat of the chorus to finish. Keep every line singable and tight — a real full song, not a 30-second snippet, but no long intros, outros, or filler.
 - MANDATORY: the lyrics MUST explicitly wish ${input.name} a happy birthday in ${input.language} (the natural local phrase, e.g. Spanish "Feliz cumpleaños", French "Joyeux anniversaire", Russian "С днём рождения", Arabic "كل عام وأنت بخير", Turkish "İyi ki doğdun", Hindi "Janam din mubarak"). This greeting must appear in the chorus — it is the entire point of the song and must never be omitted, no matter what other theme (a team welcome, a tribute, an inside joke) the inputs suggest.
 - Use ${input.name} in the chorus and ideally in the verse too.
-- Reference advanced fields naturally if provided.
+- Reference the advanced fields and style notes naturally if provided.
 - Never include English placeholder text in non-English lyrics.`;
 }
 
-function extractJson(text: string): string {
-  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (fenced) return fenced[1].trim();
-  const firstBrace = text.indexOf("{");
-  const lastBrace = text.lastIndexOf("}");
-  if (firstBrace !== -1 && lastBrace > firstBrace) {
-    return text.slice(firstBrace, lastBrace + 1);
-  }
-  return text.trim();
-}
-
-type ClaudeRaw = {
+type LyricsRaw = {
   title: unknown;
   sections: unknown;
   style: unknown;
 };
 
-function validateAndNormalize(parsed: ClaudeRaw): { title: string; sections: LyricSection[]; style: string } {
+function validateAndNormalize(parsed: LyricsRaw): { title: string; sections: LyricSection[]; style: string } {
   if (typeof parsed.title !== "string" || !parsed.title.trim()) {
-    throw new Error("Claude response missing 'title'");
+    throw new Error("lyrics response missing 'title'");
   }
   if (typeof parsed.style !== "string" || !parsed.style.trim()) {
-    throw new Error("Claude response missing 'style'");
+    throw new Error("lyrics response missing 'style'");
   }
   if (!Array.isArray(parsed.sections) || parsed.sections.length === 0) {
-    throw new Error("Claude response missing 'sections'");
+    throw new Error("lyrics response missing 'sections'");
   }
 
   const allowedTags: LyricSectionTag[] = ["Verse", "Chorus", "Bridge", "Outro"];
@@ -213,14 +231,11 @@ function escapeRegExp(value: string): string {
  * matches "Kamila!" and "Kamila's" but not the middle of an unrelated word.
  *
  * The output is sent to Suno's lyric tokenizer only; the displayed lyrics
- * on /share/[id] continue to use the original spelling. This is the fix
- * for the bug where lyrics rendered "kuh-MEE-luh" everywhere instead of
- * the user-typed "Kamila".
+ * on /share/[id] continue to use the original spelling.
  *
  * Returns the input text unchanged when either argument is empty/blank, or
- * when the name doesn't appear in the text (e.g., Cyrillic-script lyric
- * where Claude transliterated the Latin name — we don't try to match
- * across scripts, the original Suno request just goes through as-is).
+ * when the name doesn't appear in the text (e.g., Cyrillic-script lyric where
+ * the name was transliterated — we don't try to match across scripts).
  */
 export function applyPronunciationHint(args: {
   text: string;
@@ -236,36 +251,18 @@ export function applyPronunciationHint(args: {
   return args.text.replace(pattern, hint);
 }
 
-async function callClaude(client: Anthropic, userMessage: string, extraSystem?: string): Promise<string> {
-  const result = await client.messages.create({
-    model: env.anthropicModel,
-    max_tokens: 500,
-    temperature: 0.9,
-    system: extraSystem ? `${SYSTEM_PROMPT}\n\n${extraSystem}` : SYSTEM_PROMPT,
-    messages: [{ role: "user", content: userMessage }],
-  });
-  const block = result.content[0];
-  if (!block || block.type !== "text") {
-    throw new Error("Claude returned no text content");
-  }
-  return block.text;
-}
-
 /**
  * Translate the user's free-text "style notes" into a precise Suno style
- * descriptor. Claude Haiku interprets references like "Afro house like Palm
+ * descriptor. The model interprets references like "Afro house like Palm
  * Monkey's AWGAZI" into something Suno can match — specific subgenre, BPM,
- * mood, and instrumentation. When the user names something Claude doesn't
- * recognize from training, it can fire up to two web searches to pull real
- * metadata instead of guessing from name vibes.
+ * mood, and instrumentation. When it doesn't recognize a reference, it can use
+ * the hosted web_search tool to pull real metadata instead of guessing.
  *
- * Latency budget: ~3s end-to-end (one search round-trip). Hard timeout 8s.
- * Cost: ~$0.0004 per call without search, ~$0.011 per call with one search.
- * KV cache makes the second hit on the same notes essentially free.
+ * Hard timeout so a slow search can't pin the generate-music route. KV cache
+ * makes repeat lookups of the same notes essentially free.
  *
- * Callers are responsible for the empty-input guard and the
- * fall-back-on-error pattern. This function itself throws on any failure so
- * the caller can decide whether to surface the error or degrade silently.
+ * Callers own the empty-input guard and the fall-back-on-error pattern; this
+ * function throws on any failure so the caller can degrade silently.
  */
 export type RefineStyleInput = {
   genre: string;
@@ -273,15 +270,11 @@ export type RefineStyleInput = {
   recipientName: string;
 };
 
-const REFINE_MAX_TOKENS = 250;
 const REFINE_OUTPUT_MAX_CHARS = 180;
-const REFINE_TIMEOUT_MS = 8_000;
-const REFINE_WEB_SEARCH_MAX_USES = 2;
+const REFINE_TIMEOUT_MS = 12_000;
+const REFINE_MAX_OUTPUT_TOKENS = 2_000;
 const REFINE_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
-// Cache key built from the genre + normalized notes. Same notes against a
-// different primary genre is meaningfully different (the prompt anchors on
-// the genre), so both go into the hash.
 function refineCacheKey(genre: string, styleNotes: string): string {
   const cleanGenre = stripEmojiPrefix(genre).toLowerCase().trim();
   const normalizedNotes = styleNotes
@@ -299,10 +292,8 @@ function refineCacheKey(genre: string, styleNotes: string): string {
 function tidyDescriptor(raw: string): string {
   return raw
     .trim()
-    // Strip leading/trailing matched quotes if the model ignored the instruction.
     .replace(/^["'`]+/, "")
     .replace(/["'`]+$/, "")
-    // Collapse newlines — Suno expects a single descriptor line.
     .replace(/\s*\n+\s*/g, " ")
     .trim()
     .slice(0, REFINE_OUTPUT_MAX_CHARS);
@@ -315,9 +306,6 @@ export async function refineStyleForSuno(input: RefineStyleInput): Promise<strin
     throw new Error("refineStyleForSuno requires non-empty styleNotes");
   }
 
-  // KV cache check first. A cache hit serves a previously-refined descriptor
-  // (no Claude call, no search) in sub-100ms — meaningful for trendy artist
-  // names that lots of users type into the form.
   const cacheKey = refineCacheKey(input.genre, userNotes);
   try {
     const cached = await kv.get<string>(cacheKey);
@@ -326,8 +314,6 @@ export async function refineStyleForSuno(input: RefineStyleInput): Promise<strin
       return cached;
     }
   } catch (err) {
-    // KV unreachable — fall through to live call. We never want the cache
-    // layer to be the blocker that takes refinement down.
     console.warn("[refine-style] cache read failed; falling through:", err);
   }
 
@@ -339,77 +325,46 @@ User's style notes: "${userNotes}"
 Translate the user's intent into a concise Suno style descriptor (max ${REFINE_OUTPUT_MAX_CHARS} chars).
 
 If the user references a specific song, artist, or niche subgenre:
-- If you recognize it from training, use that knowledge directly.
-- If you don't recognize it, use the web_search tool ONCE to look it up
-  (e.g., query: "{name} genre BPM tempo").
-- Read the search results to identify the actual genre, subgenre, tempo, and mood.
+- If you recognize it, use that knowledge directly.
+- If you don't recognize it, use the web_search tool ONCE to look it up (e.g., query: "{name} genre BPM tempo").
+- Read the results to identify the actual genre, subgenre, tempo, and mood.
 
-Otherwise (just generic mood/genre words), skip search — reply from training knowledge.
+Otherwise (just generic mood/genre words), skip search and reply from your own knowledge.
 
 Output ONLY the descriptor string. Format guideline:
 "{subgenre}, ~{bpm} BPM, {mood/energy}, {1-2 instrumental hints}, {artist style if applicable}"
 
 No preamble, no quotes, no explanation.`;
 
-  // Hard timeout so a slow/unreachable web_search backend can't pin the
-  // generate-music route at the function ceiling. Caller's fallback to
-  // buildSunoStyle() takes over if we abort.
   const abort = new AbortController();
   const timeout = setTimeout(() => abort.abort(), REFINE_TIMEOUT_MS);
 
   let usedWebSearch = false;
   let descriptor: string;
   try {
-    const client = new Anthropic({ apiKey: env.anthropicApiKey });
-    const result = await client.messages.create(
+    const client = getOpenAI();
+    const result = await client.responses.create(
       {
-        model: env.anthropicModel,
-        max_tokens: REFINE_MAX_TOKENS,
-        temperature: 0.4,
-        tools: [
-          {
-            type: "web_search_20250305",
-            name: "web_search",
-            max_uses: REFINE_WEB_SEARCH_MAX_USES,
-          },
-        ],
-        messages: [{ role: "user", content: prompt }],
+        model: env.openaiRefineModel,
+        input: prompt,
+        tools: [{ type: "web_search" }],
+        reasoning: { effort: "low" },
+        max_output_tokens: REFINE_MAX_OUTPUT_TOKENS,
       },
       { signal: abort.signal },
     );
 
-    // The response contains interleaved blocks when web_search runs:
-    // server_tool_use → web_search_tool_result → … → text. The descriptor
-    // is the FINAL text block. Walk in reverse so we land on the model's
-    // post-search synthesis rather than any pre-search planning text.
-    let finalText: string | null = null;
-    for (let i = result.content.length - 1; i >= 0; i -= 1) {
-      const block = result.content[i];
-      if (block.type === "text" && block.text.trim()) {
-        finalText = block.text;
-        break;
-      }
-    }
-    if (!finalText) {
-      throw new Error("Claude refine returned no text block");
-    }
-    usedWebSearch = result.content.some(
-      (block) => block.type === "server_tool_use" && block.name === "web_search",
-    );
-    descriptor = tidyDescriptor(finalText);
+    descriptor = tidyDescriptor(result.output_text ?? "");
     if (!descriptor) {
-      throw new Error("Claude refine returned empty descriptor");
+      throw new Error("OpenAI refine returned empty descriptor");
     }
+    usedWebSearch = result.output.some((item) => item.type === "web_search_call");
   } finally {
     clearTimeout(timeout);
   }
 
-  console.log(
-    `[refine-style] refined web_search=${usedWebSearch} key=${cacheKey.slice(0, 24)}…`,
-  );
+  console.log(`[refine-style] refined web_search=${usedWebSearch} key=${cacheKey.slice(0, 24)}…`);
 
-  // Write-through cache. Failure here is non-fatal — we already have the
-  // descriptor; future requests will just re-run the live call.
   try {
     await kv.set(cacheKey, descriptor, { ex: REFINE_CACHE_TTL_SECONDS });
   } catch (err) {
@@ -419,26 +374,45 @@ No preamble, no quotes, no explanation.`;
   return descriptor;
 }
 
-export async function generateLyrics(input: LyricsInput): Promise<Lyrics> {
-  const client = new Anthropic({ apiKey: env.anthropicApiKey });
-  const userMessage = buildUserMessage(input);
+const LYRICS_MAX_OUTPUT_TOKENS = 4_000;
 
-  let lastError: unknown;
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    const text = await callClaude(client, userMessage, attempt === 1 ? STRICT_RETRY_REMINDER : undefined);
-    try {
-      const parsed = JSON.parse(extractJson(text)) as ClaudeRaw;
-      const { title, sections, style } = validateAndNormalize(parsed);
-      return {
-        title,
-        sections,
-        raw: buildRawLyrics(sections),
-        style,
-        language: input.language,
-      };
-    } catch (err) {
-      lastError = err;
-    }
+export async function generateLyrics(input: LyricsInput): Promise<Lyrics> {
+  const client = getOpenAI();
+
+  const result = await client.responses.create({
+    model: env.openaiLyricsModel,
+    instructions: SYSTEM_PROMPT,
+    input: buildUserMessage(input),
+    // Structured Outputs — the model is constrained to this schema, so the
+    // JSON is always valid and parseable (no fenced-code / prose failure mode).
+    text: {
+      format: {
+        type: "json_schema",
+        name: "birthday_lyrics",
+        strict: true,
+        schema: LYRICS_JSON_SCHEMA,
+      },
+    },
+    // Low reasoning effort: this is a short creative task, not a reasoning
+    // problem — keeps latency and cost down while still using the stronger model.
+    reasoning: { effort: "low" },
+    max_output_tokens: LYRICS_MAX_OUTPUT_TOKENS,
+  });
+
+  const text = result.output_text;
+  if (!text || !text.trim()) {
+    throw new Error(
+      `OpenAI returned no lyrics text (status=${result.status ?? "unknown"})`,
+    );
   }
-  throw new Error(`Failed to parse Claude lyrics response after retry: ${(lastError as Error)?.message ?? "unknown"}`);
+
+  const parsed = JSON.parse(text) as LyricsRaw;
+  const { title, sections, style } = validateAndNormalize(parsed);
+  return {
+    title,
+    sections,
+    raw: buildRawLyrics(sections),
+    style,
+    language: input.language,
+  };
 }

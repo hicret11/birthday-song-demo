@@ -7,7 +7,8 @@ import { kv } from "@vercel/kv";
 // fal.ai is listed as a placeholder so the cap is ready when that integration
 // lands (e.g., for a future avatar / image-gen feature).
 export const DAILY_CAP_USD_CENTS: Record<string, number> = {
-  anthropic: 5_000,   // $50.00
+  openai: 5_000,      // $50.00 — lyrics + style-refine (+ moderation/Whisper)
+  anthropic: 5_000,   // $50.00 — legacy; no longer used by the generation path
   suno: 5_000,        // $50.00 — defensive default; raise when revenue allows
   "fal.ai": 30_000,   // $300.00 (placeholder; service not wired yet)
 };

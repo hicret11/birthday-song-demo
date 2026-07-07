@@ -54,7 +54,7 @@ function sanitizeAdvanced(value: unknown): string | undefined {
 }
 
 export async function POST(request: Request): Promise<Response> {
-  const cap = await checkCapStatus("anthropic");
+  const cap = await checkCapStatus("openai");
   if (cap.overCap) {
     if (cap.shouldAlert) {
       void alertSpendCapExceeded("anthropic", cap.spentCents, cap.capCents);
@@ -109,7 +109,7 @@ export async function POST(request: Request): Promise<Response> {
 
   try {
     const lyrics = await generateLyrics(lyricsInput);
-    void recordSpendCents("anthropic", ANTHROPIC_COST_PER_LYRICS_CENTS);
+    void recordSpendCents("openai", ANTHROPIC_COST_PER_LYRICS_CENTS);
     // Best-effort durable event — never blocks the response.
     after(
       logGenerationEvent("generation_started", request, {

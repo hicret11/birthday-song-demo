@@ -21,7 +21,6 @@ import { randomUUID } from "node:crypto";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import Anthropic from "@anthropic-ai/sdk";
 import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
 import ffmpeg from "fluent-ffmpeg";
 import OpenAI, { toFile } from "openai";
@@ -33,7 +32,7 @@ export const maxDuration = 30;
 
 const MAX_AUDIO_BYTES = 5 * 1024 * 1024;
 const PRIMARY_MODEL = process.env.OPENAI_AUDIO_MODEL ?? "gpt-audio-1.5";
-const HAIKU_MODEL = process.env.ANTHROPIC_MODEL ?? "claude-haiku-4-5-20251001";
+const PHONETIC_MODEL = process.env.OPENAI_REFINE_MODEL ?? "gpt-5-mini";
 
 const ONE_SHOT_PROMPT =
   "Listen to this audio and write the name phonetically the way a singer should say it — e.g., 'sha-VON' for Siobhan. Output only the phonetic spelling, nothing else.";
@@ -155,9 +154,8 @@ async function tryOneShot(
   }
 }
 
-async function fallbackWhisperPlusHaiku(
+async function fallbackWhisperPlusLLM(
   openai: OpenAI,
-  anthropic: Anthropic,
   audio: Blob,
   filename: string,
 ): Promise<string | null> {
@@ -180,33 +178,25 @@ async function fallbackWhisperPlusHaiku(
   if (!transcript) return null;
 
   try {
-    const result = await anthropic.messages.create({
-      model: HAIKU_MODEL,
-      max_tokens: 60,
-      temperature: 0.2,
-      system:
+    const result = await openai.responses.create({
+      model: PHONETIC_MODEL,
+      instructions:
         "You convert transcribed names into phonetic spellings a singer can read. Output only the phonetic spelling — no prose.",
-      messages: [
-        {
-          role: "user",
-          content: `A user said a name aloud and we transcribed it as: "${transcript}".\n\nWrite the name phonetically the way a singer should say it — e.g., "sha-VON" for Siobhan, "KAY-tlin" for Caitlin, "EE-fa" for Aoife. Output ONLY the phonetic spelling on a single line.`,
-        },
-      ],
+      input: `A user said a name aloud and we transcribed it as: "${transcript}".\n\nWrite the name phonetically the way a singer should say it — e.g., "sha-VON" for Siobhan, "KAY-tlin" for Caitlin, "EE-fa" for Aoife. Output ONLY the phonetic spelling on a single line.`,
+      reasoning: { effort: "minimal" },
+      max_output_tokens: 200,
     });
-    const block = result.content[0];
-    if (!block || block.type !== "text") return transcript.slice(0, 80);
-    const phonetic = cleanPhonetic(block.text);
+    const phonetic = cleanPhonetic(result.output_text ?? "");
     return phonetic || transcript.slice(0, 80);
   } catch (err) {
-    console.error("[transcribe-name] haiku fallback failed:", err);
+    console.error("[transcribe-name] phonetic fallback failed:", err);
     return transcript.slice(0, 80);
   }
 }
 
 export async function POST(request: Request): Promise<Response> {
   const openaiKey = process.env.OPENAI_API_KEY;
-  const anthropicKey = process.env.ANTHROPIC_API_KEY;
-  if (!openaiKey || !anthropicKey) {
+  if (!openaiKey) {
     return bad(
       "Voice pronunciation isn't set up yet — type the spelling instead.",
       503,
@@ -241,7 +231,6 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const openai = new OpenAI({ apiKey: openaiKey });
-  const anthropic = new Anthropic({ apiKey: anthropicKey });
 
   // Primary path — fast when it works.
   const oneShot = await tryOneShot(openai, wavBuffer);
@@ -251,9 +240,8 @@ export async function POST(request: Request): Promise<Response> {
 
   // Fallback — slower but reliable. We pass the original blob to whisper
   // (it handles many formats natively, so no re-conversion needed).
-  const fallback = await fallbackWhisperPlusHaiku(
+  const fallback = await fallbackWhisperPlusLLM(
     openai,
-    anthropic,
     audio,
     `recording.${srcExt}`,
   );

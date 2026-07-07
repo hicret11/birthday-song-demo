@@ -135,7 +135,7 @@ export async function POST(
           styleNotes: styleNotesToUse,
           recipientName: song.name,
         });
-        void recordSpendCents("anthropic", 1);
+        void recordSpendCents("openai", 1);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         console.warn(`[regenerate ${id}] style-refine failed, falling back: ${msg}`);

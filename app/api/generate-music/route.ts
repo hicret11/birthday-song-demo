@@ -175,7 +175,7 @@ export async function POST(request: Request): Promise<Response> {
           styleNotes: trimmedNotes,
           recipientName: body.name,
         });
-        void recordSpendCents("anthropic", ANTHROPIC_STYLE_REFINE_COST_CENTS);
+        void recordSpendCents("openai", ANTHROPIC_STYLE_REFINE_COST_CENTS);
       } catch (refineErr) {
         const msg = refineErr instanceof Error ? refineErr.message : String(refineErr);
         console.warn(`[generate-music] style-refine failed, falling back: ${msg}`);
