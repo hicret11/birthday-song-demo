@@ -317,9 +317,9 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
           <input
             type="text"
             value={retryStyleNotes}
-            onChange={(e) => setRetryStyleNotes(e.target.value.slice(0, 200))}
+            onChange={(e) => setRetryStyleNotes(e.target.value.slice(0, 2000))}
             placeholder="Tweak the style for the next take…"
-            maxLength={200}
+            maxLength={2000}
             disabled={isRegenerating}
             className="block w-full rounded-2xl border border-sand bg-cream-soft px-4 py-2 text-sm text-ink placeholder:text-ink-soft outline-none transition focus:ring-2 focus:ring-jade disabled:opacity-60"
           />

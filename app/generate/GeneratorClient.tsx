@@ -2008,9 +2008,9 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
         <input
           id="style-notes"
           value={styleNotes}
-          onChange={(e) => setStyleNotes(e.target.value.slice(0, 200))}
+          onChange={(e) => setStyleNotes(e.target.value.slice(0, 2000))}
           placeholder="e.g., 'their favorite band is Coldplay,' 'they love running,' 'mention their dog Max'"
-          maxLength={200}
+          maxLength={2000}
           className={`w-full rounded-xl border px-4 py-3.5 text-base text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
         />
         <p className="mt-1.5 text-xs text-ink-soft">
