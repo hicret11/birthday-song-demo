@@ -33,11 +33,11 @@ export default async function OnboardingPage({ searchParams }: PageProps) {
   if (session.payment_status !== "paid") {
     return (
       <Shell>
-        <h1 className="text-2xl font-bold">Payment incomplete</h1>
-        <p className="mt-2 text-sm text-gray-300">
-          Your checkout shows status <code className="rounded bg-white/10 px-1.5 py-0.5">{session.payment_status}</code>.
+        <h1 className="font-display text-2xl font-bold text-ink">Payment incomplete</h1>
+        <p className="mt-2 text-sm text-ink-soft">
+          Your checkout shows status <code className="rounded bg-sand px-1.5 py-0.5">{session.payment_status}</code>.
           Restart from{" "}
-          <Link href="/become-a-venue" className="underline">become a venue</Link>.
+          <Link href="/become-a-venue" className="text-jade underline decoration-jade/40 underline-offset-2 hover:decoration-jade">become a venue</Link>.
         </p>
       </Shell>
     );
@@ -47,8 +47,8 @@ export default async function OnboardingPage({ searchParams }: PageProps) {
   if (!customerId) {
     return (
       <Shell>
-        <h1 className="text-2xl font-bold">Hmm, something's missing.</h1>
-        <p className="mt-2 text-sm text-gray-300">Your session is paid but we couldn't find the customer record. Email us and we'll fix it.</p>
+        <h1 className="font-display text-2xl font-bold text-ink">Hmm, something's missing.</h1>
+        <p className="mt-2 text-sm text-ink-soft">Your session is paid but we couldn't find the customer record. Email us and we'll fix it.</p>
       </Shell>
     );
   }
@@ -63,12 +63,12 @@ export default async function OnboardingPage({ searchParams }: PageProps) {
   if (venue?.share_slug) {
     return (
       <Shell>
-        <h1 className="text-3xl font-extrabold">You're all set 🎉</h1>
-        <p className="mt-3 text-sm text-gray-300">
+        <h1 className="font-display text-3xl font-extrabold text-ink">You're all set 🎉</h1>
+        <p className="mt-3 text-sm text-ink-soft">
           Your branded venue page lives at{" "}
-          <code className="rounded bg-white/10 px-1.5 py-0.5">/v/{venue.share_slug}</code>.
+          <code className="rounded bg-sand px-1.5 py-0.5">/v/{venue.share_slug}</code>.
         </p>
-        <p className="mt-1 text-xs text-gray-400">
+        <p className="mt-1 text-xs text-ink-soft">
           Your link is live now — share it with your guests anytime.
         </p>
       </Shell>
@@ -79,8 +79,8 @@ export default async function OnboardingPage({ searchParams }: PageProps) {
 
   return (
     <Shell>
-      <h1 className="text-3xl font-extrabold">Welcome aboard.</h1>
-      <p className="mt-2 text-sm text-gray-300">
+      <h1 className="font-display text-3xl font-extrabold text-ink">Welcome aboard.</h1>
+      <p className="mt-2 text-sm text-ink-soft">
         Two quick details so we can mint your branded link.
       </p>
       <div className="mt-6">
@@ -92,9 +92,16 @@ export default async function OnboardingPage({ searchParams }: PageProps) {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-[#070019] via-[#12062f] to-[#1e1646] px-4 py-12 text-white">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(168,85,247,0.25),transparent_55%),radial-gradient(circle_at_85%_80%,rgba(236,72,153,0.22),transparent_55%)]" />
-      <section className="relative z-10 mx-auto w-full max-w-md rounded-3xl border border-white/15 bg-white/5 p-8 shadow-2xl backdrop-blur-2xl">
+    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-cream px-4 py-12 text-ink">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -left-40 -top-40 z-0 h-[520px] w-[520px] rounded-full bg-[radial-gradient(circle,rgba(255,158,120,0.5),transparent_66%)] blur-2xl"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-40 bottom-0 z-0 h-[560px] w-[560px] rounded-full bg-[radial-gradient(circle,rgba(255,126,157,0.45),transparent_66%)] blur-2xl"
+      />
+      <section className="relative z-10 mx-auto w-full max-w-md rounded-3xl border border-sand bg-cream-soft p-8 shadow-sm">
         {children}
       </section>
     </main>

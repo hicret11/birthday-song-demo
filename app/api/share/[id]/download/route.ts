@@ -51,9 +51,13 @@ export async function GET(
   // Standard delivers the complete track), else the raw Suno audio as a last
   // resort. The highlight cut is only ever used for the preview + video source,
   // never as the buyer's downloaded song.
-  const hasVideo = typeof song.videoUrl === "string" && song.videoUrl.length > 0;
+  // Prefer the premium Remotion render when it exists, else the ffmpeg share
+  // video, else audio. (premiumVideoUrl is populated once the render worker is
+  // deployed; until then this transparently serves the ffmpeg video.)
+  const videoSource = song.premiumVideoUrl ?? song.videoUrl;
+  const hasVideo = typeof videoSource === "string" && videoSource.length > 0;
   const audioFallback = song.fullAudioUrl ?? song.audioUrl;
-  const sourceUrl = hasVideo ? (song.videoUrl as string) : audioFallback;
+  const sourceUrl = hasVideo ? (videoSource as string) : audioFallback;
   const ext = hasVideo ? "mp4" : "mp3";
   const contentType = hasVideo ? "video/mp4" : "audio/mpeg";
   const nameSlug = slugify(song.name) || "song";

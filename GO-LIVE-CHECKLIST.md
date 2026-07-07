@@ -1,57 +1,75 @@
-# Sing My Birthday — Go-Live Checklist
+# Sing My Birthday — Go-Live Runbook
 
-Status as of this session: **P0 code written, statically verified (tsc + unit tests), and the audio pipeline validated end-to-end against real ffmpeg.** Remaining items below are infrastructure/config that must be done on real accounts + a full build/e2e pass on proper CI (the sandbox CPU can't finish a Turbopack build).
+Single source of truth for finishing the consumer song-paywall launch. Everything in **§A** is done + verified. **§B** is the ordered remaining path (each item needs a real account / decision). **§C** is reference detail.
 
----
-
-## 0. Verified this session ✅
-- `npx tsc --noEmit` → clean.
-- `npm test` (vitest) → 13/13 pass (geo tiers, Deluxe price fallback, paywall URL stripping).
-- Live ffmpeg smoke on a real 185s mp3 → highlight cut **55.0s**, preview **15.0s**, full **185s**, legacy preview path **15s**.
-- **Bug caught + fixed:** `@ffmpeg-installer` ships ffmpeg but **not ffprobe**, so `probeDuration` returned 0 and the highlight-cut would have been silently disabled in production. Duration is now read from ffmpeg's own output (with an assumed-long fallback), so the cut always runs.
-
-## 1. Must run on real CI / Vercel (not done here)
-- [ ] `npm run build` on Vercel/CI — confirm a clean production build (sandbox CPU couldn't complete it).
-- [ ] One real end-to-end purchase on a Stripe **test** key: generate → preview (15s only) → checkout → webhook unlock → full song + video + (Deluxe) slideshow + full-length download.
-- [ ] Verify a **locked** share leaks no full media: open the share page, inspect page source + network — only `/api/share/[id]/preview` should be reachable; `/download` returns 402.
-
-## 2. Stripe (consumer one-time payments)
-- [ ] Create Product "Sing My Birthday — Full Song" with 6 one-time prices; set env:
-  - `STRIPE_PRICE_ID_TIER_A` ($9.99) / `_TIER_B` ($5.99) / `_TIER_C` ($2.99)
-  - `STRIPE_PRICE_ID_DELUXE_A` ($14.99) / `_DELUXE_B` ($9.99) / `_DELUXE_C` ($5.99)
-- [ ] `STRIPE_SECRET_KEY` (live) + webhook endpoint subscribed to `checkout.session.completed` → `STRIPE_WEBHOOK_SECRET`.
-- [ ] Confirm statement descriptor reads clearly (avoids chargebacks).
-
-## 3. Premium video (Remotion worker)
-- [ ] Deploy the `remotion/` worker (Docker) somewhere with headless Chromium.
-- [ ] Set `RENDER_WORKER_URL` + `RENDER_WORKER_SECRET`. (Unset = graceful fallback to the ffmpeg audiogram video.)
-
-## 4. Storage / data / infra env
-- [ ] R2: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL`.
-- [ ] Vercel KV (`@vercel/kv`) provisioned.
-- [ ] `OPENAI_API_KEY` (Whisper transcription + input moderation).
-- [ ] `ANTHROPIC_API_KEY` (lyrics).
-- [ ] Suno API key on a **paid** plan (free tier rate-limits will throttle launch).
-- [ ] `CRON_SECRET` (birthday reminders / dunning crons) + confirm Vercel cron schedule.
-- [ ] `USER_SESSION_SECRET` (magic-link "My Songs" login).
-- [ ] Supabase env (venues, legal_acceptance, events).
-
-## 5. Email deliverability
-- [ ] Resend domain verified; **SPF, DKIM, DMARC** DNS records set for singmybirthday.com.
-- [ ] Test: song-ready email, abandoned-preview recovery, birthday reminder, venue dunning.
-
-## 6. Legal / compliance
-- [x] Terms, Privacy, Cookies, **Refund** pages live and linked in footer.
-- [ ] Confirm the legal entity + effective date in `lib/legal.ts` are current.
-- [ ] Confirm support inbox `info@singmybirthday.com` is monitored (refund requests route here).
-
-## 7. Monitoring
-- [ ] Sentry `SENTRY_AUTH_TOKEN` / DSN set for source maps + error capture.
-- [ ] Spot-check Vercel function logs for `[share-create:highlight-cut]`, `[moderation-blocked]`, `[share-preview]` after first real songs.
+Branch: `feat/consumer-song-paywall` (pushed, HEAD `1961592`, 8 commits ahead of `main`). Nothing merged to `main` yet.
 
 ---
 
-### Known follow-ups (not launch blockers)
-- Regenerate route returns the raw Suno track (no highlight-cut re-run) — fine for a preview, revisit later.
+## A. Done & verified this session ✅
+
+- **Code**: consumer paywall, audio highlight-cut, server-side preview gating, input moderation, refund page, i18n server/client split, offer alignment, video polish. `tsc` clean, `npm test` 13/13, `next build` passes (verified on the real machine).
+- **Paywall e2e — LIVE**: under Stripe **test** on the correct entity (**GLOBAL MOBILITY TECHNOLOGIES LLC**, `acct_1RdC8U…`). Locked share served only a 15s preview, `/download` = 402, no full-media URL leaked; after card `4242…` → webhook `song_unlock` → unlocked, `/download` = 200. Confirmed in logs + UI.
+- **Real generation on Vercel preview** — CONFIRMED: `[share-create:highlight-cut] cut=55s full=164s` on a real Suno track (proves the ffprobe→ffmpeg duration fix works on prod infra).
+- **Offer model = Option A** (decided): the buyer's **Standard = the FULL track**. The highlight-cut (55s) powers ONLY the 15s preview + the video/karaoke. **Deluxe differentiator = the photo slideshow only.** Paywall copy ("The complete song / full version") and the generator tizer (plays full 2:44) are coherent with this.
+- **Video composition (Remotion)** — polished v2: centered mirrored waveform, current-word karaoke pop, richer photo grade, progress bar.
+
+---
+
+## B. Remaining path to launch (ordered)
+
+### B0. Security — rotate leaked tokens ⚠️ (do first; ~10 min)
+During setup these leaked into terminal transcripts and should be rotated:
+- [ ] **Vercel tokens** (×3) — Account → Settings → Tokens → revoke + create new.
+- [ ] **Supabase** token/service-role key — Project → Settings → API → rotate; update in Vercel env.
+- [ ] **Stripe TEST secret key** (GMT LLC sandbox) — Developers → API keys → Roll.
+- [ ] After rotating, update any local `.env.local` + Vercel env, and hand new tokens to tooling. Do this BEFORE more CLI deploys so nothing breaks mid-flow.
+
+### B1. Vercel plan — move production to **Pro** under GMT LLC
+- [ ] Vercel **Hobby is non-commercial-use only** — a paid product must be on **Pro**. Also unlocks the hourly `recover-previews` cron (`vercel.json` has `0 * * * *`, which Hobby rejects at deploy validation).
+- [ ] Ensure the production project lives under the **GMT LLC** Vercel team (matches the legal entity + Stripe account), not `glomotec`.
+
+### B2. Stripe — create LIVE products (test ones already exist)
+Test products exist under GMT LLC sandbox (product `prod_Uohf…`, 6 prices). For launch, recreate in GMT LLC **live** mode:
+- [ ] Product "Sing My Birthday — Full Song" + 6 one-time prices → env:
+  - `STRIPE_PRICE_ID_TIER_A` $9.99 / `_TIER_B` $5.99 / `_TIER_C` $2.99
+  - `STRIPE_PRICE_ID_DELUXE_A` $14.99 / `_DELUXE_B` $9.99 / `_DELUXE_C` $5.99
+- [ ] `STRIPE_SECRET_KEY` = `sk_live_…` (GMT LLC).
+- [ ] Live webhook endpoint → prod URL `/api/stripe/webhook`, event `checkout.session.completed` → `STRIPE_WEBHOOK_SECRET`.
+- [ ] Activate payments on the GMT LLC account (Stripe "Activate/Setup" — required for live charges).
+- [ ] Clear statement descriptor (reduces chargebacks); matches GMT LLC.
+
+### B3. Confirm required env is present in **Production** scope
+Already present in Vercel (Sensitive) for the generation stack — just verify:
+- [ ] `ANTHROPIC_API_KEY`, `SUNO_API_KEY` (paid Suno plan), `OPENAI_API_KEY` (**re-issued this session — confirm the new key is valid; the old one 401'd, which silently disabled moderation + Whisper captions**).
+- [ ] `R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY / R2_BUCKET / R2_PUBLIC_URL`, KV, Supabase.
+- [ ] `CRON_SECRET`, `USER_SESSION_SECRET`, Sentry DSN/`SENTRY_AUTH_TOKEN`.
+
+### B4. Merge & deploy
+- [ ] Open PR `feat/consumer-song-paywall` → `main` (8 commits, reviewable). Merge.
+- [ ] Production deploy.
+
+### B5. Production smoke test (confirms the low-risk fixes on real infra)
+- [ ] Generate one real song on prod → check logs: **no `[moderation] … 401`** (key valid), `[share-create:highlight-cut] cut=~55s`, video `duration ≠ 0`.
+- [ ] Locked share exposes only `/api/share/[id]/preview` (≤15s); `/download` = 402.
+- [ ] One real purchase (small live charge) → unlock → full song plays + MP3 download; then **process a refund** to confirm the refund flow.
+
+### B6. Email deliverability
+- [ ] Resend domain verified; **SPF / DKIM / DMARC** for singmybirthday.com.
+- [ ] Test: song-ready, abandoned-preview recovery, birthday reminder, venue dunning. Confirm `info@singmybirthday.com` is monitored (refund requests land there).
+
+### B7. Premium video — deploy the Remotion worker (quality; can follow launch)
+Until deployed, shares get the ffmpeg **simple 16:9** video (the premium 9:16 audiogram fails on Vercel's minimal ffmpeg build — filter "Option not found" — and falls back). The real premium karaoke video is the Remotion worker in `remotion/`.
+- [ ] Deploy `remotion/` (Dockerfile provided) to a host with headless Chromium (Fly.io / Railway / Render). See `remotion/README.md`.
+- [ ] Set `RENDER_WORKER_URL` + `RENDER_WORKER_SECRET` + the same R2 creds. Then unlock triggers the Remotion render and the share prefers it over the ffmpeg video.
+- [ ] Swap `remotion/src/Root.tsx` defaultProps (currently offline test `sample.mp3` + test photos) — the worker passes real song/photo/caption props at render time, so this is only for local preview.
+
+---
+
+## C. Reference / known follow-ups (not blockers)
+- **ffmpeg premium audiogram** fails on Vercel ("Option not found") → simple 16:9 fallback ships until the Remotion worker is up. Fixing the filtergraph is possible but low-ROI vs deploying Remotion.
+- **Regenerate route** returns the raw Suno track (no highlight-cut re-run) — fine for a fresh take.
+- **Deployment Protection (SSO)** is on for Vercel previews (`all_except_custom_domains`); automated curl checks against a preview need a Protection-Bypass secret (none created).
+- Paid songs reset their 90-day KV TTL on unlock; extend if you want longer retention.
 - Broaden unit tests (input sanitizers, moderation categories) over time.
-- Paid songs already reset their 90-day KV TTL on unlock; extend if you want indefinite retention.
+- Legal: entity/date in `lib/legal.ts` = GLOBAL MOBILITY TECHNOLOGIES LLC — confirm current before launch.

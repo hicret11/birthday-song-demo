@@ -25,41 +25,41 @@ export default function LegalDocument({ slug, text }: LegalDocumentProps) {
   const paragraphs = paragraphsFromText(text);
 
   return (
-    <main className="min-h-screen bg-[#fbfaf8] px-4 py-10 text-[#1f2937] sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-cream px-4 py-10 text-ink sm:px-6 lg:px-8">
       <article className="mx-auto max-w-4xl">
         <Link
           href="/"
-          className="inline-flex text-sm font-semibold text-purple-700 transition hover:text-purple-900"
+          className="inline-flex text-sm font-semibold text-jade underline decoration-jade/40 underline-offset-2 transition hover:decoration-jade"
         >
-          Back to Sing My Birthday
+          ← Back to Sing My Birthday
         </Link>
 
-        <header className="mt-8 border-b border-gray-200 pb-8">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-purple-700">
+        <header className="mt-8 border-b border-sand pb-8">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-jade">
             Legal
           </p>
-          <h1 className="mt-3 text-4xl font-extrabold tracking-tight text-gray-950 sm:text-5xl">
+          <h1 className="mt-3 font-display text-4xl font-extrabold tracking-tight text-ink sm:text-5xl">
             {doc.title}
           </h1>
-          <p className="mt-4 max-w-2xl text-base text-gray-600">{doc.description}</p>
+          <p className="mt-4 max-w-2xl text-base text-ink-soft">{doc.description}</p>
 
           <dl className="mt-6 grid gap-3 text-sm sm:grid-cols-3">
-            <div className="rounded-lg border border-gray-200 bg-white p-4">
-              <dt className="font-bold text-gray-950">Version</dt>
-              <dd className="mt-1 text-gray-700">{LEGAL_VERSION}</dd>
+            <div className="rounded-xl border border-sand bg-cream-soft p-4">
+              <dt className="font-bold text-ink">Version</dt>
+              <dd className="mt-1 text-ink-soft">{LEGAL_VERSION}</dd>
             </div>
-            <div className="rounded-lg border border-gray-200 bg-white p-4">
-              <dt className="font-bold text-gray-950">Effective date</dt>
-              <dd className="mt-1 text-gray-700">{LEGAL_EFFECTIVE_DATE}</dd>
+            <div className="rounded-xl border border-sand bg-cream-soft p-4">
+              <dt className="font-bold text-ink">Effective date</dt>
+              <dd className="mt-1 text-ink-soft">{LEGAL_EFFECTIVE_DATE}</dd>
             </div>
-            <div className="rounded-lg border border-gray-200 bg-white p-4">
-              <dt className="font-bold text-gray-950">Entity</dt>
-              <dd className="mt-1 text-gray-700">{LEGAL_ENTITY}</dd>
+            <div className="rounded-xl border border-sand bg-cream-soft p-4">
+              <dt className="font-bold text-ink">Entity</dt>
+              <dd className="mt-1 text-ink-soft">{LEGAL_ENTITY}</dd>
             </div>
           </dl>
         </header>
 
-        <div className="mt-8 space-y-5 text-sm leading-7 text-gray-800 sm:text-base">
+        <div className="mt-8 space-y-5 text-sm leading-7 text-ink-soft sm:text-base">
           {paragraphs.map((paragraph, index) => (
             <p key={`${slug}-${index}`} className="whitespace-pre-wrap">
               {paragraph}

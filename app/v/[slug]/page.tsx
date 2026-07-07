@@ -61,21 +61,22 @@ export default async function VenuePage({ params }: PageProps) {
   const manageUrl = `/v/${encodeURIComponent(venue.share_slug)}/manage`;
 
   return (
-    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-[#070019] via-[#12062f] to-[#1e1646] px-5 py-16 text-white">
+    <main className="grain relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-cream px-5 py-16 text-ink">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background: `radial-gradient(circle at 50% 0%, ${brand}22 0%, transparent 55%), radial-gradient(circle at 50% 100%, ${brand}18 0%, transparent 55%)`,
-        }}
+        className="pointer-events-none absolute -left-40 -top-40 z-0 h-[520px] w-[520px] rounded-full bg-[radial-gradient(circle,rgba(255,158,120,0.5),transparent_66%)] blur-2xl"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-40 bottom-0 z-0 h-[560px] w-[560px] rounded-full bg-[radial-gradient(circle,rgba(255,126,157,0.45),transparent_66%)] blur-2xl"
       />
 
       <TrackVenueView slug={venue.share_slug} venue_name={venue.venue_name} />
 
       {isPastDue && (
-        <div className="relative z-20 mx-auto mb-6 w-full max-w-md rounded-2xl border border-amber-300/40 bg-amber-300/10 px-4 py-3 text-center text-sm font-semibold text-amber-100">
+        <div className="relative z-20 mx-auto mb-6 w-full max-w-md rounded-2xl border border-sand bg-cream-soft px-4 py-3 text-center text-sm font-semibold text-ink">
           ⚠️ Subscription needs attention —{" "}
-          <Link href={manageUrl} className="underline underline-offset-2 hover:text-white">
+          <Link href={manageUrl} className="text-jade underline decoration-jade/40 underline-offset-2 hover:decoration-jade">
             update payment
           </Link>
         </div>
@@ -89,13 +90,13 @@ export default async function VenuePage({ params }: PageProps) {
           {venue.venue_name}
         </h1>
 
-        <p className="mt-5 text-[clamp(16px,4vw,20px)] text-gray-200">
+        <p className="mt-5 text-[clamp(16px,4vw,20px)] text-ink-soft">
           Make a personalized birthday song.
         </p>
 
         <Link
           href={generateHref}
-          className="mt-12 inline-flex w-full items-center justify-center rounded-2xl px-8 py-6 text-[clamp(16px,4vw,20px)] font-extrabold text-white shadow-2xl transition hover:-translate-y-1 active:translate-y-0"
+          className="mt-12 inline-flex w-full items-center justify-center rounded-2xl px-8 py-6 text-[clamp(16px,4vw,20px)] font-extrabold text-white shadow-2xl transition hover:-translate-y-1 active:translate-y-0 active:scale-[0.99]"
           style={{
             backgroundColor: brand,
             boxShadow: `0 20px 50px -15px ${brand}80`,
@@ -104,11 +105,11 @@ export default async function VenuePage({ params }: PageProps) {
           Create a Birthday Song
         </Link>
 
-        <p className="mt-4 text-xs text-gray-400">Free · takes about a minute</p>
+        <p className="mt-4 text-xs text-ink-soft">Free · takes about a minute</p>
       </section>
 
-      <footer className="relative z-10 mt-20 text-center text-[11px] text-gray-500">
-        <Link href="/" className="hover:text-gray-300 hover:underline underline-offset-2">
+      <footer className="relative z-10 mt-20 text-center text-[11px] text-ink-soft">
+        <Link href="/" className="text-jade underline decoration-jade/40 underline-offset-2 hover:decoration-jade">
           Powered by Sing My Birthday
         </Link>
       </footer>

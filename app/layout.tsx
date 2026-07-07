@@ -1,19 +1,33 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans, Bricolage_Grotesque, Instrument_Serif } from "next/font/google";
 import CookieConsent from "@/components/CookieConsent";
 import SiteFooter from "@/components/SiteFooter";
+import GlobalThemeToggle from "@/components/GlobalThemeToggle";
 import { DEFAULT_LOCALE, isRtl } from "@/lib/i18n";
 import { resolveLocale } from "@/lib/i18n/server";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Body / UI text — warm, highly legible geometric sans.
+const jakarta = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
   subsets: ["latin"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+// Display / headlines — characterful modern grotesque with real personality.
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-bricolage",
   subsets: ["latin"],
+  display: "swap",
+});
+
+// Editorial accent — the elegant italic serif used for a word or two.
+const instrument = Instrument_Serif({
+  variable: "--font-instrument",
+  subsets: ["latin"],
+  weight: "400",
+  style: ["normal", "italic"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -76,9 +90,22 @@ export default async function RootLayout({
     <html
       lang={locale}
       dir={isRtl(locale) ? "rtl" : "ltr"}
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      // The no-flash theme script adds the `dark` class to <html> before React
+      // hydrates, so the server/client class attribute intentionally differs.
+      suppressHydrationWarning
+      className={`${jakarta.variable} ${bricolage.variable} ${instrument.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        {/* No-flash theme init: apply the saved theme before first paint. Light
+            is the default; dark only when the user explicitly switched to it. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{if(localStorage.getItem('theme')==='dark'){document.documentElement.classList.add('dark')}}catch(e){}})();",
+          }}
+        />
+        {/* Site-wide light/dark switch (skips pages that place their own). */}
+        <GlobalThemeToggle />
         {children}
         <SiteFooter />
         {/* Vercel Analytics is mounted inside CookieConsent, behind the

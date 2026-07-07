@@ -1,61 +1,35 @@
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { put } from "@vercel/blob";
 
-type R2Config = {
-  accountId: string;
-  accessKeyId: string;
-  secretAccessKey: string;
-  bucket: string;
-  publicUrl: string;
-};
-
-let cachedClient: { client: S3Client; bucket: string; publicUrl: string } | null = null;
-
-function getConfig(): R2Config {
-  const accountId = process.env.R2_ACCOUNT_ID;
-  const accessKeyId = process.env.R2_ACCESS_KEY_ID;
-  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
-  const bucket = process.env.R2_BUCKET;
-  const publicUrl = process.env.R2_PUBLIC_URL;
-  if (!accountId || !accessKeyId || !secretAccessKey || !bucket || !publicUrl) {
-    throw new Error(
-      "R2 env vars not configured: need R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, R2_PUBLIC_URL",
-    );
-  }
-  return { accountId, accessKeyId, secretAccessKey, bucket, publicUrl };
-}
-
-function getClient(): { client: S3Client; bucket: string; publicUrl: string } {
-  if (cachedClient) return cachedClient;
-  const cfg = getConfig();
-  cachedClient = {
-    client: new S3Client({
-      region: "auto",
-      endpoint: `https://${cfg.accountId}.r2.cloudflarestorage.com`,
-      credentials: {
-        accessKeyId: cfg.accessKeyId,
-        secretAccessKey: cfg.secretAccessKey,
-      },
-    }),
-    bucket: cfg.bucket,
-    publicUrl: cfg.publicUrl,
-  };
-  return cachedClient;
-}
-
+/**
+ * Upload a media object (audio/video/photo) and return its public https URL.
+ *
+ * Storage runs on **Vercel Blob**, provisioned via the `BLOB_READ_WRITE_TOKEN`
+ * environment variable — no Cloudflare/R2 account required. The historical
+ * `uploadToR2` name and signature are kept intentionally so the many existing
+ * call sites (share create, audio cuts, preview cache, photos, slideshow) don't
+ * change: pass a key + bytes + content type, get back a public URL to persist
+ * and serve.
+ *
+ * Keys are used verbatim as the blob pathname (e.g. `audio/{id}-full.mp3`),
+ * deterministic and overwritable so re-uploads (regenerate, preview caching)
+ * replace the same object instead of erroring.
+ */
 export async function uploadToR2(
   key: string,
   body: Buffer | Uint8Array | string,
   contentType: string,
 ): Promise<string> {
-  const { client, bucket, publicUrl } = getClient();
-  await client.send(
-    new PutObjectCommand({
-      Bucket: bucket,
-      Key: key,
-      Body: body,
-      ContentType: contentType,
-    }),
-  );
-  const base = publicUrl.endsWith("/") ? publicUrl : `${publicUrl}/`;
-  return `${base}${key}`;
+  // `put` accepts string | Buffer directly; coerce Uint8Array → Buffer so the
+  // body always matches an accepted PutBody type.
+  const payload = typeof body === "string" ? body : Buffer.from(body);
+
+  const { url } = await put(key, payload, {
+    access: "public",
+    contentType,
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    // token is read from BLOB_READ_WRITE_TOKEN in the environment.
+  });
+
+  return url;
 }

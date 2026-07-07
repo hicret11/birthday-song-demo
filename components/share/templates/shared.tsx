@@ -213,7 +213,7 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
 
   return (
     <div className={className}>
-      <p className="text-center text-sm opacity-70">
+      <p className="text-center text-sm font-medium text-ink-soft">
         {song.language} • {song.genre} • {song.lyrics.title}
       </p>
 
@@ -228,7 +228,7 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
             onPlay={handlePlay}
             src={currentVideo}
             poster=""
-            className="w-full rounded-2xl bg-black shadow-lg"
+            className="w-full rounded-2xl bg-noir shadow-lg"
           />
           <div
             className="pointer-events-none absolute bottom-10 left-0 right-0 px-6 text-center font-bold leading-tight"
@@ -256,7 +256,7 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
         <a
           href={`/api/share/${song.id}/download`}
           download={`birthday-song-${nameSlug}.${downloadExt}`}
-          className="mt-3 block w-full rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-center text-sm font-bold transition hover:bg-white/15"
+          className="mt-3 block w-full rounded-2xl border border-sand bg-cream-soft px-5 py-3 text-center text-sm font-bold text-ink shadow-sm transition hover:bg-warm-soft"
         >
           <span aria-hidden>⬇</span> Download video
         </a>
@@ -271,12 +271,12 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
                 controls
                 playsInline
                 src={slideshowUrl}
-                className="w-full rounded-2xl bg-black shadow-lg"
+                className="w-full rounded-2xl bg-noir shadow-lg"
               />
               <a
                 href={slideshowUrl}
                 download
-                className="mt-3 block w-full rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-center text-sm font-bold transition hover:bg-white/15"
+                className="mt-3 block w-full rounded-2xl border border-sand bg-cream-soft px-5 py-3 text-center text-sm font-bold text-ink shadow-sm transition hover:bg-warm-soft"
               >
                 <span aria-hidden>⬇</span> Download slideshow
               </a>
@@ -284,7 +284,7 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
           ) : slideshowStatus === "error" ? (
             <p
               role="status"
-              className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-center text-sm opacity-70"
+              className="rounded-2xl border border-sand bg-cream-soft px-5 py-4 text-center text-sm text-ink-soft"
             >
               Couldn&apos;t build the slideshow — refresh to retry.
             </p>
@@ -292,10 +292,10 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
             <div
               role="status"
               aria-live="polite"
-              className="flex flex-col items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-5 py-6 text-center text-sm font-semibold text-white/90 shadow-lg backdrop-blur"
+              className="flex flex-col items-center gap-2 rounded-2xl border border-sand bg-cream-soft px-5 py-6 text-center text-sm font-semibold text-ink shadow-sm"
             >
               <span className="text-lg">🎬 Creating your photo slideshow…</span>
-              <span className="text-xs font-normal opacity-60">
+              <span className="text-xs font-normal text-ink-soft">
                 Stitching your photos to the song — this can take a minute.
               </span>
             </div>
@@ -308,7 +308,7 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
         <button
           type="button"
           onClick={openShareSheet}
-          className="w-full rounded-2xl bg-brand px-5 py-4 text-base font-extrabold text-white shadow-2xl shadow-fuchsia-500/30 transition hover:-translate-y-1 hover:shadow-fuchsia-500/50"
+          className="w-full rounded-full bg-jade px-5 py-4 text-base font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(31,142,125,0.7)] transition hover:-translate-y-0.5 hover:bg-jade-deep"
         >
           📤 Send to a friend
         </button>
@@ -321,7 +321,7 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
             placeholder="Tweak the style for the next take…"
             maxLength={200}
             disabled={isRegenerating}
-            className="block w-full rounded-2xl border border-white/15 bg-white/5 px-4 py-2 text-sm outline-none transition focus:ring-2 focus:ring-purple-400 disabled:opacity-60"
+            className="block w-full rounded-2xl border border-sand bg-cream-soft px-4 py-2 text-sm text-ink placeholder:text-ink-soft outline-none transition focus:ring-2 focus:ring-jade disabled:opacity-60"
           />
         )}
 
@@ -329,7 +329,7 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
           type="button"
           onClick={regenerate}
           disabled={isRegenerating || retriesUsed >= MAX_RETRIES}
-          className="block w-full rounded-2xl border border-white/15 bg-transparent px-5 py-2 text-center text-xs font-semibold opacity-80 transition hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-40"
+          className="block w-full rounded-full border border-sand bg-transparent px-5 py-2 text-center text-xs font-semibold text-ink-soft transition hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
         >
           {isRegenerating
             ? "Making a new version… (this takes about a minute)"
@@ -341,7 +341,7 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
         {/* Sets expectations for the retry button — it re-rolls the audio, it
             does NOT let you edit the words (Suno's API can't change lyrics on
             an existing melody). */}
-        <p className="text-center text-[11px] leading-relaxed opacity-50">
+        <p className="text-center text-[11px] leading-relaxed text-ink-soft">
           This creates a new audio take with the same lyrics. To change the
           words, start a new song.
         </p>
@@ -350,14 +350,14 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
           <button
             type="button"
             onClick={() => setShowStyleEditor((v) => !v)}
-            className="block w-full text-center text-[11px] opacity-60 hover:opacity-90"
+            className="block w-full text-center text-[11px] text-ink-soft hover:text-ink"
           >
             {showStyleEditor ? "hide style editor" : "tweak style for next take"}
           </button>
         )}
 
         {regenError && (
-          <p role="alert" className="text-center text-xs text-rose-300">
+          <p role="alert" className="text-center text-xs text-blush">
             {regenError}
           </p>
         )}
@@ -369,21 +369,21 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
         const venueStyle = song.venueColor ? { color: song.venueColor } : undefined;
         if (sender && venue) {
           return (
-            <p className="mt-6 text-center text-sm italic opacity-80">
+            <p className="mt-6 text-center font-serif text-base italic text-ink-soft">
               Made with love from {sender} · at <span style={venueStyle}>{venue}</span>
             </p>
           );
         }
         if (venue) {
           return (
-            <p className="mt-6 text-center text-sm italic opacity-80">
+            <p className="mt-6 text-center font-serif text-base italic text-ink-soft">
               A song from <span style={venueStyle}>{venue}</span>
             </p>
           );
         }
         if (sender) {
           return (
-            <p className="mt-6 text-center text-sm italic opacity-80">
+            <p className="mt-6 text-center font-serif text-base italic text-ink-soft">
               Made with love from {sender}
             </p>
           );
@@ -402,11 +402,11 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
       >
         {song.lyrics.sections.map((section, idx) => (
           <div key={idx}>
-            <div className="mb-1 text-xs font-bold uppercase tracking-wide opacity-60">
+            <div className="mb-1 text-xs font-bold uppercase tracking-wide text-jade">
               [{section.tag}]
             </div>
             {section.lines.map((line, lineIdx) => (
-              <p key={lineIdx} className="text-sm leading-relaxed">
+              <p key={lineIdx} className="text-sm leading-relaxed text-ink">
                 {line}
               </p>
             ))}
@@ -419,13 +419,13 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
       <div className="mt-12">
         <a
           href="/generate"
-          className="block w-full rounded-2xl bg-gradient-to-r from-pink-500 via-fuchsia-500 to-amber-400 px-5 py-4 text-center text-base font-extrabold text-white shadow-2xl shadow-fuchsia-500/30 transition hover:-translate-y-1 hover:shadow-fuchsia-500/50"
+          className="block w-full rounded-full bg-jade px-5 py-4 text-center text-base font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(31,142,125,0.7)] transition hover:-translate-y-0.5 hover:bg-jade-deep"
         >
           {unlocked ? "🎂 Make another birthday song →" : "🎂 Make your own birthday song →"}
         </a>
       </div>
 
-      <footer className="mt-8 text-center text-xs opacity-70">
+      <footer className="mt-8 text-center text-xs text-ink-soft">
         <a href="/" className="underline-offset-2 hover:underline">
           Made with Birthday Song Generator
         </a>

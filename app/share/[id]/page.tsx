@@ -117,7 +117,7 @@ export default async function SharePage({
         genre={song.genre}
       />
       {justUnlocked && (
-        <div className="fixed inset-x-0 top-0 z-50 bg-gradient-to-r from-pink-500 via-fuchsia-500 to-amber-400 px-4 py-3 text-center text-sm font-extrabold text-white shadow-lg">
+        <div className="fixed inset-x-0 top-0 z-50 bg-jade px-4 py-3 text-center text-sm font-extrabold text-white shadow-lg">
           🎉 Unlocked! The full song is yours.
         </div>
       )}

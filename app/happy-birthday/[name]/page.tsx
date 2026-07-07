@@ -172,12 +172,16 @@ export default async function HappyBirthdayNamePage({
   ];
 
   return (
-    <main className="relative flex min-h-screen flex-col overflow-hidden bg-gradient-to-br from-[#070019] via-[#12062f] to-[#1e1646] text-white">
+    <main className="relative flex min-h-screen flex-col overflow-hidden bg-cream text-ink">
       <JsonLd data={service} />
       <JsonLd data={breadcrumbs} />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(236,72,153,0.20),transparent_55%),radial-gradient(circle_at_88%_72%,rgba(245,158,11,0.14),transparent_55%),radial-gradient(circle_at_50%_50%,rgba(168,85,247,0.12),transparent_60%)]"
+        className="pointer-events-none absolute -left-40 -top-40 z-0 h-[520px] w-[520px] rounded-full bg-[radial-gradient(circle,rgba(255,158,120,0.5),transparent_66%)] blur-2xl"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-40 bottom-0 z-0 h-[560px] w-[560px] rounded-full bg-[radial-gradient(circle,rgba(255,126,157,0.45),transparent_66%)] blur-2xl"
       />
 
       {/* Hero */}
@@ -189,15 +193,15 @@ export default async function HappyBirthdayNamePage({
             width={120}
             height={120}
             priority
-            className="mb-8 drop-shadow-[0_12px_32px_rgba(236,72,153,0.40)]"
+            className="mb-8 drop-shadow-[0_12px_32px_rgba(255,111,145,0.40)]"
           />
         </Link>
 
-        <h1 className="text-balance bg-brand bg-clip-text pb-3 text-[clamp(34px,7vw,58px)] font-extrabold leading-[1.05] text-transparent">
+        <h1 className="text-warm-gradient text-balance pb-3 text-[clamp(34px,7vw,58px)] font-display font-extrabold leading-[1.05]">
           A birthday song made for {display}
         </h1>
 
-        <p className="mt-4 max-w-md text-balance text-[clamp(15px,3vw,18px)] text-gray-300">
+        <p className="mt-4 max-w-md text-balance text-[clamp(15px,3vw,18px)] text-ink-soft">
           Surprise {display} with a one-of-a-kind, personalized birthday song —
           written and sung in about a minute. Pick any language and any style,
           then share it anywhere. It&apos;s free and there&apos;s no signup.
@@ -206,34 +210,34 @@ export default async function HappyBirthdayNamePage({
         <div className="mt-10 flex w-full justify-center">
           <Link
             href={generateHref}
-            className="inline-flex items-center justify-center rounded-full bg-brand px-8 py-4 text-lg font-extrabold text-white shadow-lg shadow-fuchsia-500/30 transition hover:brightness-110"
+            className="inline-flex items-center justify-center rounded-full bg-warm-gradient px-8 py-4 text-lg font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(255,111,145,0.7)] transition hover:brightness-110 active:scale-[0.99]"
           >
             Make {display}&apos;s song →
           </Link>
         </div>
 
-        <p className="mt-3 text-xs text-gray-400">Free · no signup</p>
+        <p className="mt-3 text-xs text-ink-soft">Free · no signup</p>
       </section>
 
       {/* How it works */}
       <section className="relative z-10 mx-auto w-full max-w-3xl px-4 pb-12">
-        <h2 className="text-center text-xs font-bold uppercase tracking-[0.18em] text-gray-400">
+        <h2 className="text-center text-xs font-bold uppercase tracking-[0.18em] text-ink-soft">
           How it works
         </h2>
         <ol className="mt-6 grid gap-4 sm:grid-cols-3 sm:gap-6">
           {STEPS.map(({ icon: Icon, title, body }, idx) => (
             <li
               key={title}
-              className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur"
+              className="rounded-2xl border border-sand bg-cream-soft p-5"
             >
-              <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-brand text-white shadow-lg">
+              <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-warm-gradient text-white shadow-lg">
                 <Icon size={18} strokeWidth={2.4} />
               </span>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-ink-soft">
                 Step {idx + 1}
               </p>
-              <p className="mt-1 text-sm font-semibold text-white">{title}</p>
-              <p className="mt-1 text-sm text-gray-300">{body}</p>
+              <p className="mt-1 text-sm font-semibold text-ink">{title}</p>
+              <p className="mt-1 text-sm text-ink-soft">{body}</p>
             </li>
           ))}
         </ol>
@@ -241,7 +245,7 @@ export default async function HappyBirthdayNamePage({
 
       {/* Value / why */}
       <section className="relative z-10 mx-auto w-full max-w-2xl px-4 pb-12 text-center">
-        <p className="text-balance text-base text-gray-300">
+        <p className="text-balance text-base text-ink-soft">
           Generic birthday cards are forgettable. A song with {display}&apos;s
           name in the lyrics is the kind of gift people screenshot, replay, and
           keep. No instruments, no studio, no awkward singing required.
@@ -249,7 +253,7 @@ export default async function HappyBirthdayNamePage({
         <div className="mt-6">
           <Link
             href={generateHref}
-            className="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/5 px-6 py-3 text-sm font-bold text-white backdrop-blur transition hover:bg-white/10"
+            className="inline-flex items-center justify-center rounded-full border border-sand bg-cream px-6 py-3 text-sm font-bold text-ink transition hover:border-jade active:scale-[0.99]"
           >
             Start {display}&apos;s birthday song
           </Link>
@@ -258,17 +262,17 @@ export default async function HappyBirthdayNamePage({
 
       {/* FAQ */}
       <section className="relative z-10 mx-auto w-full max-w-2xl px-4 pb-12">
-        <h2 className="text-center text-xs font-bold uppercase tracking-[0.18em] text-gray-400">
+        <h2 className="text-center text-xs font-bold uppercase tracking-[0.18em] text-ink-soft">
           Questions
         </h2>
         <dl className="mt-6 space-y-4">
           {faqs.map(({ q, a }) => (
             <div
               key={q}
-              className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur"
+              className="rounded-2xl border border-sand bg-cream-soft p-5"
             >
-              <dt className="text-sm font-semibold text-white">{q}</dt>
-              <dd className="mt-1 text-sm text-gray-300">{a}</dd>
+              <dt className="text-sm font-semibold text-ink">{q}</dt>
+              <dd className="mt-1 text-sm text-ink-soft">{a}</dd>
             </div>
           ))}
         </dl>
@@ -276,7 +280,7 @@ export default async function HappyBirthdayNamePage({
 
       {/* Internal links */}
       <section className="relative z-10 mx-auto w-full max-w-2xl px-4 pb-16 text-center">
-        <h2 className="text-xs font-bold uppercase tracking-[0.18em] text-gray-400">
+        <h2 className="text-xs font-bold uppercase tracking-[0.18em] text-ink-soft">
           More birthday songs
         </h2>
         <div className="mt-4 flex flex-wrap justify-center gap-2">
@@ -285,15 +289,15 @@ export default async function HappyBirthdayNamePage({
               <Link
                 key={n}
                 href={`/happy-birthday/${n.toLowerCase()}`}
-                className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-fuchsia-100 backdrop-blur transition hover:text-white"
+                className="rounded-full border border-sand bg-cream px-3 py-1.5 text-xs font-semibold text-jade transition hover:border-jade"
               >
                 Happy Birthday {n}
               </Link>
             ),
           )}
         </div>
-        <p className="mt-6 text-xs text-gray-400">
-          <Link href="/" className="font-semibold text-fuchsia-200 underline underline-offset-2 hover:text-white">
+        <p className="mt-6 text-xs text-ink-soft">
+          <Link href="/" className="font-semibold text-jade underline decoration-jade/40 underline-offset-2 hover:decoration-jade">
             ← Back to Sing My Birthday
           </Link>
         </p>

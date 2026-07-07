@@ -126,7 +126,7 @@ export const en = {
     bulletShareVideo: "A shareable video for WhatsApp & Telegram",
     bulletReplay: "Replay & re-send to family anytime",
     bulletEverythingStandard: "Everything in Standard",
-    bulletSlideshow: "Photo slideshow video set to the music",
+    bulletSlideshow: "A photo slideshow video — their favorite moments set to the song",
     // CTAs ({price} interpolated by caller)
     unlockDeluxePrefix: "Unlock Deluxe",
     unlockStandardPrefix: "Unlock Standard",

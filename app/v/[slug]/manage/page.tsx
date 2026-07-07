@@ -59,15 +59,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 function statusLabel(status: string): { label: string; cls: string } {
   switch (status) {
     case "active":
-      return { label: "Active", cls: "border-emerald-300/30 bg-emerald-300/10 text-emerald-200" };
+      return { label: "Active", cls: "border-sand bg-cream text-jade" };
     case "trialing":
-      return { label: "Trialing", cls: "border-sky-300/30 bg-sky-300/10 text-sky-200" };
+      return { label: "Trialing", cls: "border-sand bg-cream text-jade" };
     case "past_due":
-      return { label: "Past due", cls: "border-amber-300/40 bg-amber-300/10 text-amber-200" };
+      return { label: "Past due", cls: "border-sand bg-cream text-gold" };
     case "canceled":
-      return { label: "Canceled", cls: "border-rose-300/30 bg-rose-300/10 text-rose-200" };
+      return { label: "Canceled", cls: "border-sand bg-cream text-blush" };
     default:
-      return { label: status, cls: "border-white/15 bg-white/5 text-gray-200" };
+      return { label: status, cls: "border-sand bg-cream text-ink-soft" };
   }
 }
 
@@ -93,19 +93,20 @@ export default async function ManagePage({ params, searchParams }: PageProps) {
     : null;
 
   return (
-    <main className="relative flex min-h-screen flex-col items-center bg-gradient-to-br from-[#070019] via-[#12062f] to-[#1e1646] px-5 py-12 text-white">
+    <main className="grain relative flex min-h-screen flex-col items-center overflow-hidden bg-cream px-5 py-12 text-ink">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background: `radial-gradient(circle at 50% 0%, ${brand}22 0%, transparent 55%), radial-gradient(circle at 50% 100%, ${brand}18 0%, transparent 55%)`,
-        }}
+        className="pointer-events-none absolute -left-40 -top-40 z-0 h-[520px] w-[520px] rounded-full bg-[radial-gradient(circle,rgba(255,158,120,0.5),transparent_66%)] blur-2xl"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-40 bottom-0 z-0 h-[560px] w-[560px] rounded-full bg-[radial-gradient(circle,rgba(255,126,157,0.45),transparent_66%)] blur-2xl"
       />
 
       <section className="relative z-10 mx-auto w-full max-w-xl">
         <Link
           href={`/v/${encodeURIComponent(venue.share_slug)}`}
-          className="text-xs text-gray-400 hover:text-white"
+          className="text-xs text-jade underline decoration-jade/40 underline-offset-2 hover:decoration-jade"
         >
           ← Back to {venue.venue_name}
         </Link>
@@ -116,61 +117,61 @@ export default async function ManagePage({ params, searchParams }: PageProps) {
         >
           {venue.venue_name}
         </h1>
-        <p className="mt-1 text-sm text-gray-300">Manage your subscription</p>
+        <p className="mt-1 text-sm text-ink-soft">Manage your subscription</p>
 
         {errorBanner && (
-          <div className="mt-4 rounded-2xl border border-amber-300/40 bg-amber-300/10 p-3 text-sm text-amber-100">
+          <div className="mt-4 rounded-2xl border border-sand bg-cream-soft p-3 text-sm text-ink">
             {errorBanner}
           </div>
         )}
 
         {/* Branded link card */}
-        <div className="mt-6 rounded-2xl border border-white/15 bg-white/5 p-5">
-          <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Your branded link</p>
+        <div className="mt-6 rounded-2xl border border-sand bg-cream-soft p-5">
+          <p className="text-xs font-bold uppercase tracking-widest text-ink-soft">Your branded link</p>
           <p className="mt-2 break-all font-mono text-sm">{brandedUrl}</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <a
               href={brandedUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-2xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-bold hover:bg-white/10"
+              className="rounded-2xl border border-sand bg-cream px-3 py-1.5 text-xs font-bold text-ink hover:border-jade"
             >
               Open ↗
             </a>
-            <span className="rounded-full px-3 py-1.5 text-xs font-bold border border-white/15 bg-white/5">
+            <span className="rounded-full px-3 py-1.5 text-xs font-bold border border-sand bg-cream text-jade">
               Slug: <code className="ml-1 font-mono">{venue.share_slug}</code>
             </span>
           </div>
         </div>
 
         {/* Stats card */}
-        <div className="mt-4 rounded-2xl border border-white/15 bg-white/5 p-5">
-          <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Last 30 days</p>
+        <div className="mt-4 rounded-2xl border border-sand bg-cream-soft p-5">
+          <p className="text-xs font-bold uppercase tracking-widest text-ink-soft">Last 30 days</p>
           <div className="mt-3 grid grid-cols-2 gap-4 sm:gap-6">
             <div>
               <p className="text-3xl font-extrabold" style={{ color: brand }}>
                 {pageViews.toLocaleString()}
               </p>
-              <p className="text-xs text-gray-400">page views</p>
+              <p className="text-xs text-ink-soft">page views</p>
             </div>
             <div>
               <p className="text-3xl font-extrabold" style={{ color: brand }}>
                 {captures.toLocaleString()}
               </p>
-              <p className="text-xs text-gray-400">birthday songs created</p>
+              <p className="text-xs text-ink-soft">birthday songs created</p>
             </div>
           </div>
         </div>
 
         {/* Billing card */}
-        <div className="mt-4 rounded-2xl border border-white/15 bg-white/5 p-5">
+        <div className="mt-4 rounded-2xl border border-sand bg-cream-soft p-5">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Billing</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-ink-soft">Billing</p>
             <span className={`rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${status.cls}`}>
               {status.label}
             </span>
           </div>
-          <p className="mt-3 text-sm text-gray-300">
+          <p className="mt-3 text-sm text-ink-soft">
             Update your card, see invoices, or cancel — all in the secure Stripe billing portal.
           </p>
           <div className="mt-4">
@@ -178,8 +179,8 @@ export default async function ManagePage({ params, searchParams }: PageProps) {
           </div>
         </div>
 
-        <footer className="mt-10 text-center text-[11px] text-gray-500">
-          Sing My Birthday <span className="text-gray-700">·</span> A glomotec Labs product
+        <footer className="mt-10 text-center text-[11px] text-ink-soft">
+          Sing My Birthday <span className="text-sand">·</span> A glomotec Labs product
         </footer>
       </section>
     </main>

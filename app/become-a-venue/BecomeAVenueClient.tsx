@@ -1,7 +1,46 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
+
+const VENUE_MAILTO =
+  "mailto:founders@singmybirthday.com?subject=Venue%20interest%20%E2%80%94%20Sing%20My%20Birthday&body=Hi%20Sing%20My%20Birthday%20team%2C%0A%0AI%27d%20like%20to%20learn%20more%20about%20a%20branded%20venue%20link.%0A%0AVenue%20name%3A%0ACity%3A%0AWebsite%2FInstagram%3A%0A%0AThanks%21";
+
+const STEPS = [
+  {
+    n: "1",
+    title: "Get your branded link",
+    body: "Your own singmybirthday.com/v/your-venue page plus a QR-ready link for tables, menus, and receipts.",
+  },
+  {
+    n: "2",
+    title: "Guests create a song",
+    body: "A free, personalized birthday song in your brand color, with your venue woven through the flow. No app, no account.",
+  },
+  {
+    n: "3",
+    title: "Your brand travels",
+    body: "Every song they share to WhatsApp, Telegram, and Stories carries your venue’s name — in front of all their friends.",
+  },
+];
+
+const BENEFITS = [
+  { icon: "🔗", title: "Your own landing page", body: "A branded /v/your-venue page guests can open from a QR or link." },
+  { icon: "🎨", title: "Your brand color", body: "Woven into the song-creation flow so it feels like your venue." },
+  { icon: "📣", title: "Attribution on every share", body: "Your venue name rides along on each shared song page." },
+  { icon: "📱", title: "Nothing to install", body: "Just print a QR or drop the link — no hardware, no POS integration." },
+  { icon: "🛠️", title: "Simple dashboard", body: "Manage your page with a magic link — update details anytime." },
+  { icon: "✅", title: "Cancel anytime", body: "Month-to-month from the Stripe customer portal. No lock-in." },
+];
+
+const FAQS = [
+  { q: "Do guests need an app or an account?", a: "No. They open your link, type a name, and get a free birthday-song preview in seconds — no download, no signup." },
+  { q: "Do I need any hardware or setup?", a: "None. Print the QR for tables and receipts, or drop the link in your bio. That’s it." },
+  { q: "What does the branding actually look like?", a: "Your venue name and brand color appear in the song-creation flow, and your name is attributed on every song page guests share." },
+  { q: "Can I cancel whenever I want?", a: "Yes — it’s month-to-month. Manage or cancel anytime from the Stripe customer portal." },
+  { q: "What’s included for $299/month?", a: "Your branded /v/ landing page, brand color in the flow, attribution on every share, a QR/link kit, and a magic-link dashboard to manage it." },
+];
 
 export default function BecomeAVenueClient() {
   const [loading, setLoading] = useState(false);
@@ -28,76 +67,228 @@ export default function BecomeAVenueClient() {
     }
   }
 
+  const primaryCta = (label: string) => (
+    <button
+      type="button"
+      onClick={startCheckout}
+      disabled={loading}
+      className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-warm-gradient px-8 text-base font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(255,111,145,0.7)] transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-sand disabled:text-ink-soft disabled:shadow-none disabled:hover:translate-y-0"
+    >
+      {loading ? "Redirecting…" : label}
+    </button>
+  );
+
   return (
-    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-[#070019] via-[#12062f] to-[#1e1646] px-4 py-12 text-white">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(168,85,247,0.25),transparent_55%),radial-gradient(circle_at_85%_80%,rgba(236,72,153,0.22),transparent_55%)]" />
+    <main className="grain relative min-h-screen overflow-x-hidden bg-cream text-ink">
+      {/* Warm organic blobs — same language as the rest of the app. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -left-40 -top-40 z-0 h-[520px] w-[520px] rounded-full bg-[radial-gradient(circle,rgba(255,158,120,0.5),transparent_66%)] blur-2xl"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-52 top-40 z-0 h-[560px] w-[560px] rounded-full bg-[radial-gradient(circle,rgba(255,126,157,0.45),transparent_66%)] blur-2xl"
+      />
 
-      <section className="relative z-10 mx-auto w-full max-w-md rounded-3xl border border-white/15 bg-white/5 p-8 shadow-2xl backdrop-blur-2xl">
-        <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold backdrop-blur">
-          Founding Venue · Limited
-        </span>
+      {/* Minimal top bar — brand anchor only (the global theme switch floats
+          top-right). Local landing pages keep navigation to a minimum. */}
+      <header className="relative z-20 mx-auto flex w-full max-w-6xl items-center px-5 py-6">
+        <Link href="/" className="flex items-center gap-3">
+          <Image src="/brand/logo-mark-tight.png" alt="" width={40} height={40} className="h-10 w-10 drop-shadow-sm" />
+          <span className="font-display text-xl font-extrabold tracking-tight text-ink">Sing My Birthday</span>
+        </Link>
+      </header>
 
-        <h1 className="mt-4 bg-gradient-to-r from-pink-300 via-purple-300 to-blue-300 bg-clip-text text-4xl font-extrabold leading-tight text-transparent">
-          A branded birthday-song link for your venue.
-        </h1>
+      {/* ── HERO ──────────────────────────────────────────────────────────── */}
+      <section className="relative z-10 mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-12 px-5 pb-16 pt-6 lg:grid-cols-2 lg:pt-10">
+        <div className="animate-rise text-center lg:text-left">
+          <span className="inline-flex items-center gap-2 rounded-full border border-sand bg-cream-soft px-3 py-1 text-xs font-bold uppercase tracking-[0.15em] text-jade shadow-sm">
+            For venues · Founding partner
+          </span>
+          <h1 className="mt-4 font-display text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl lg:text-[3.4rem]">
+            <span className="text-warm-gradient">Turn birthdays into your best marketing.</span>
+          </h1>
+          <p className="mt-5 text-lg text-ink-soft">
+            Give guests a personalized birthday song branded to your venue — and put your name
+            in front of everyone they share it with. No app, no hardware, no work.
+          </p>
+          <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row lg:items-start">
+            {primaryCta("Become a founding venue")}
+            <a
+              href="#how"
+              className="inline-flex min-h-[52px] items-center justify-center rounded-full border border-sand bg-cream px-6 text-sm font-bold text-ink transition hover:border-jade active:scale-[0.99]"
+            >
+              See how it works
+            </a>
+          </div>
+          <p className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-ink-soft lg:justify-start">
+            <span>💳 Secure checkout by Stripe</span>
+            <span aria-hidden className="opacity-40">·</span>
+            <span>Cancel anytime</span>
+            <span aria-hidden className="opacity-40">·</span>
+            <span>Founding-cohort pricing</span>
+          </p>
+        </div>
 
-        <p className="mt-3 text-sm text-gray-300">
-          Founding venues get their own /v/[slug] landing page, brand color in the song flow, and attribution on every capture.
+        {/* Branded-flow mock — shows a venue exactly how they'll appear. */}
+        <div className="animate-rise relative mx-auto w-full max-w-sm">
+          <div className="rounded-[2rem] border border-sand bg-cream-soft p-5 shadow-sm">
+            <div className="flex items-center gap-2 rounded-r-xl border-l-2 border-jade bg-cream px-4 py-2 text-sm font-semibold text-ink">
+              <span>Birthday songs at</span>
+              <span aria-hidden className="inline-block h-2 w-2 rounded-full bg-jade" />
+              <span className="text-jade">Your Venue</span>
+            </div>
+            <div className="mt-4 rounded-2xl border border-sand bg-cream px-5 py-8 text-center">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-ink-soft">Their song, your brand</p>
+              <p className="mt-2 font-display text-2xl font-extrabold text-warm-gradient">Happy Birthday, Maya!</p>
+              <div className="mt-4 flex items-end justify-center gap-1.5" aria-hidden>
+                {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+                  <span
+                    key={i}
+                    className="w-1.5 rounded-full bg-warm-gradient animate-eq"
+                    style={{ height: 26, animationDelay: `${i * 0.1}s`, animationDuration: `${0.8 + (i % 3) * 0.15}s` }}
+                  />
+                ))}
+              </div>
+            </div>
+            <p className="mt-3 text-center text-xs text-ink-soft">
+              Shared to friends with <span className="font-bold text-ink">Your Venue</span> on it.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ── HOW IT WORKS ──────────────────────────────────────────────────── */}
+      <section id="how" className="relative z-10 mx-auto w-full max-w-6xl scroll-mt-6 px-5 py-14">
+        <p className="text-center text-sm font-bold uppercase tracking-[0.2em] text-jade">How it works</p>
+        <h2 className="mx-auto mt-3 max-w-2xl text-center font-display text-3xl font-extrabold text-ink sm:text-4xl">
+          Live in a day, working while you serve.
+        </h2>
+        <div className="mt-10 grid gap-5 sm:grid-cols-3">
+          {STEPS.map((s) => (
+            <div key={s.n} className="rounded-2xl border border-sand bg-cream-soft p-6">
+              <span className="grid h-10 w-10 place-items-center rounded-xl bg-warm-gradient text-base font-extrabold text-white shadow-sm">
+                {s.n}
+              </span>
+              <h3 className="mt-4 font-display text-lg font-bold text-ink">{s.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-ink-soft">{s.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── BENEFITS ──────────────────────────────────────────────────────── */}
+      <section className="relative z-10 mx-auto w-full max-w-6xl px-5 py-14">
+        <p className="text-center text-sm font-bold uppercase tracking-[0.2em] text-jade">What you get</p>
+        <h2 className="mx-auto mt-3 max-w-2xl text-center font-display text-3xl font-extrabold text-ink sm:text-4xl">
+          A marketing channel guests actually enjoy.
+        </h2>
+        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {BENEFITS.map((b) => (
+            <div key={b.title} className="rounded-2xl border border-sand bg-cream-soft p-6">
+              <span aria-hidden className="text-2xl">{b.icon}</span>
+              <h3 className="mt-3 font-display text-base font-bold text-ink">{b.title}</h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">{b.body}</p>
+            </div>
+          ))}
+        </div>
+        <p className="mt-8 text-center text-sm text-ink-soft">
+          Perfect for{" "}
+          <span className="font-semibold text-ink">restaurants, bars, cafés, hotels &amp; event spaces</span>.
         </p>
+      </section>
 
-        <div className="mt-6 rounded-2xl border border-white/15 bg-white/5 p-4">
-          <p className="text-3xl font-extrabold">$299<span className="text-base font-medium text-gray-300">/mo</span></p>
-          <p className="mt-1 text-xs text-gray-400">Cancel anytime from the customer portal.</p>
-        </div>
+      {/* ── PRICING ───────────────────────────────────────────────────────── */}
+      <section className="relative z-10 mx-auto w-full max-w-md px-5 py-14">
+        <div className="rounded-[2rem] border border-sand bg-cream-soft p-8 shadow-sm">
+          <span className="inline-flex items-center gap-2 rounded-full border border-sand bg-cream px-3 py-1 text-xs font-semibold text-jade shadow-sm">
+            Founding Venue · Limited
+          </span>
+          <p className="mt-5 font-display text-5xl font-extrabold text-ink">
+            $299<span className="text-lg font-medium text-ink-soft">/mo</span>
+          </p>
+          <p className="mt-1 text-sm text-ink-soft">Everything below. Cancel anytime.</p>
 
-        <button
-          type="button"
-          onClick={startCheckout}
-          disabled={loading}
-          className="mt-6 w-full rounded-2xl bg-gradient-to-r from-purple-500 via-fuchsia-500 to-pink-500 py-4 text-base font-extrabold text-white shadow-xl transition hover:-translate-y-1 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0"
-        >
-          {loading ? "Redirecting…" : "Become a founding venue"}
-        </button>
+          <ul className="mt-6 space-y-2.5 text-sm text-ink">
+            {[
+              "Your branded /v/your-venue landing page",
+              "Your brand color in the song flow",
+              "Attribution on every shared song",
+              "QR + link kit for tables & receipts",
+              "Magic-link dashboard to manage it",
+            ].map((line) => (
+              <li key={line} className="flex items-start gap-2">
+                <span aria-hidden className="mt-0.5 text-jade">✓</span>
+                <span>{line}</span>
+              </li>
+            ))}
+          </ul>
 
-        <div className="mt-4 flex items-center gap-3 text-xs text-gray-500">
-          <span className="h-px flex-1 bg-white/10" />
-          <span>or</span>
-          <span className="h-px flex-1 bg-white/10" />
-        </div>
+          <div className="mt-7">{primaryCta("Become a founding venue")}</div>
 
-        <a
-          href="mailto:founders@singmybirthday.com?subject=Venue%20interest%20%E2%80%94%20Sing%20My%20Birthday&body=Hi%20Sing%20My%20Birthday%20team%2C%0A%0AI%27d%20like%20to%20learn%20more%20about%20a%20branded%20venue%20link.%0A%0AVenue%20name%3A%0ACity%3A%0AWebsite%2FInstagram%3A%0A%0AThanks%21"
-          className="mt-4 block w-full rounded-2xl border border-white/20 bg-white/5 py-3.5 text-center text-sm font-bold text-white transition hover:bg-white/10"
-        >
-          Not ready to subscribe? Talk to us about your venue →
-        </a>
+          <div className="mt-4 flex items-center gap-3 text-xs text-ink-soft">
+            <span className="h-px flex-1 bg-sand" />
+            <span>or</span>
+            <span className="h-px flex-1 bg-sand" />
+          </div>
 
-        <p className="mt-3 text-center text-xs text-gray-400">
-          Have questions first? Email{" "}
           <a
-            href="mailto:founders@singmybirthday.com?subject=Venue%20question%20%E2%80%94%20Sing%20My%20Birthday"
-            className="underline underline-offset-2 hover:text-gray-200"
+            href={VENUE_MAILTO}
+            className="mt-4 block w-full rounded-full border border-sand bg-cream py-3.5 text-center text-sm font-bold text-ink transition hover:border-jade active:scale-[0.99]"
           >
-            founders@singmybirthday.com
+            Not ready? Talk to us about your venue →
           </a>
-          .
-        </p>
 
-        <p className="mt-3 text-center text-xs text-gray-400">
-          By continuing, you agree to the{" "}
-          <Link href="/terms" className="underline underline-offset-2 hover:text-gray-200">
-            Terms of Service
-          </Link>{" "}
-          and acknowledge the{" "}
-          <Link href="/privacy" className="underline underline-offset-2 hover:text-gray-200">
-            Privacy Policy
-          </Link>
-          .
-        </p>
+          {error && <p role="alert" className="mt-3 text-center text-sm text-blush">{error}</p>}
+        </div>
+      </section>
 
-        {error && (
-          <p role="alert" className="mt-3 text-sm text-rose-300">{error}</p>
-        )}
+      {/* ── FAQ ───────────────────────────────────────────────────────────── */}
+      <section className="relative z-10 mx-auto w-full max-w-3xl px-5 py-14">
+        <h2 className="text-center font-display text-3xl font-extrabold text-ink sm:text-4xl">Questions, answered</h2>
+        <div className="mt-8 space-y-3">
+          {FAQS.map((f) => (
+            <details key={f.q} className="group rounded-2xl border border-sand bg-cream-soft px-5 py-4">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-display text-base font-bold text-ink">
+                {f.q}
+                <span aria-hidden className="text-ink-soft transition group-open:rotate-45">＋</span>
+              </summary>
+              <p className="mt-3 text-sm leading-relaxed text-ink-soft">{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      {/* ── FINAL CTA ─────────────────────────────────────────────────────── */}
+      <section className="relative z-10 mx-auto w-full max-w-4xl px-5 pb-20 pt-6">
+        <div className="overflow-hidden rounded-[2rem] border border-jade/30 bg-warm-soft p-10 text-center">
+          <h2 className="font-display text-3xl font-extrabold text-ink sm:text-4xl">
+            Be one of the founding venues.
+          </h2>
+          <p className="mx-auto mt-3 max-w-xl text-ink-soft">
+            Give your guests something to remember — and let every birthday send new people your way.
+          </p>
+          <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            {primaryCta("Become a founding venue")}
+            <a
+              href="mailto:founders@singmybirthday.com?subject=Venue%20question%20%E2%80%94%20Sing%20My%20Birthday"
+              className="text-sm font-semibold text-jade underline decoration-jade/40 underline-offset-2 hover:decoration-jade"
+            >
+              founders@singmybirthday.com
+            </a>
+          </div>
+          <p className="mt-5 text-center text-xs text-ink-soft">
+            By continuing, you agree to the{" "}
+            <Link href="/terms" className="font-semibold text-jade underline decoration-jade/40 underline-offset-2 hover:decoration-jade">
+              Terms of Service
+            </Link>{" "}
+            and acknowledge the{" "}
+            <Link href="/privacy" className="font-semibold text-jade underline decoration-jade/40 underline-offset-2 hover:decoration-jade">
+              Privacy Policy
+            </Link>
+            .
+          </p>
+        </div>
       </section>
     </main>
   );

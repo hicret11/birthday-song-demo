@@ -11,6 +11,7 @@
 // below — the rest of the application already passes `tier` through.
 
 import { getCountryCode } from "./geo";
+import { FULL_PRICE_LABEL, DELUXE_PRICE_LABEL } from "./pricing-display";
 
 export type Tier = "A" | "B" | "C";
 
@@ -116,9 +117,9 @@ export const STRIPE_PRICE_IDS: Record<Tier, string | undefined> = {
 
 /** Display-only amounts. Keep in sync with the Stripe prices you create. */
 export const TIER_PRICE_DISPLAY: Record<Tier, { label: string; amountCents: number; currency: string }> = {
-  A: { label: "$9.99", amountCents: 999, currency: "usd" },
-  B: { label: "$5.99", amountCents: 599, currency: "usd" },
-  C: { label: "$2.99", amountCents: 299, currency: "usd" },
+  A: { label: FULL_PRICE_LABEL.A, amountCents: 999, currency: "usd" },
+  B: { label: FULL_PRICE_LABEL.B, amountCents: 599, currency: "usd" },
+  C: { label: FULL_PRICE_LABEL.C, amountCents: 299, currency: "usd" },
 };
 
 /** Stripe price_id for a tier, or undefined if not configured yet. */
@@ -154,9 +155,9 @@ export const STRIPE_PRICE_IDS_DELUXE: Record<Tier, string | undefined> = {
 
 /** Display-only Deluxe amounts. Keep in sync with the Stripe Deluxe prices. */
 export const TIER_PRICE_DISPLAY_DELUXE: Record<Tier, { label: string; amountCents: number; currency: string }> = {
-  A: { label: "$14.99", amountCents: 1499, currency: "usd" },
-  B: { label: "$9.99", amountCents: 999, currency: "usd" },
-  C: { label: "$5.99", amountCents: 599, currency: "usd" },
+  A: { label: DELUXE_PRICE_LABEL.A, amountCents: 1499, currency: "usd" },
+  B: { label: DELUXE_PRICE_LABEL.B, amountCents: 999, currency: "usd" },
+  C: { label: DELUXE_PRICE_LABEL.C, amountCents: 599, currency: "usd" },
 };
 
 /**

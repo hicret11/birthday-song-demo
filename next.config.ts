@@ -10,10 +10,12 @@ const nextConfig: NextConfig = {
     "/api/share": [
       "./node_modules/@ffmpeg-installer/**/*",
       "./public/video-fonts/**/*",
+      "./public/video-templates/**/*",
     ],
     "/api/share/[id]/regenerate": [
       "./node_modules/@ffmpeg-installer/**/*",
       "./public/video-fonts/**/*",
+      "./public/video-templates/**/*",
     ],
     "/api/slideshow/render": [
       "./node_modules/@ffmpeg-installer/**/*",

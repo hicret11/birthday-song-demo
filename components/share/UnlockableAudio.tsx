@@ -2,16 +2,11 @@
 
 import { useRef, useState } from "react";
 import { getDictionary, type Locale } from "@/lib/i18n";
+import { FULL_PRICE_LABEL, DELUXE_PRICE_LABEL } from "@/lib/pricing-display";
 
 const PREVIEW_SECONDS = 15;
 
 type Plan = "full" | "deluxe";
-
-// Display-only mirror of TIER_PRICE_DISPLAY / TIER_PRICE_DISPLAY_DELUXE in
-// lib/pricing-tiers.ts. The real charge is always the Stripe price_id; keep
-// these in sync for the CTA labels.
-const FULL_PRICE_LABEL: Record<"A" | "B" | "C", string> = { A: "$9.99", B: "$5.99", C: "$2.99" };
-const DELUXE_PRICE_LABEL: Record<"A" | "B" | "C", string> = { A: "$14.99", B: "$9.99", C: "$5.99" };
 
 type Props = {
   shareId: string;
@@ -107,7 +102,7 @@ export default function UnlockableAudio({
         <a
           href={audioSrc}
           download
-          className="mt-3 block w-full rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-center text-sm font-bold transition hover:bg-white/15"
+          className="mt-3 block w-full rounded-2xl border border-sand bg-cream-soft px-5 py-3 text-center text-sm font-bold text-ink shadow-sm transition hover:bg-warm-soft"
         >
           <span aria-hidden>⬇</span> Download MP3
         </a>
@@ -117,7 +112,7 @@ export default function UnlockableAudio({
 
   return (
     <div className="mt-6">
-      <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wide text-amber-300">
+      <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wide text-jade">
         {tr.paywall.previewLabelPrefix}{PREVIEW_SECONDS}{tr.paywall.previewLabelSuffix}
       </p>
       <audio
@@ -129,8 +124,8 @@ export default function UnlockableAudio({
         className="w-full"
       />
 
-      <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-5 text-center backdrop-blur">
-        <p className="text-base font-extrabold">
+      <div className="mt-5 rounded-2xl border border-sand bg-cream-soft p-5 text-center shadow-sm">
+        <p className="font-display text-lg font-extrabold tracking-tight text-ink">
           {previewEnded
             ? `${tr.paywall.unlockHeadlineLovedPrefix}${tr.paywall.unlockHeadlinePrefix}${recipientName}${tr.paywall.unlockHeadlineSuffix}`
             : `${tr.paywall.unlockHeadlinePrefix}${recipientName}${tr.paywall.unlockHeadlineSuffix}`}
@@ -144,19 +139,19 @@ export default function UnlockableAudio({
             aria-pressed={plan === "full"}
             className={`block w-full rounded-2xl border p-4 text-left transition ${
               plan === "full"
-                ? "border-fuchsia-300/70 bg-fuchsia-500/10 ring-1 ring-fuchsia-300/40"
-                : "border-white/10 bg-white/5 hover:border-white/20"
+                ? "border-jade bg-warm-soft ring-1 ring-jade"
+                : "border-sand bg-cream hover:border-jade"
             }`}
           >
             <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-extrabold">{tr.paywall.standard}</span>
-              <span className="text-sm font-extrabold">{fullLabel}</span>
+              <span className="text-sm font-extrabold text-ink">{tr.paywall.standard}</span>
+              <span className="text-sm font-extrabold text-ink">{fullLabel}</span>
             </div>
-            <ul className="mt-2 space-y-1.5 text-sm">
-              <li className="flex items-start gap-2"><span className="text-emerald-300">✓</span><span>{tr.paywall.bulletCompleteSong}</span></li>
-              <li className="flex items-start gap-2"><span className="text-emerald-300">✓</span><span>{tr.paywall.bulletMp3}</span></li>
-              <li className="flex items-start gap-2"><span className="text-emerald-300">✓</span><span>{tr.paywall.bulletShareVideo}</span></li>
-              <li className="flex items-start gap-2"><span className="text-emerald-300">✓</span><span>{tr.paywall.bulletReplay}</span></li>
+            <ul className="mt-2 space-y-1.5 text-sm text-ink">
+              <li className="flex items-start gap-2"><span className="text-jade">✓</span><span>{tr.paywall.bulletCompleteSong}</span></li>
+              <li className="flex items-start gap-2"><span className="text-jade">✓</span><span>{tr.paywall.bulletMp3}</span></li>
+              <li className="flex items-start gap-2"><span className="text-jade">✓</span><span>{tr.paywall.bulletShareVideo}</span></li>
+              <li className="flex items-start gap-2"><span className="text-jade">✓</span><span>{tr.paywall.bulletReplay}</span></li>
             </ul>
           </button>
 
@@ -166,19 +161,19 @@ export default function UnlockableAudio({
             aria-pressed={plan === "deluxe"}
             className={`block w-full rounded-2xl border p-4 text-left transition ${
               plan === "deluxe"
-                ? "border-amber-300/70 bg-amber-400/10 ring-1 ring-amber-300/40"
-                : "border-white/10 bg-white/5 hover:border-white/20"
+                ? "border-gold bg-warm-soft ring-1 ring-gold"
+                : "border-sand bg-cream hover:border-gold"
             }`}
           >
             <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-extrabold">
-                {tr.paywall.deluxe} <span className="ml-1 rounded-full bg-gradient-to-r from-pink-500 via-fuchsia-500 to-amber-400 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">{tr.paywall.bestValue}</span>
+              <span className="text-sm font-extrabold text-ink">
+                {tr.paywall.deluxe} <span className="ml-1 rounded-full bg-warm-gradient px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">{tr.paywall.bestValue}</span>
               </span>
-              <span className="text-sm font-extrabold">{deluxeLabel}</span>
+              <span className="text-sm font-extrabold text-ink">{deluxeLabel}</span>
             </div>
-            <ul className="mt-2 space-y-1.5 text-sm">
-              <li className="flex items-start gap-2"><span className="text-emerald-300">✓</span><span>{tr.paywall.bulletEverythingStandard}</span></li>
-              <li className="flex items-start gap-2"><span className="text-amber-300">★</span><span className="font-semibold">{tr.paywall.bulletSlideshow}</span></li>
+            <ul className="mt-2 space-y-1.5 text-sm text-ink">
+              <li className="flex items-start gap-2"><span className="text-jade">✓</span><span>{tr.paywall.bulletEverythingStandard}</span></li>
+              <li className="flex items-start gap-2"><span className="text-gold">★</span><span className="font-semibold">{tr.paywall.bulletSlideshow}</span></li>
             </ul>
           </button>
         </div>
@@ -187,7 +182,7 @@ export default function UnlockableAudio({
           type="button"
           onClick={startCheckout}
           disabled={requesting}
-          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 via-fuchsia-500 to-amber-400 px-5 py-4 text-base font-extrabold text-white shadow-2xl shadow-fuchsia-500/30 transition hover:-translate-y-0.5 hover:shadow-fuchsia-500/50 disabled:cursor-not-allowed disabled:opacity-70"
+          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-jade px-5 py-4 text-base font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(31,142,125,0.7)] transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] hover:bg-jade-deep disabled:cursor-not-allowed disabled:opacity-70"
         >
           {requesting ? (
             <>
@@ -203,17 +198,17 @@ export default function UnlockableAudio({
             `${tr.paywall.unlockStandardPrefix} · ${fullLabel} →`
           )}
         </button>
-        <p className="mt-3 flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-300">
+        <p className="mt-3 flex items-center justify-center gap-1.5 text-xs font-bold text-jade">
           <span aria-hidden>✓</span>{" "}
-          <a href="/refund" target="_blank" rel="noopener noreferrer" className="underline decoration-emerald-300/40 underline-offset-2 hover:decoration-emerald-300">
+          <a href="/refund" target="_blank" rel="noopener noreferrer" className="underline decoration-jade/40 underline-offset-2 hover:decoration-jade">
             {tr.paywall.moneyBack}
           </a>
         </p>
-        <p className="mt-1 text-[11px] opacity-60">
+        <p className="mt-1 text-[11px] text-ink-soft">
           {tr.paywall.secureCheckout}
         </p>
         {error && (
-          <p role="alert" className="mt-3 text-sm text-rose-300">
+          <p role="alert" className="mt-3 text-sm text-blush">
             {error}
           </p>
         )}

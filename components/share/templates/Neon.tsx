@@ -206,9 +206,9 @@ function FireworksCanvas() {
 
 export function Neon({ song }: { song: SharedSong }) {
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#090014] text-white">
+    <main className="relative min-h-screen overflow-hidden bg-noir text-white">
 
-      {/* Havai fişek canvas animasyonu */}
+      {/* Firework canvas animation */}
       <FireworksCanvas />
 
       {/* Grid overlay */}
@@ -217,26 +217,24 @@ export function Neon({ song }: { song: SharedSong }) {
       {/* Content */}
       <div className="relative z-10 mx-auto max-w-2xl px-6 py-16">
 
-      
-
         <div className="mb-6 flex justify-center">
-          <div className="rounded-full border border-pink-400/30 bg-white/5 px-4 py-2 text-sm text-pink-200 backdrop-blur-md shadow-[0_0_20px_rgba(255,0,255,0.2)]">
-            ✨ It's Your Special Day!
+          <div className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-peach backdrop-blur-md">
+            ✨ It&apos;s Your Special Day!
           </div>
         </div>
 
-        <h1 className="text-center text-5xl font-extrabold leading-tight bg-gradient-to-r from-pink-400 via-fuchsia-300 to-cyan-300 bg-clip-text text-transparent drop-shadow-[0_0_25px_rgba(255,0,255,0.35)]">
+        <h1 className="text-center font-display text-5xl font-extrabold leading-tight tracking-tight text-warm-gradient drop-shadow-[0_0_25px_rgba(255,126,157,0.35)]">
           Happy Birthday,
           <br />
           {song.name} 🎉
         </h1>
 
-        <p className="mt-4 text-center text-purple-200/80">
-          A personalized AI-generated birthday song made just for you.
+        <p className="mt-4 text-center text-white/80">
+          A personalized birthday song made just for you.
         </p>
 
-        {/* Main card */}
-        <div className="mt-10 rounded-[32px] border border-white/10 bg-white/5 p-6 shadow-[0_0_40px_rgba(168,85,247,0.15)] backdrop-blur-xl">
+        {/* Main card — cream surface so the body reads on the dark stage */}
+        <div className="mt-10 rounded-2xl border border-sand bg-cream-soft p-6 text-ink shadow-[0_0_40px_rgba(255,126,157,0.18)]">
           <SharedSongBody song={song} className="mt-2" />
         </div>
       </div>

@@ -30,16 +30,26 @@ import {
 } from "@/lib/api-types";
 import { toAudioProxyUrl } from "@/lib/audio-proxy";
 import Confetti from "@/components/Confetti";
+import ThemeToggle from "@/components/ThemeToggle";
+import {
+  FULL_PRICE_LABEL as TIER_PRICE_LABEL,
+  DELUXE_PRICE_LABEL,
+} from "@/lib/pricing-display";
 import { track } from "@vercel/analytics";
 import { getAnonId, logClientEvent } from "@/lib/client-events";
 import { getDictionary, type Locale } from "@/lib/i18n";
 
+// Studio-style stages — read like the song is genuinely being produced for
+// them, which builds anticipation (and makes the ~60s wait feel like progress
+// rather than a spinner). Kept warm + on-brand with a couple of birthday beats.
 const LOADING_MESSAGES = [
-  "Sprinkling the candles…",
-  "Tuning the chorus…",
-  "Adding the icing…",
-  "Wrapping the bow…",
-  "✨ This is where the magic happens…",
+  "Composing their melody…",
+  "Laying down the beat…",
+  "Recording the vocals…",
+  "Weaving their name into the chorus…",
+  "Sprinkling on the candles…",
+  "Mixing it all together…",
+  "✨ Adding the final sparkle…",
 ];
 
 // Gate for the visual cake + candle pickers in the "Make it Yours" panel.
@@ -243,7 +253,12 @@ const PREVIEW_TEXT_STYLE: Record<ShareTemplate, React.CSSProperties> = {
 };
 
 type ThemeKey = "dark" | "light" | "party" | "pastel" | "luxury" | "confetti" | "balloons" | "bubbles";
-type TabKey = "basic" | "advanced";
+
+// Relationship quick-pick chips. Each writes its own label into the existing
+// free-text `relationship` state; "Other" reveals a text field so the state can
+// still hold an arbitrary description (the data contract is unchanged — the
+// backend still receives a single `relationship` string).
+const RELATIONSHIP_PRESETS = ["Friend", "Partner", "Family", "Colleague"] as const;
 
 const POLL_INTERVAL_MS = 2_000;
 const LONG_WAIT_HINT_MS = 90_000;
@@ -253,107 +268,112 @@ const genres = ["🎤 Pop", "🎷 R&B", "🎸 Rock", "🎹 Jazz", "🎧 Hip-Hop"
 const languages = ["English", "Turkish", "Spanish", "French", "Arabic", "Hindi", "Russian"];
 
 const themes = {
+  // Warm "Modern Playful-Premium" palette. Every theme now maps onto the same
+  // semantic warm tokens (bg-cream-soft / border-sand / text-ink …) so the flow
+  // adapts to light+dark automatically via the .dark CSS tokens. The per-theme
+  // `pageBg` swatch keeps a distinct warm tint just for the picker preview, and
+  // `effect` / `emojis` still drive the canvas + floating decor.
   dark: {
     name: "Dark Neon",
     desc: "Vibrant & energetic",
-    pageBg: "from-[#070019] via-[#12062f] to-[#1e1646]",
-    title: "from-pink-400 via-purple-300 to-blue-300",
-    card: "bg-white/10 border-white/15",
-    text: "text-white",
-    sub: "text-gray-300",
-    input: "bg-white/10 border-white/20 placeholder:text-gray-400",
-    accent: "from-purple-500 via-fuchsia-500 to-pink-500",
+    pageBg: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
+    title: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
+    card: "bg-cream-soft border-sand",
+    text: "text-ink",
+    sub: "text-ink-soft",
+    input: "bg-cream-soft border-sand placeholder:text-ink-soft",
+    accent: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
     effect: "emoji",
     emojis: ["🎵", "🎶", "🎂", "🎉", "🎁", "🎈", "✨", "🎊", "🥳", "🪩", "🍰", "🎤"],
   },
   light: {
     name: "Light Dream",
     desc: "Soft & clean",
-    pageBg: "from-[#eef7ff] via-[#fff6fb] to-[#f4e8ff]",
-    title: "from-pink-500 via-purple-500 to-sky-500",
-    card: "bg-white/80 border-white",
-    text: "text-gray-900",
-    sub: "text-gray-600",
-    input: "bg-white border-gray-200 placeholder:text-gray-400",
-    accent: "from-sky-400 via-pink-400 to-purple-400",
+    pageBg: "from-[#ffe3d2] via-[#ffd0dc] to-[#ffc9a3]",
+    title: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
+    card: "bg-cream-soft border-sand",
+    text: "text-ink",
+    sub: "text-ink-soft",
+    input: "bg-cream-soft border-sand placeholder:text-ink-soft",
+    accent: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
     effect: "emoji",
     emojis: ["☁️", "🎀", "🎂", "🎈", "✨", "💖", "🎶", "🧁", "🎁", "🌸", "🍰", "🎵"],
   },
   party: {
     name: "Birthday Party",
     desc: "Fun & colorful",
-    pageBg: "from-[#ff8a8a] via-[#ffb86b] to-[#ff4faf]",
-    title: "from-white via-yellow-100 to-white",
-    card: "bg-white/70 border-white",
-    text: "text-gray-900",
-    sub: "text-gray-700",
-    input: "bg-white/80 border-white placeholder:text-gray-500",
-    accent: "from-orange-500 via-pink-500 to-rose-500",
+    pageBg: "from-[#ff8faa] via-[#ffc9a3] to-[#ff6f91]",
+    title: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
+    card: "bg-cream-soft border-sand",
+    text: "text-ink",
+    sub: "text-ink-soft",
+    input: "bg-cream-soft border-sand placeholder:text-ink-soft",
+    accent: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
     effect: "emoji",
     emojis: ["🎉", "🎊", "🥳", "🎈", "🎂", "🎁", "🍰", "✨", "🎵", "🪅", "🧁", "🎶"],
   },
   pastel: {
     name: "Soft Pastel",
     desc: "Calm & gentle",
-    pageBg: "from-[#ffd6ee] via-[#e6dcff] to-[#d9f1ff]",
-    title: "from-pink-500 via-purple-500 to-blue-400",
-    card: "bg-white/75 border-white",
-    text: "text-gray-900",
-    sub: "text-gray-600",
-    input: "bg-white/85 border-white placeholder:text-gray-400",
-    accent: "from-pink-400 via-purple-400 to-sky-400",
+    pageBg: "from-[#ffe3d2] via-[#ffd0dc] to-[#ffb7cc]",
+    title: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
+    card: "bg-cream-soft border-sand",
+    text: "text-ink",
+    sub: "text-ink-soft",
+    input: "bg-cream-soft border-sand placeholder:text-ink-soft",
+    accent: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
     effect: "emoji",
     emojis: ["🧸", "🎀", "🎂", "🎈", "✨", "🌈", "🎶", "🧁", "💖", "🎁", "🍭", "🎵"],
   },
   luxury: {
     name: "Luxury Night",
     desc: "Elegant & premium",
-    pageBg: "from-[#030303] via-[#14100a] to-[#3b2700]",
-    title: "from-yellow-200 via-amber-400 to-yellow-100",
-    card: "bg-black/45 border-yellow-500/25",
-    text: "text-white",
-    sub: "text-yellow-100/70",
-    input: "bg-white/10 border-yellow-400/20 placeholder:text-yellow-100/40",
-    accent: "from-yellow-500 via-amber-500 to-yellow-300",
+    pageBg: "from-[#c9a24b] via-[#ffc9a3] to-[#ff8faa]",
+    title: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
+    card: "bg-cream-soft border-sand",
+    text: "text-ink",
+    sub: "text-ink-soft",
+    input: "bg-cream-soft border-sand placeholder:text-ink-soft",
+    accent: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
     effect: "emoji",
     emojis: ["✨", "🌙", "🎂", "🎁", "🥂", "🎵", "🎶", "⭐", "🍰", "🎈", "💫", "🎉"],
   },
   confetti: {
     name: "Confetti",
     desc: "Classic party motion",
-    pageBg: "from-[#0d0521] via-[#120e3a] to-[#071426]",
-    title: "from-purple-300 via-pink-300 to-blue-300",
-    card: "bg-white/10 border-white/15",
-    text: "text-white",
-    sub: "text-gray-300",
-    input: "bg-white/10 border-white/20 placeholder:text-gray-400",
-    accent: "from-purple-500 via-fuchsia-500 to-indigo-500",
+    pageBg: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
+    title: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
+    card: "bg-cream-soft border-sand",
+    text: "text-ink",
+    sub: "text-ink-soft",
+    input: "bg-cream-soft border-sand placeholder:text-ink-soft",
+    accent: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
     effect: "confetti",
     emojis: [],
   },
   balloons: {
     name: "Balloons",
     desc: "Floating birthday balloons",
-    pageBg: "from-[#1a001a] via-[#2d0040] to-[#0f0020]",
-    title: "from-pink-300 via-purple-300 to-fuchsia-300",
-    card: "bg-white/10 border-white/15",
-    text: "text-white",
-    sub: "text-gray-300",
-    input: "bg-white/10 border-white/20 placeholder:text-gray-400",
-    accent: "from-pink-500 via-purple-500 to-fuchsia-500",
+    pageBg: "from-[#ffd0dc] via-[#ff8faa] to-[#ff6f91]",
+    title: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
+    card: "bg-cream-soft border-sand",
+    text: "text-ink",
+    sub: "text-ink-soft",
+    input: "bg-cream-soft border-sand placeholder:text-ink-soft",
+    accent: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
     effect: "balloons",
     emojis: [],
   },
   bubbles: {
     name: "Bubbles",
     desc: "Soft floating bubbles",
-    pageBg: "from-[#001a0e] via-[#002233] to-[#001a10]",
-    title: "from-emerald-300 via-cyan-300 to-sky-300",
-    card: "bg-white/10 border-white/15",
-    text: "text-white",
-    sub: "text-gray-300",
-    input: "bg-white/10 border-white/20 placeholder:text-gray-400",
-    accent: "from-emerald-400 via-cyan-400 to-sky-500",
+    pageBg: "from-[#ffe3d2] via-[#ffc6a4] to-[#ff8faa]",
+    title: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
+    card: "bg-cream-soft border-sand",
+    text: "text-ink",
+    sub: "text-ink-soft",
+    input: "bg-cream-soft border-sand placeholder:text-ink-soft",
+    accent: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
     effect: "bubbles",
     emojis: [],
   },
@@ -370,11 +390,223 @@ type Props = {
   locale?: Locale;
 };
 
+/**
+ * Two-dot sub-progress for the "About them" step (person → vibe). Makes the
+ * inner "Next →" feel like real forward motion and lets keyboard/mouse users
+ * jump back to the first sub-step. Kept tiny + purely presentational.
+ */
+function SubStepDots({
+  active,
+  onJump,
+}: {
+  active: 0 | 1;
+  onJump: (index: 0 | 1) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2" aria-hidden>
+      <span className="text-[11px] font-bold text-ink-soft">{active + 1} of 2</span>
+      <div className="flex items-center gap-1.5">
+        {[0, 1].map((i) => {
+          const isActive = i === active;
+          // Only the first dot is ever a back-jump target; going forward still
+          // requires a name (guarded by the primary CTA), so we don't enable it.
+          const clickable = i === 0 && active === 1;
+          return (
+            <button
+              key={i}
+              type="button"
+              tabIndex={-1}
+              onClick={() => clickable && onJump(0)}
+              disabled={!clickable}
+              className={`h-2 rounded-full transition-all ${
+                isActive ? "w-5 bg-jade" : "w-2 bg-sand"
+              } ${clickable ? "cursor-pointer" : "cursor-default"}`}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// A floating target in the wait-time game.
+type GameKind = "note" | "cake" | "gift" | "star" | "bomb";
+type GameItem = { id: number; left: number; dur: number; kind: GameKind };
+type ScorePop = { id: number; left: number; text: string; good: boolean };
+
+const GAME_KINDS: { kind: GameKind; emoji: string; value: number; weight: number }[] = [
+  { kind: "note", emoji: "🎵", value: 1, weight: 32 },
+  { kind: "cake", emoji: "🎂", value: 1, weight: 20 },
+  { kind: "gift", emoji: "🎁", value: 2, weight: 16 },
+  { kind: "star", emoji: "🌟", value: 5, weight: 7 },
+  { kind: "bomb", emoji: "💣", value: 0, weight: 11 },
+];
+const GAME_EMOJI: Record<GameKind, string> = {
+  note: "🎵", cake: "🎂", gift: "🎁", star: "🌟", bomb: "💣",
+};
+
+function pickKind(): GameKind {
+  const total = GAME_KINDS.reduce((s, k) => s + k.weight, 0);
+  let r = Math.random() * total;
+  for (const k of GAME_KINDS) {
+    r -= k.weight;
+    if (r <= 0) return k.kind;
+  }
+  return "note";
+}
+
+/**
+ * "Catch the beat" — a zero-dependency wait-time game so the ~60–90s song
+ * render feels like play, not a dead spinner. It runs as one flow: a short
+ * "in the studio" intro, then the game auto-starts and runs until the song is
+ * ready (this component unmounts, clearing its timers). Tap the treats to score;
+ * consecutive catches build a combo multiplier; dodge the bombs. Purely for fun —
+ * it never gates or delays generation, and it's skipped under reduced motion.
+ */
+function WaitGame() {
+  const [reduced, setReduced] = useState(false);
+  const [started, setStarted] = useState(false);
+  const [countdown, setCountdown] = useState(3);
+  const [score, setScore] = useState(0);
+  const [combo, setCombo] = useState(0);
+  const [items, setItems] = useState<GameItem[]>([]);
+  const [pops, setPops] = useState<ScorePop[]>([]);
+  const idRef = useRef(0);
+  const startedAtRef = useRef(0);
+
+  const multiplier = Math.min(5, 1 + Math.floor(combo / 4));
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }, []);
+
+  // Intro → auto-start. A 3-2-1 countdown makes the hand-off feel intentional.
+  useEffect(() => {
+    if (reduced || typeof window === "undefined") return;
+    if (countdown <= 0) {
+      setStarted(true);
+      startedAtRef.current = Date.now();
+      return;
+    }
+    const t = window.setTimeout(() => setCountdown((c) => c - 1), 850);
+    return () => window.clearTimeout(t);
+  }, [countdown, reduced]);
+
+  // Spawner — speeds up the longer the render runs, so it keeps escalating.
+  useEffect(() => {
+    if (!started || reduced || typeof window === "undefined") return;
+    let timer = 0;
+    const tick = () => {
+      const elapsed = (Date.now() - startedAtRef.current) / 1000;
+      const ramp = Math.min(1, elapsed / 35); // 0 → 1 over ~35s
+      setItems((prev) => {
+        if (prev.length >= 10) return prev;
+        const id = (idRef.current += 1);
+        const dur = 4.6 - ramp * 1.7 + Math.random() * 0.8; // faster over time
+        return [...prev, { id, left: 6 + Math.random() * 82, dur, kind: pickKind() }];
+      });
+      const gap = 820 - ramp * 360 + Math.random() * 160; // spawn faster over time
+      timer = window.setTimeout(tick, gap);
+    };
+    tick();
+    return () => window.clearTimeout(timer);
+  }, [started, reduced]);
+
+  if (reduced) return null;
+
+  const remove = (id: number) => setItems((prev) => prev.filter((b) => b.id !== id));
+
+  const addPop = (left: number, text: string, good: boolean) => {
+    const id = (idRef.current += 1);
+    setPops((prev) => [...prev, { id, left, text, good }]);
+    window.setTimeout(() => setPops((prev) => prev.filter((p) => p.id !== id)), 650);
+  };
+
+  const tap = (item: GameItem) => {
+    remove(item.id);
+    if (item.kind === "bomb") {
+      setCombo(0);
+      setScore((s) => Math.max(0, s - 2));
+      addPop(item.left, "💥", false);
+      return;
+    }
+    const base = GAME_KINDS.find((k) => k.kind === item.kind)?.value ?? 1;
+    const gained = base * multiplier;
+    setScore((s) => s + gained);
+    setCombo((c) => c + 1);
+    addPop(item.left, `+${gained}`, true);
+  };
+
+  return (
+    <div className="mt-6" style={{ animation: "game-in 0.5s ease-out both" }}>
+      <div className="mb-2 flex items-center justify-between px-1">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-ink-soft">
+          🎮 Catch the beat while you wait
+        </p>
+        <p className="flex items-center gap-2 text-xs font-extrabold text-jade">
+          {multiplier > 1 && (
+            <span className="rounded-full bg-warm-gradient px-2 py-0.5 text-[10px] text-white">
+              🔥 x{multiplier}
+            </span>
+          )}
+          <span>Score {score}</span>
+        </p>
+      </div>
+      <div className="relative h-60 overflow-hidden rounded-2xl border border-sand bg-cream">
+        {!started ? (
+          <div className="absolute inset-0 grid place-items-center text-center">
+            <div>
+              <p className="font-display text-3xl font-extrabold text-ink">{countdown}</p>
+              <p className="mt-1 text-xs text-ink-soft">Catch 🎵🎂🎁🌟 · dodge 💣</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            {items.map((b) => (
+              <button
+                key={b.id}
+                type="button"
+                aria-label={b.kind === "bomb" ? "Bomb — avoid" : "Catch"}
+                onClick={() => tap(b)}
+                onAnimationEnd={() => remove(b.id)}
+                className="absolute bottom-0 grid h-12 w-12 place-items-center rounded-full text-3xl leading-none select-none"
+                style={{
+                  left: `${b.left}%`,
+                  animation: `balloon-rise ${b.dur}s linear forwards`,
+                  filter: "drop-shadow(0 4px 6px rgba(0,0,0,0.14))",
+                }}
+              >
+                <span aria-hidden>{GAME_EMOJI[b.kind]}</span>
+              </button>
+            ))}
+            {pops.map((p) => (
+              <span
+                key={p.id}
+                aria-hidden
+                className={`pointer-events-none absolute bottom-16 text-sm font-extrabold ${
+                  p.good ? "text-jade" : "text-blush"
+                }`}
+                style={{ left: `${p.left}%`, animation: "score-pop 0.65s ease-out forwards" }}
+              >
+                {p.text}
+              </span>
+            ))}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function GeneratorClient({ venue, locale = "en" }: Props) {
   const t = getDictionary(locale);
-  const [tab, setTab] = useState<TabKey>("basic");
-  const [themeKey, setThemeKey] = useState<ThemeKey>("dark");
-  const [themeOpen, setThemeOpen] = useState(false);
+  // Presentational-only: controls the single "Add more details" expander that
+  // replaced the Basic/Advanced tab toggle. Never gates or drives any logic.
+  const [moreOpen, setMoreOpen] = useState(false);
+  // Sub-step within the "About them" step: 0 = the person, 1 = the vibe.
+  const [inputStep, setInputStep] = useState<0 | 1>(0);
+  const [themeKey] = useState<ThemeKey>("dark");
   const [name, setName] = useState("");
   const [pronunciationHint, setPronunciationHint] = useState("");
   // Recorder warmup: MediaRecorder has 200-700ms of startup latency before the
@@ -646,11 +878,6 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
   const [unlockPlan, setUnlockPlan] = useState<"full" | "deluxe">("full");
   const songAudioRef = useRef<HTMLAudioElement | null>(null);
   const PREVIEW_SECONDS = 15;
-  // Display-only mirror of TIER_PRICE_DISPLAY / TIER_PRICE_DISPLAY_DELUXE in
-  // lib/pricing-tiers.ts. The real charge is always the Stripe price_id; keep
-  // these in sync for the CTA labels.
-  const TIER_PRICE_LABEL: Record<"A" | "B" | "C", string> = { A: "$9.99", B: "$5.99", C: "$2.99" };
-  const DELUXE_PRICE_LABEL: Record<"A" | "B" | "C", string> = { A: "$14.99", B: "$9.99", C: "$5.99" };
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const cleanupRef = useRef<null | (() => void)>(null);
@@ -1351,6 +1578,11 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
         return;
       }
       setPhotoUrls((prev) => [...prev, ...urls].slice(0, MAX_SLIDESHOW_PHOTOS));
+      // The photo slideshow is a Deluxe-only feature — the render route rejects
+      // Standard purchases (see app/api/slideshow/render). So if a Standard
+      // buyer adds photos, move them to Deluxe: the CTA + charge then match what
+      // they'll actually receive, instead of a dead-end after paying.
+      setUnlockPlan((plan) => (plan === "full" ? "deluxe" : plan));
       track("slideshow_photos_uploaded", {
         venue_slug: venue?.slug ?? "none",
         count: urls.length,
@@ -1552,23 +1784,55 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
     return () => cancelAnimationFrame(raf);
   }
 
-  const basicFields = (
-    <div className="space-y-4 sm:space-y-5">
+  const personFields = (
+    <div className="space-y-5">
       <div>
-        <label className="mb-2 block text-[clamp(12px,2.5vw,14px)] font-bold">
+        <label htmlFor="recipient-name" className="mb-2 block font-display text-lg font-bold text-ink">
           {t.generate.nameLabel}
         </label>
         <input
+          id="recipient-name"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => {
+            // Enter on a filled name jumps straight to the vibe sub-step — the
+            // fastest path for keyboard users, matching the primary "Next" CTA.
+            if (e.key === "Enter" && name.trim()) {
+              e.preventDefault();
+              setInputStep(1);
+            }
+          }}
           placeholder={t.generate.namePlaceholder}
-          className={`w-full rounded-2xl border px-4 py-3.5 text-[clamp(14px,3vw,16px)] outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
+          className={`w-full rounded-xl border px-4 py-4 text-lg text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
         />
       </div>
 
+      {/* Relationship — quick chips (sets the same free-text relationship state). */}
       <div>
-        <label htmlFor="pronunciation-hint" className="mb-2 block text-[clamp(12px,2.5vw,14px)] font-bold">
-          🔤 How is the name pronounced? <span className="opacity-60">(optional)</span>
+        <label className="mb-2 block text-sm font-bold text-ink">
+          Who are they to you? <span className="opacity-60">(optional)</span>
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {["Friend", "Partner", "Family", "Coworker", "Other"].map((rel) => (
+            <button
+              key={rel}
+              type="button"
+              onClick={() => setRelationship(relationship === rel ? "" : rel)}
+              className={`rounded-full border px-4 py-2 text-sm font-bold transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] ${
+                relationship === rel
+                  ? "border-transparent bg-warm-gradient text-white shadow-md"
+                  : "border-sand bg-cream text-ink hover:border-jade"
+              }`}
+            >
+              {rel}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label htmlFor="pronunciation-hint" className="mb-2 block text-sm font-bold text-ink">
+          How is the name pronounced? <span className="opacity-60">(optional)</span>
         </label>
         <input
           id="pronunciation-hint"
@@ -1576,29 +1840,29 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
           onChange={(e) => setPronunciationHint(e.target.value.slice(0, 80))}
           placeholder="e.g., 'sha-VON' for Siobhan"
           maxLength={80}
-          className={`w-full rounded-2xl border px-4 py-3.5 text-[clamp(14px,3vw,16px)] outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
+          className={`w-full rounded-xl border px-4 py-3.5 text-base text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
         />
-        <p className="mt-1.5 text-xs opacity-70">
+        <p className="mt-1.5 text-xs text-ink-soft">
           Tip: write it the way you’d say it out loud. ‘KAY-tlin’ for Caitlin, ‘EE-fa’ for Aoife.
         </p>
 
         <div className="mt-3">
           {micState === "warming" ? (
-            <div className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-amber-300/40 bg-amber-300/10 px-4 py-3 text-sm font-bold">
-              <span aria-hidden className="inline-block h-2 w-2 animate-pulse rounded-full bg-amber-300" />
+            <div className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gold/40 bg-warm-soft px-4 py-3 text-sm font-bold text-ink">
+              <span aria-hidden className="inline-block h-2 w-2 animate-pulse rounded-full bg-gold" />
               <span>Get ready…</span>
             </div>
           ) : micState === "recording" ? (
             <button
               type="button"
               onClick={stopMicRecording}
-              className="inline-flex w-full items-center justify-center gap-3 rounded-2xl border border-rose-300/40 bg-rose-500/15 px-4 py-3 text-sm font-bold transition hover:bg-rose-500/25"
+              className="inline-flex w-full items-center justify-center gap-3 rounded-xl border border-blush/50 bg-warm-soft px-4 py-3 text-sm font-bold text-ink transition hover:border-blush"
             >
               <span aria-hidden className="flex h-5 items-end gap-[3px]">
                 {[0, 1, 2, 3, 4, 5, 6].map((i) => (
                   <span
                     key={i}
-                    className="block h-full w-[3px] rounded bg-rose-200 animate-pulse-bar"
+                    className="block h-full w-[3px] rounded bg-blush animate-pulse-bar"
                     style={{ animationDelay: `${i * 0.08}s` }}
                   />
                 ))}
@@ -1606,31 +1870,31 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
               <span>🎙️ Speak now! ⏹ Stop (auto-stops at 4s)</span>
             </button>
           ) : micState === "transcribing" ? (
-            <div className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-bold opacity-80">
+            <div className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-sand bg-cream px-4 py-3 text-sm font-bold text-ink-soft">
               ✨ Reading the pronunciation…
             </div>
           ) : (
             <button
               type="button"
               onClick={startMicRecording}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-sm font-bold transition hover:bg-white/10"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-sand bg-cream px-4 py-3 text-sm font-bold text-ink transition hover:border-jade"
             >
               <span aria-hidden>🎤</span> Or just say the name
             </button>
           )}
           {micError && (
-            <p role="alert" className="mt-2 text-xs text-rose-300">
+            <p role="alert" className="mt-2 text-xs text-blush">
               {micError}
             </p>
           )}
-          <p className="mt-1.5 text-[11px] opacity-60">
+          <p className="mt-1.5 text-[11px] text-ink-soft">
             Audio is sent for transcription and discarded. Not stored.
           </p>
         </div>
       </div>
 
       <div>
-        <label htmlFor="recipient-age" className="mb-2 block text-[clamp(12px,2.5vw,14px)] font-bold">
+        <label htmlFor="recipient-age" className="mb-2 block text-sm font-bold text-ink">
           {t.generate.ageLabel}
         </label>
         <input
@@ -1642,7 +1906,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
           value={ageInput}
           onChange={(e) => setAgeInput(e.target.value)}
           placeholder={t.generate.agePlaceholder}
-          className={`w-full rounded-2xl border px-4 py-3.5 text-[clamp(14px,3vw,16px)] outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
+          className={`w-full rounded-xl border px-4 py-3.5 text-base text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
         />
         {/* Quick-pick milestone ages — additive convenience; typing still
             works and drives the same ageInput state / recipientAge parsing. */}
@@ -1652,10 +1916,10 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
               key={milestone}
               type="button"
               onClick={() => setAgeInput(String(milestone))}
-              className={`rounded-full border px-3 py-1.5 text-xs font-bold transition hover:-translate-y-0.5 ${
+              className={`rounded-full border px-3 py-1.5 text-xs font-bold transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] ${
                 ageInput === String(milestone)
-                  ? `border-transparent bg-gradient-to-r ${theme.accent} text-white shadow-lg`
-                  : "border-white/15 bg-white/5 hover:bg-white/10"
+                  ? "border-transparent bg-warm-gradient text-white shadow-md"
+                  : "border-sand bg-cream text-ink hover:border-jade"
               }`}
             >
               {milestone}
@@ -1663,10 +1927,14 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
           ))}
         </div>
       </div>
+    </div>
+  );
 
+  const vibeFields = (
+    <div className="space-y-5">
       <div>
-        <label htmlFor="sender-name" className="mb-2 block text-[clamp(12px,2.5vw,14px)] font-bold">
-          ✍️ Your Name (Sender)
+        <label htmlFor="sender-name" className="mb-2 block text-sm font-bold text-ink">
+          Your name <span className="opacity-60">(optional — shown on the share)</span>
         </label>
         <input
           id="sender-name"
@@ -1674,29 +1942,32 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
           onChange={(e) => setSenderName(e.target.value.slice(0, 50))}
           placeholder="Optional — shown on the share page"
           maxLength={50}
-          className={`w-full rounded-2xl border px-4 py-3.5 text-[clamp(14px,3vw,16px)] outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
+          className={`w-full rounded-xl border px-4 py-3.5 text-base text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
         />
       </div>
 
       <div>
-        <label className="mb-2 block text-[clamp(12px,2.5vw,14px)] font-bold">
-          {t.generate.languageLabel}
-        </label>
-        <select
-          value={language}
-          onChange={(e) => setLanguage(e.target.value as Language)}
-          className={`w-full rounded-2xl border px-4 py-3.5 text-[clamp(14px,3vw,16px)] outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
-        >
+        <label className="mb-2 block text-sm font-bold text-ink">Language</label>
+        <div className="flex flex-wrap gap-2">
           {languages.map((lang) => (
-            <option key={lang} className="text-gray-900">
+            <button
+              key={lang}
+              type="button"
+              onClick={() => setLanguage(lang as Language)}
+              className={`rounded-full border px-4 py-2 text-sm font-bold transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] ${
+                language === lang
+                  ? "border-transparent bg-warm-gradient text-white shadow-md"
+                  : "border-sand bg-cream text-ink hover:border-jade"
+              }`}
+            >
               {lang}
-            </option>
+            </button>
           ))}
-        </select>
+        </div>
       </div>
 
       <div>
-        <label className="mb-3 block text-[clamp(12px,2.5vw,14px)] font-bold">
+        <label className="mb-3 block text-sm font-bold text-ink">
           {t.generate.genreLabel}
         </label>
 
@@ -1706,10 +1977,10 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
               key={item}
               type="button"
               onClick={() => setGenre(item)}
-              className={`rounded-2xl border px-3 py-3 text-[clamp(12px,2.7vw,14px)] font-bold transition hover:-translate-y-1 ${
+              className={`rounded-xl border px-3 py-3 text-sm font-bold transition hover:-translate-y-1 ${
                 genre === item
-                  ? `border-transparent bg-gradient-to-r ${theme.accent} text-white shadow-lg`
-                  : "border-white/15 bg-white/5 hover:bg-white/10"
+                  ? "border-transparent bg-warm-gradient text-white shadow-md"
+                  : "border-sand bg-cream text-ink hover:border-jade"
               }`}
             >
               {item}
@@ -1719,10 +1990,10 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
           <button
             type="button"
             onClick={() => setGenre("🎲 Surprise Me")}
-            className={`col-span-2 md:col-span-3 rounded-2xl border border-dashed px-4 py-3.5 text-[clamp(14px,3vw,16px)] font-extrabold transition hover:-translate-y-1 ${
+            className={`col-span-2 md:col-span-3 rounded-xl border border-dashed px-4 py-3.5 text-base font-extrabold transition hover:-translate-y-1 ${
               genre === "🎲 Surprise Me"
-                ? `border-transparent bg-gradient-to-r ${theme.accent} text-white shadow-lg`
-                : "border-white/30 bg-white/10 hover:bg-white/15"
+                ? "border-transparent bg-warm-gradient text-white shadow-md"
+                : "border-tan bg-cream text-ink hover:border-jade"
             }`}
           >
             🎲 Surprise Me!
@@ -1731,8 +2002,8 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
       </div>
 
       <div>
-        <label htmlFor="style-notes" className="mb-2 block text-[clamp(12px,2.5vw,14px)] font-bold">
-          ✍️ Anything specific to mention? <span className="opacity-60">(optional)</span>
+        <label htmlFor="style-notes" className="mb-2 block text-sm font-bold text-ink">
+          Anything to mention? <span className="opacity-60">(optional)</span>
         </label>
         <input
           id="style-notes"
@@ -1740,9 +2011,9 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
           onChange={(e) => setStyleNotes(e.target.value.slice(0, 200))}
           placeholder="e.g., 'their favorite band is Coldplay,' 'they love running,' 'mention their dog Max'"
           maxLength={200}
-          className={`w-full rounded-2xl border px-4 py-3.5 text-[clamp(14px,3vw,16px)] outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
+          className={`w-full rounded-xl border px-4 py-3.5 text-base text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
         />
-        <p className="mt-1.5 text-xs opacity-70">
+        <p className="mt-1.5 text-xs text-ink-soft">
           Personal details, a music style, an artist reference, or a mood — we weave it into the lyrics and the music.
         </p>
       </div>
@@ -1751,7 +2022,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
 
   return (
     <main
-      className={`relative min-h-screen overflow-x-hidden bg-gradient-to-br ${theme.pageBg} ${theme.text} px-4 py-6 sm:py-8 transition-all duration-700`}
+      className={`grain relative min-h-screen overflow-x-hidden bg-cream ${theme.text} px-4 py-6 sm:py-8 transition-all duration-700`}
     >
       <style>{`
         * { scrollbar-width: none; }
@@ -1777,41 +2048,26 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
         .float-two { animation: floatTwo 12s ease-in-out infinite; }
       `}</style>
 
-      <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${theme.pageBg} moving-bg`} />
+      {/* Warm organic blobs bleeding off the edges (matches the landing look). */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -left-40 -top-40 z-0 h-[520px] w-[520px] rounded-full bg-[radial-gradient(circle,rgba(255,158,120,0.5),transparent_66%)] blur-2xl"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-40 top-10 z-0 h-[560px] w-[560px] rounded-full bg-[radial-gradient(circle,rgba(255,126,157,0.45),transparent_66%)] blur-2xl"
+      />
 
       <canvas ref={canvasRef} className="fixed inset-0 z-[1] pointer-events-none select-none" />
 
-      {theme.effect === "emoji" && (
-        <div className="absolute inset-0 z-[2] pointer-events-none select-none">
-          {theme.emojis.map((emoji, index) => {
-            const positions = [
-              ["8%", "5%"], ["14%", "82%"], ["28%", "9%"], ["35%", "88%"],
-              ["54%", "6%"], ["62%", "86%"], ["78%", "12%"], ["82%", "76%"],
-              ["20%", "23%"], ["72%", "28%"], ["18%", "65%"], ["50%", "70%"],
-            ];
-
-            return (
-              <div
-                key={index}
-                className={`absolute text-4xl md:text-6xl opacity-60 drop-shadow-2xl ${
-                  index % 2 === 0 ? "float-one" : "float-two"
-                }`}
-                style={{
-                  top: positions[index][0],
-                  left: positions[index][1],
-                  animationDelay: `${index * 0.45}s`,
-                }}
-              >
-                {emoji}
-              </div>
-            );
-          })}
-        </div>
-      )}
+      {/* Light/dark switch — floats top-right above the centered header. */}
+      <div className="absolute right-4 top-6 z-30 sm:right-6">
+        <ThemeToggle />
+      </div>
 
       {venue && (
         <div
-          className="relative z-20 mx-auto mb-4 flex max-w-5xl items-center gap-2 rounded-r-xl border-l-2 bg-white/5 px-4 py-2 text-sm font-semibold backdrop-blur"
+          className="relative z-20 mx-auto mb-4 flex max-w-5xl items-center gap-2 rounded-r-xl border-l-2 bg-cream-soft px-4 py-2 text-sm font-semibold text-ink shadow-sm"
           style={{ borderLeftColor: venue.logo_color }}
         >
           <span>Birthday songs at</span>
@@ -1826,70 +2082,26 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
 
       <header className="relative z-20 mx-auto mb-6 max-w-5xl text-center">
         <Image
-          src="/brand/logo-mark.png"
+          src="/brand/logo-mark-tight.png"
           alt="Sing My Birthday"
-          width={88}
-          height={88}
+          width={104}
+          height={104}
           priority
-          className="mx-auto mb-4 drop-shadow-[0_8px_22px_rgba(236,72,153,0.40)]"
+          className="mx-auto mb-4 h-[104px] w-[104px] drop-shadow-sm"
         />
-        <div className="mb-3 flex items-center justify-center gap-2 sm:gap-3">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-semibold backdrop-blur sm:text-sm">
+        <div className="mb-3 flex items-center justify-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-sand bg-cream-soft px-4 py-2 text-xs font-semibold text-jade shadow-sm sm:text-sm">
             ✨ AI-Powered
-          </div>
-
-          <div className="relative inline-flex">
-            <button
-              type="button"
-              onClick={() => setThemeOpen(!themeOpen)}
-              className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-bold shadow-xl backdrop-blur transition hover:bg-white/15 sm:text-sm"
-            >
-              🎨 Theme
-            </button>
-
-            {themeOpen && (
-              <div className="fixed left-1/2 top-16 z-[9999] max-h-[80vh] w-[92vw] max-w-sm -translate-x-1/2 overflow-y-auto rounded-3xl border border-white/20 bg-black/90 p-4 text-white shadow-2xl backdrop-blur-2xl">
-                <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-lg font-bold">Choose Theme</h3>
-                  <button type="button" onClick={() => setThemeOpen(false)}>✕</button>
-                </div>
-
-                <div className="space-y-3">
-                  {Object.entries(themes).map(([key, item]) => (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => {
-                        setThemeKey(key as ThemeKey);
-                        setThemeOpen(false);
-                      }}
-                      className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition ${
-                        themeKey === key
-                          ? "border-purple-400 bg-purple-500/30"
-                          : "border-white/10 bg-white/5 hover:bg-white/10"
-                      }`}
-                    >
-                      <div className={`h-12 w-16 shrink-0 rounded-xl bg-gradient-to-br ${item.pageBg}`} />
-                      <div>
-                        <p className="font-bold">{item.name}</p>
-                        <p className="text-xs text-gray-300">{item.desc}</p>
-                      </div>
-                      {themeKey === key && <span className="ml-auto">✓</span>}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </div>
 
         <h1
-          className={`bg-gradient-to-r ${theme.title} bg-clip-text pb-3 text-[clamp(36px,8vw,72px)] font-extrabold leading-[1.15] text-transparent`}
+          className={`bg-gradient-to-r ${theme.title} bg-clip-text pb-3 font-display text-4xl font-extrabold leading-[1.05] tracking-tight text-transparent sm:text-5xl lg:text-6xl`}
         >
           Birthday Song Generator
         </h1>
 
-        <p className={`text-[clamp(14px,3vw,18px)] ${theme.sub}`}>
+        <p className={`text-base sm:text-lg ${theme.sub}`}>
           Create a personalized birthday song in seconds
         </p>
       </header>
@@ -1916,10 +2128,10 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                 <div
                   className={`flex min-w-0 flex-1 items-center gap-2 rounded-2xl border px-3 py-2 transition ${
                     isCurrent
-                      ? "border-transparent bg-gradient-to-r from-pink-500 via-fuchsia-500 to-amber-400 text-white shadow-lg"
+                      ? "border-transparent bg-warm-gradient text-white shadow-md"
                       : isDone
-                        ? "border-emerald-300/40 bg-emerald-400/10 text-emerald-100"
-                        : "border-white/15 bg-white/5 opacity-70"
+                        ? "border-jade/40 bg-warm-soft text-jade"
+                        : "border-sand bg-cream-soft text-ink-soft"
                   }`}
                 >
                   <span
@@ -1928,13 +2140,13 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                       isCurrent
                         ? "bg-white/25 text-white"
                         : isDone
-                          ? "bg-emerald-400/30 text-emerald-100"
-                          : "bg-white/10 text-white/70"
+                          ? "bg-jade/20 text-jade"
+                          : "bg-sand text-ink-soft"
                     }`}
                   >
                     {isDone ? "✓" : n}
                   </span>
-                  <span className="truncate text-[clamp(11px,2.6vw,13px)] font-bold">
+                  <span className="truncate text-xs font-bold">
                     {label}
                   </span>
                 </div>
@@ -1952,124 +2164,141 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
           while the wait block still renders during loadingMusic. */}
       {(step === 1 || loadingMusic) && (
       <section
-        className={`relative z-10 mx-auto max-w-xl rounded-[2rem] border ${theme.card} p-[clamp(18px,4vw,32px)] shadow-2xl backdrop-blur-2xl`}
+        className={`relative z-10 mx-auto max-w-xl rounded-[2rem] border ${theme.card} p-5 shadow-sm sm:p-8`}
       >
         {/* Step 1 form fields + lyrics CTA. Hidden once lyrics exist so steps
             2-3 don't re-show the details form (the loadingMusic wait UI below
             stays visible during the music render). */}
         {!lyrics && (
         <>
-        <div className="mb-5 flex gap-3">
-          <button
-            type="button"
-            onClick={() => setTab("basic")}
-            className={`flex-1 rounded-2xl border py-3 text-[clamp(13px,3vw,16px)] font-bold transition ${
-              tab === "basic"
-                ? `border-transparent bg-gradient-to-r ${theme.accent} text-white shadow-lg`
-                : "border-white/15 bg-white/5 opacity-75"
-            }`}
-          >
-            ♪ Basic
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setTab("advanced")}
-            className={`flex-1 rounded-2xl border py-3 text-[clamp(13px,3vw,16px)] font-bold transition ${
-              tab === "advanced"
-                ? `border-transparent bg-gradient-to-r ${theme.accent} text-white shadow-lg`
-                : "border-white/15 bg-white/5 opacity-75"
-            }`}
-          >
-            ⚙ Advanced
-          </button>
-        </div>
-
-        {tab === "basic" && basicFields}
-
-        {tab === "advanced" && (
-          <div className="space-y-5">
-            {basicFields}
-
-            <div className="border-t border-white/10 pt-5">
-              <p className="mb-4 text-sm font-bold opacity-80">
-                ✨ Advanced personalization
+        {inputStep === 0 ? (
+          <>
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <p className="text-sm font-bold uppercase tracking-[0.15em] text-jade">
+                The person
               </p>
-
-              <div className="space-y-4">
-                <input
-                  value={relationship}
-                  onChange={(e) => setRelationship(e.target.value)}
-                  placeholder="Who is this person to you?"
-                  className={`w-full rounded-2xl border px-4 py-3.5 text-sm outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
-                />
-                <input
-                  value={profession}
-                  onChange={(e) => setProfession(e.target.value)}
-                  placeholder="What is their profession?"
-                  className={`w-full rounded-2xl border px-4 py-3.5 text-sm outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
-                />
-                <textarea
-                  value={memory}
-                  onChange={(e) => setMemory(e.target.value)}
-                  placeholder="What is a special memory you share?"
-                  rows={2}
-                  className={`w-full resize-none rounded-2xl border px-4 py-3.5 text-sm outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
-                />
-                <textarea
-                  value={extras}
-                  onChange={(e) => setExtras(e.target.value)}
-                  placeholder="Anything else you want to add?"
-                  rows={3}
-                  className={`w-full resize-none rounded-2xl border px-4 py-3.5 text-sm outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
-                />
-              </div>
+              <SubStepDots active={0} onJump={(i) => i === 0 && setInputStep(0)} />
             </div>
-          </div>
-        )}
+            {personFields}
+            <button
+              type="button"
+              onClick={() => setInputStep(1)}
+              disabled={!name.trim()}
+              className="mt-6 w-full min-h-[44px] rounded-full bg-jade py-4 text-base font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(31,142,125,0.7)] transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] hover:bg-jade-deep disabled:cursor-not-allowed disabled:bg-sand disabled:text-ink-soft disabled:shadow-none disabled:hover:translate-y-0 disabled:hover:bg-sand sm:text-lg"
+            >
+              Next →
+            </button>
+            {!name.trim() && (
+              <p className="mt-2 text-center text-xs text-ink-soft">Add their name to continue.</p>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <p className="text-sm font-bold uppercase tracking-[0.15em] text-jade">
+                The vibe
+              </p>
+              <SubStepDots active={1} onJump={(i) => i === 0 && setInputStep(0)} />
+            </div>
+            {vibeFields}
 
-        {/* Email + attestation + marketing opt-in are intentionally NOT here.
-            Progressive commitment: they're collected at the music step (right
-            before the real payoff), so the first free action — Write Lyrics —
-            only needs name + age + genre. See the lyrics section. */}
+            {/* Progressive disclosure: secondary personalization behind one tap. */}
+            <div className="mt-5">
+              <button
+                type="button"
+                onClick={() => setMoreOpen((v) => !v)}
+                aria-expanded={moreOpen}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-sand bg-cream px-4 py-3 text-sm font-bold text-ink-soft transition hover:text-ink"
+              >
+                {moreOpen ? "− Fewer details" : "＋ Add more details (optional)"}
+              </button>
 
-        <button
-          type="button"
-          onClick={generateLyricsHandler}
-          disabled={!canGenerateLyrics || loadingLyrics || loadingMusic}
-          className={`mt-4 w-full min-h-[44px] rounded-2xl bg-gradient-to-r ${theme.accent} py-4 text-[clamp(15px,3vw,18px)] font-extrabold text-white shadow-xl transition hover:-translate-y-1 disabled:cursor-not-allowed disabled:opacity-40`}
-        >
-          {loadingLyrics ? t.generate.writingLyrics : t.generate.writeLyrics}
-        </button>
+              {moreOpen && (
+                <div className="mt-4 space-y-4">
+                  <input
+                    value={profession}
+                    onChange={(e) => setProfession(e.target.value)}
+                    placeholder="What do they do? (optional)"
+                    className={`w-full rounded-xl border px-4 py-3.5 text-sm text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
+                  />
+                  <textarea
+                    value={memory}
+                    onChange={(e) => setMemory(e.target.value)}
+                    placeholder="A special memory you share (optional)"
+                    rows={2}
+                    className={`w-full resize-none rounded-xl border px-4 py-3.5 text-sm text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
+                  />
+                  <textarea
+                    value={extras}
+                    onChange={(e) => setExtras(e.target.value)}
+                    placeholder="Anything else to weave in? A favorite band, an inside joke…"
+                    rows={3}
+                    className={`w-full resize-none rounded-xl border px-4 py-3.5 text-sm text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
+                  />
+                </div>
+              )}
+            </div>
 
-        {/* Trust / reassurance strip — honest signals only (no fabricated
-            numbers or reviews). Compact, muted, wraps on mobile. */}
-        <div className="mt-3 space-y-1.5 text-center">
-          <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[11px] text-gray-400">
-            <span>{t.generate.trustFreePreview}</span>
-            <span aria-hidden className="opacity-40">·</span>
-            <span>{t.generate.trustNoSignup}</span>
-            <span aria-hidden className="opacity-40">·</span>
-            <span>{t.generate.trustMoneyBack}</span>
-            <span aria-hidden className="opacity-40">·</span>
-            <span>{t.generate.trustSecureStripe}</span>
-          </p>
-          <p className="text-[11px] text-gray-400">
-            {t.generate.trustRewriteFree}
-          </p>
-        </div>
+            {/* Email + attestation are collected later (progressive commitment). */}
+            {(name || genre) && (
+              <p className="mt-6 text-center text-sm text-ink-soft">
+                A{" "}
+                <span className="font-bold text-ink">
+                  {genre && genre !== "🎲 Surprise Me" ? genre.replace(/^[^A-Za-z]+/, "").trim() : "surprise"}
+                </span>{" "}
+                song for{" "}
+                <span className="font-bold text-ink">{name || "them"}</span>
+                {ageInput ? `, turning ${ageInput}` : ""}.
+              </p>
+            )}
 
-        {!canGenerateLyrics && !loadingLyrics && !loadingMusic && missingForLyrics && (
-          <p className="mt-2 text-center text-xs text-gray-400">{missingForLyrics}</p>
+            <div className="mt-4 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setInputStep(0)}
+                className="min-h-[44px] shrink-0 rounded-full border border-sand bg-cream px-6 text-base font-bold text-ink-soft transition hover:text-ink"
+              >
+                ← Back
+              </button>
+              <button
+                type="button"
+                onClick={generateLyricsHandler}
+                disabled={!canGenerateLyrics || loadingLyrics || loadingMusic}
+                className="flex-1 min-h-[44px] rounded-full bg-jade py-4 text-base font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(31,142,125,0.7)] transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] hover:bg-jade-deep disabled:cursor-not-allowed disabled:bg-sand disabled:text-ink-soft disabled:shadow-none disabled:hover:translate-y-0 disabled:hover:bg-sand sm:text-lg"
+              >
+                {loadingLyrics ? t.generate.writingLyrics : t.generate.writeLyrics}
+              </button>
+            </div>
+
+            {/* Trust / reassurance strip — honest signals only. */}
+            <div className="mt-3 space-y-1.5 text-center">
+              <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[11px] text-ink-soft">
+                <span>{t.generate.trustFreePreview}</span>
+                <span aria-hidden className="opacity-40">·</span>
+                <span>{t.generate.trustNoSignup}</span>
+                <span aria-hidden className="opacity-40">·</span>
+                <span>{t.generate.trustMoneyBack}</span>
+                <span aria-hidden className="opacity-40">·</span>
+                <span>{t.generate.trustSecureStripe}</span>
+              </p>
+              <p className="text-[11px] text-ink-soft">
+                {t.generate.trustRewriteFree}
+              </p>
+            </div>
+
+            {!canGenerateLyrics && !loadingLyrics && !loadingMusic && missingForLyrics && (
+              <p className="mt-2 text-center text-xs text-ink-soft">{missingForLyrics}</p>
+            )}
+          </>
         )}
 
         {loadingLyrics && (
           <div className="mt-5">
-            <div className="mb-2 flex justify-between text-xs opacity-70">
+            <div className="mb-2 flex justify-between text-xs text-ink-soft">
               <span>Writing lyrics...</span>
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-white/20">
-              <div className={`h-full animate-pulse bg-gradient-to-r ${theme.accent}`} style={{ width: "100%" }} />
+            <div className="h-2 overflow-hidden rounded-full bg-sand">
+              <div className="h-full animate-pulse bg-warm-gradient" style={{ width: "100%" }} />
             </div>
           </div>
         )}
@@ -2078,15 +2307,52 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
 
         {loadingMusic && (
           <div className="mt-6">
-            {/* Personality layer — rotating microcopy stays at the top. */}
-            <p className="text-center text-base font-bold opacity-90">
-              {audioUrl ? t.generate.waitReady : LOADING_MESSAGES[loadingMsgIdx]}
+            {/* Alive, personal centerpiece — a "studio" moment so the wait
+                feels like the song is being made for THEM, not a dead spinner. */}
+            {!audioUrl && (
+              <p className="mb-3 text-center text-[10px] font-bold uppercase tracking-[0.22em] text-jade">
+                🎙 In the studio
+              </p>
+            )}
+            <p className="text-center font-display text-lg font-bold text-ink">
+              {audioUrl
+                ? t.generate.waitReady
+                : name.trim()
+                  ? `Making ${name.trim()}’s song…`
+                  : "Making your song…"}
             </p>
 
+            {/* Live equalizer — a bigger, glowing bar row gives the wait real
+                motion. Freezes on completion; respects reduced-motion via
+                .animate-eq. */}
+            {!audioUrl && (
+              <div className="mt-5 flex items-end justify-center gap-1.5" aria-hidden>
+                {Array.from({ length: 11 }).map((_, i) => (
+                  <span
+                    key={i}
+                    className="w-2 rounded-full bg-warm-gradient animate-eq shadow-[0_0_12px_-2px_rgba(255,126,157,0.6)]"
+                    style={{
+                      height: 44,
+                      animationDelay: `${(i * 0.08).toFixed(2)}s`,
+                      animationDuration: `${(0.75 + (i % 4) * 0.14).toFixed(2)}s`,
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Rotating "production stage" sits below the stable headline so
+                there's steady forward motion without the copy jumping around. */}
+            {!audioUrl && (
+              <p className="mt-4 text-center text-sm font-semibold text-ink-soft">
+                {LOADING_MESSAGES[loadingMsgIdx]}
+              </p>
+            )}
+
             {/* Simulated progress: 75s linear → 95%, jumps to 100% on completion. */}
-            <div className="mt-3 h-3 overflow-hidden rounded-full bg-white/10">
+            <div className="mt-3 h-3 overflow-hidden rounded-full bg-sand">
               <div
-                className={`h-full bg-gradient-to-r ${theme.accent} ${audioUrl ? "" : "animate-progress"}`}
+                className={`h-full bg-warm-gradient ${audioUrl ? "" : "animate-progress"}`}
                 style={
                   audioUrl
                     ? { width: "100%", transition: "width 0.6s ease-out" }
@@ -2096,7 +2362,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
             </div>
 
             {/* Countdown label */}
-            <p className="mt-2 text-center text-xs opacity-70">
+            <p className="mt-2 text-center text-xs text-ink-soft">
               {audioUrl
                 ? t.generate.waitSongReady
                 : elapsedMs < 60_000
@@ -2104,18 +2370,21 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                   : t.generate.waitAlmostThere}
             </p>
 
+            {/* Optional wait-time game — pure fun, never blocks the render. */}
+            {!audioUrl && <WaitGame />}
+
             {/* Live lyric reveal — Claude's response already exists by the
                 time Suno starts working, so this is a UX device that makes
                 the ~60s wait feel productive rather than passive. The
                 pulsing 🎵 hints that music is being layered onto the words. */}
             {lyrics && (
               <div className="mt-6">
-                <div className="mb-2 flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest opacity-60">
+                <div className="mb-2 flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest text-ink-soft">
                   <span aria-hidden className="inline-block animate-pulse">🎵</span>
                   <span>{t.generate.waitWritingSong}</span>
                 </div>
                 <div
-                  className="max-h-48 overflow-y-auto rounded-2xl border border-white/15 bg-black/30 px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap"
+                  className="max-h-48 overflow-y-auto rounded-2xl border border-sand bg-noir px-4 py-3 text-sm leading-relaxed text-white whitespace-pre-wrap"
                   dir={language === "Arabic" ? "rtl" : "ltr"}
                   style={
                     language === "Hindi"
@@ -2135,10 +2404,19 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
               </div>
             )}
 
+            {/* Optional extras — collapsed by default so the wait stays calm
+                and focused on the song. Everything inside is additive; skipping
+                is fine (a default template + no capture still works). */}
+            <details className="mt-8 rounded-2xl border border-sand bg-cream-soft/60">
+              <summary className="flex cursor-pointer list-none items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[11px] font-bold uppercase tracking-widest text-ink-soft transition hover:text-ink">
+                ✨ Personalize while you wait (optional)
+              </summary>
+              <div className="space-y-6 px-4 pb-5 pt-1">
+
             {/* Template picker — pick during the wait. The selected template
                 locks in when createShareLink() auto-fires on song completion. */}
-            <div className="mt-6">
-              <p className="mb-2 text-center text-[10px] font-bold uppercase tracking-widest opacity-60">
+            <div className="mt-2">
+              <p className="mb-2 text-center text-[10px] font-bold uppercase tracking-widest text-ink-soft">
                 Pick a design while you wait
               </p>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
@@ -2151,10 +2429,10 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                       type="button"
                       onClick={() => setShareTemplate(key)}
                       disabled={!!audioUrl || creatingShare}
-                      className={`flex items-center justify-center gap-1.5 rounded-xl border px-2 py-2 text-xs font-bold transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 ${
+                      className={`flex items-center justify-center gap-1.5 rounded-xl border px-2 py-2 text-xs font-bold transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 ${
                         selected
-                          ? `border-transparent bg-gradient-to-r ${theme.accent} text-white shadow-lg`
-                          : "border-white/15 bg-white/5 hover:bg-white/10"
+                          ? "border-transparent bg-warm-gradient text-white shadow-md"
+                          : "border-sand bg-cream text-ink hover:border-jade"
                       }`}
                     >
                       <span
@@ -2172,7 +2450,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
             {/* Preview card — shows the recipient name styled in the selected
                 template. Helps the user pick something they like. */}
             {name.trim() && (
-              <div className="mt-4 overflow-hidden rounded-2xl border border-white/15">
+              <div className="mt-4 overflow-hidden rounded-2xl border border-sand">
                 <div className={`px-5 py-7 text-center ${PREVIEW_BG[shareTemplate]}`}>
                   <p className="text-[11px] font-bold uppercase tracking-widest opacity-60" style={{ color: "rgba(255,255,255,0.55)" }}>
                     Preview
@@ -2200,7 +2478,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                 candle) and a length cap (note); empty values fall back to
                 the default render. */}
             <div className="mt-6 space-y-4">
-              <p className="text-center text-[10px] font-bold uppercase tracking-widest opacity-60">
+              <p className="text-center text-[10px] font-bold uppercase tracking-widest text-ink-soft">
                 Make it yours (optional)
               </p>
 
@@ -2213,7 +2491,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
               {VISUAL_PICKS_ENABLED && (
                 <>
                   <div>
-                    <p className="mb-2 text-xs font-semibold opacity-75">
+                    <p className="mb-2 text-xs font-semibold text-ink-soft">
                       Pick a cake
                     </p>
                     <div className="grid grid-cols-4 gap-2">
@@ -2226,11 +2504,11 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                             onClick={() =>
                               setCakeStyle((prev) => (prev === style ? null : style))
                             }
-                            className="flex flex-col items-center gap-1 rounded-2xl bg-transparent p-1 transition hover:-translate-y-0.5"
+                            className="flex flex-col items-center gap-1 rounded-2xl bg-transparent p-1 transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99]"
                             aria-pressed={selected}
                           >
                             <CakeIcon style={style} selected={selected} />
-                            <span className="text-[10px] font-bold opacity-80">
+                            <span className="text-[10px] font-bold text-ink-soft">
                               {CAKE_LABELS[style]}
                             </span>
                           </button>
@@ -2240,7 +2518,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                   </div>
 
                   <div>
-                    <p className="mb-2 text-xs font-semibold opacity-75">
+                    <p className="mb-2 text-xs font-semibold text-ink-soft">
                       Candle color
                     </p>
                     <div className="flex flex-wrap gap-2">
@@ -2255,10 +2533,10 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                             }
                             aria-label={color}
                             aria-pressed={selected}
-                            className={`h-8 w-8 rounded-full transition hover:-translate-y-0.5 ${
+                            className={`h-8 w-8 rounded-full transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] ${
                               selected
-                                ? "ring-2 ring-white ring-offset-2 ring-offset-transparent"
-                                : "ring-1 ring-white/30"
+                                ? "ring-2 ring-jade ring-offset-2 ring-offset-cream-soft"
+                                : "ring-1 ring-sand"
                             }`}
                             style={{ backgroundColor: CANDLE_HEX[color] }}
                           />
@@ -2272,7 +2550,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
               <div>
                 <label
                   htmlFor="personal-note"
-                  className="mb-1 block text-xs font-semibold opacity-75"
+                  className="mb-1 block text-xs font-semibold text-ink-soft"
                 >
                   Add a personal note
                 </label>
@@ -2285,9 +2563,9 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                   }
                   maxLength={PERSONAL_NOTE_MAX_LEN}
                   placeholder="Wishing you the best year yet…"
-                  className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-purple-400"
+                  className="w-full rounded-xl border border-sand bg-cream-soft px-3 py-2 text-sm text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade placeholder:text-ink-soft"
                 />
-                <p className="mt-1 text-right text-[10px] opacity-50">
+                <p className="mt-1 text-right text-[10px] text-ink-soft">
                   {personalNote.trim().length}/{PERSONAL_NOTE_MAX_LEN}
                 </p>
               </div>
@@ -2297,13 +2575,13 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                 song generation. Values flow into the auto-share payload when
                 the song completes. */}
             <div className="mt-6 space-y-3">
-              <p className="text-center text-[10px] font-bold uppercase tracking-widest opacity-60">
+              <p className="text-center text-[10px] font-bold uppercase tracking-widest text-ink-soft">
                 A few quick details (optional)
               </p>
               <div>
                 <label
                   htmlFor="wait-relationship"
-                  className="mb-1 block text-xs font-semibold opacity-75"
+                  className="mb-1 block text-xs font-semibold text-ink-soft"
                 >
                   How do you know {name.trim() || "them"}?
                 </label>
@@ -2313,7 +2591,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                   onChange={(e) =>
                     setWaitRelationship(e.target.value as WaitCaptureRelationship | "")
                   }
-                  className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-purple-400"
+                  className="w-full rounded-xl border border-sand bg-cream-soft px-3 py-2 text-sm text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade placeholder:text-ink-soft"
                 >
                   <option value="">—</option>
                   {WAIT_CAPTURE_RELATIONSHIPS.map((rel) => (
@@ -2326,7 +2604,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
               <div>
                 <label
                   htmlFor="wait-location"
-                  className="mb-1 block text-xs font-semibold opacity-75"
+                  className="mb-1 block text-xs font-semibold text-ink-soft"
                 >
                   Where will you celebrate?
                 </label>
@@ -2336,7 +2614,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                   onChange={(e) =>
                     setWaitLocation(e.target.value as WaitCaptureLocation | "")
                   }
-                  className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-purple-400"
+                  className="w-full rounded-xl border border-sand bg-cream-soft px-3 py-2 text-sm text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade placeholder:text-ink-soft"
                 >
                   <option value="">—</option>
                   {WAIT_CAPTURE_LOCATIONS.map((loc) => (
@@ -2346,19 +2624,19 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                   ))}
                 </select>
               </div>
-              <label className="flex items-center gap-2 text-xs font-semibold opacity-90">
+              <label className="flex items-center gap-2 text-xs font-semibold text-ink">
                 <input
                   type="checkbox"
                   checked={waitYearReminder}
                   onChange={(e) => setWaitYearReminder(e.target.checked)}
-                  className="h-4 w-4 cursor-pointer rounded border-white/30 bg-white/5 accent-fuchsia-500"
+                  className="h-4 w-4 cursor-pointer rounded border-sand bg-cream-soft accent-jade"
                 />
                 Remind me next year?
               </label>
               <div>
                 <label
                   htmlFor="wait-birthday"
-                  className="mb-1 block text-xs font-semibold opacity-90"
+                  className="mb-1 block text-xs font-semibold text-ink-soft"
                 >
                   Their birthday (optional — we&apos;ll remind you next year)
                 </label>
@@ -2367,7 +2645,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                   type="date"
                   value={waitBirthdayDate}
                   onChange={(e) => setWaitBirthdayDate(e.target.value)}
-                  className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-purple-400"
+                  className="w-full rounded-xl border border-sand bg-cream-soft px-3 py-2 text-sm text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade placeholder:text-ink-soft"
                 />
               </div>
             </div>
@@ -2376,7 +2654,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                 main wait surface (template picker, preview, capture) stays
                 visually dominant. Additive engagement, never blocking. */}
             <div className="mt-6 space-y-3">
-              <p className="text-center text-[10px] font-bold uppercase tracking-widest opacity-60">
+              <p className="text-center text-[10px] font-bold uppercase tracking-widest text-ink-soft">
                 While you wait
               </p>
 
@@ -2386,15 +2664,15 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
               <details
                 open={previewPanelOpen}
                 onToggle={(e) => setPreviewPanelOpen((e.target as HTMLDetailsElement).open)}
-                className="overflow-hidden rounded-2xl border border-white/15 bg-white/5"
+                className="overflow-hidden rounded-2xl border border-sand bg-cream-soft"
               >
-                <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-xs font-bold transition hover:bg-white/5">
+                <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-xs font-bold text-ink transition hover:bg-warm-soft">
                   <span>💬 Preview the share message</span>
                   <span aria-hidden className="text-base opacity-70">
                     {previewPanelOpen ? "−" : "+"}
                   </span>
                 </summary>
-                <div className="border-t border-white/10 bg-[#0f1318] px-4 py-4">
+                <div className="border-t border-sand bg-[#0f1318] px-4 py-4">
                   <div className="ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-[#005c4b] px-3 py-2 text-[13px] leading-snug text-white shadow-sm">
                     <div>
                       {senderName.trim()
@@ -2419,16 +2697,16 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                 <details
                   open={samplePanelOpen}
                   onToggle={(e) => setSamplePanelOpen((e.target as HTMLDetailsElement).open)}
-                  className="overflow-hidden rounded-2xl border border-white/15 bg-white/5"
+                  className="overflow-hidden rounded-2xl border border-sand bg-cream-soft"
                 >
-                  <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-xs font-bold transition hover:bg-white/5">
+                  <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-xs font-bold text-ink transition hover:bg-warm-soft">
                     <span>🎧 Hear a sample in this genre</span>
                     <span aria-hidden className="text-base opacity-70">
                       {samplePanelOpen ? "−" : "+"}
                     </span>
                   </summary>
-                  <div className="border-t border-white/10 px-4 py-3">
-                    <p className="mb-2 text-[11px] opacity-60">
+                  <div className="border-t border-sand px-4 py-3">
+                    <p className="mb-2 text-[11px] text-ink-soft">
                       15-second preview · auto-stops
                     </p>
                     <audio
@@ -2457,19 +2735,21 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                 </details>
               )}
             </div>
+              </div>
+            </details>
           </div>
         )}
       </section>
       )}
 
       {errorMsg && (
-        <section className={`relative z-20 mx-auto mt-6 max-w-xl rounded-[2rem] border ${theme.card} p-6 shadow-2xl backdrop-blur-2xl`}>
-          <h2 className="text-lg font-bold">Something went wrong</h2>
-          <p className="mt-2 text-sm opacity-80">{errorMsg}</p>
+        <section className={`relative z-20 mx-auto mt-6 max-w-xl rounded-[2rem] border ${theme.card} p-6 shadow-sm`}>
+          <h2 className="font-display text-lg font-bold text-ink">Something went wrong</h2>
+          <p className="mt-2 text-sm text-ink-soft">{errorMsg}</p>
           <button
             type="button"
             onClick={resetForRetry}
-            className={`mt-4 rounded-2xl bg-gradient-to-r ${theme.accent} px-5 py-2.5 text-sm font-bold text-white shadow-lg transition hover:-translate-y-0.5`}
+            className="mt-4 rounded-full bg-jade px-5 py-2.5 text-sm font-bold text-white shadow-[0_16px_40px_-12px_rgba(31,142,125,0.7)] transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] hover:bg-jade-deep"
           >
             Try again
           </button>
@@ -2481,8 +2761,8 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
           scrolls back to the flow top rather than mutating state, which keeps
           the melody-lock rule intact (lyrics/song aren't reset). */}
       {lyrics && (
-        <div className="relative z-20 mx-auto mt-2 mb-1 flex max-w-xl flex-wrap items-center gap-2 rounded-2xl border border-emerald-300/30 bg-emerald-400/10 px-4 py-2.5 text-sm font-semibold text-emerald-50">
-          <span aria-hidden className="text-emerald-300">✓</span>
+        <div className="relative z-20 mx-auto mt-2 mb-1 flex max-w-xl flex-wrap items-center gap-2 rounded-2xl border border-jade/30 bg-warm-soft px-4 py-2.5 text-sm font-semibold text-ink">
+          <span aria-hidden className="text-jade">✓</span>
           <span className="min-w-0 truncate">
             For {name.trim() || "them"} · {resolvedGenre ?? genre} · {language}
           </span>
@@ -2496,7 +2776,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                 // Older browsers may reject the options object; ignore.
               }
             }}
-            className="ml-auto min-h-[44px] rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold transition hover:bg-white/20"
+            className="ml-auto min-h-[44px] rounded-full border border-sand bg-cream-soft px-3 py-1 text-xs font-bold text-ink transition hover:border-jade"
           >
             Edit
           </button>
@@ -2504,9 +2784,9 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
       )}
 
       {lyrics && (
-        <section className={`relative z-20 mx-auto mt-6 max-w-xl rounded-[2rem] border ${theme.card} p-6 shadow-2xl backdrop-blur-2xl`}>
-          <h2 className="text-xl font-bold">Happy Birthday, {name}!</h2>
-          <p className="text-sm opacity-70">
+        <section className={`relative z-20 mx-auto mt-6 max-w-xl rounded-[2rem] border ${theme.card} p-6 shadow-sm`}>
+          <h2 className="font-display text-xl font-bold text-ink">Happy Birthday, {name}!</h2>
+          <p className="text-sm text-ink-soft">
             {language} • {resolvedGenre ?? genre} • {lyrics.title}
           </p>
 
@@ -2541,13 +2821,44 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                   if (el.currentTime > PREVIEW_SECONDS) el.currentTime = PREVIEW_SECONDS;
                 }}
               />
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-fuchsia-300/90">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-jade">
                 {t.paywall.previewLabelPrefix}{PREVIEW_SECONDS}{t.paywall.previewLabelSuffix}
               </p>
 
+              {/* Video teaser — the shareable video is part of the unlock, so
+                  show it as a tangible 9:16 poster (in the chosen template)
+                  rather than only a bullet. Makes the result feel like a full
+                  gift (song + video) and reinforces value at the buy moment. */}
+              <div className="flex items-center gap-4 rounded-3xl border border-sand bg-cream-soft p-4">
+                <div
+                  className={`relative aspect-[9/16] w-[72px] shrink-0 overflow-hidden rounded-xl ${PREVIEW_BG[shareTemplate]}`}
+                >
+                  <div className="absolute inset-0 grid place-items-center px-2 text-center">
+                    <p
+                      className="text-[11px] font-extrabold leading-tight"
+                      style={PREVIEW_TEXT_STYLE[shareTemplate]}
+                    >
+                      Happy Birthday, {name.trim() || "you"}!
+                    </p>
+                  </div>
+                  <span aria-hidden className="absolute inset-0 grid place-items-center">
+                    <span className="grid h-8 w-8 place-items-center rounded-full bg-black/45 text-sm text-white backdrop-blur-sm">
+                      ▶
+                    </span>
+                  </span>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-extrabold text-ink">🎬 A shareable video, too</p>
+                  <p className="mt-1 text-xs leading-relaxed text-ink-soft">
+                    A vertical video of {name.trim() || "their"}’s song — made for WhatsApp,
+                    Telegram &amp; Stories. Yours to download the moment you unlock.
+                  </p>
+                </div>
+              </div>
+
               {/* The buy moment — the preview hooked them; now unlock everything. */}
-              <div className="rounded-3xl border border-fuchsia-300/30 bg-gradient-to-br from-fuchsia-500/15 via-purple-500/10 to-amber-400/10 p-5">
-                <p className="text-base font-extrabold">
+              <div className="rounded-3xl border border-jade/30 bg-warm-soft p-5">
+                <p className="font-display text-base font-extrabold text-ink">
                   {previewEnded
                     ? `${t.paywall.unlockHeadlineLovedPrefix}${t.paywall.unlockHeadlinePrefix}${name}${t.paywall.unlockHeadlineSuffix}`
                     : `${t.paywall.unlockHeadlinePrefix}${name}${t.paywall.unlockHeadlineSuffix}`}
@@ -2568,19 +2879,19 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                     aria-pressed={unlockPlan === "full"}
                     className={`block w-full rounded-2xl border p-3.5 text-left transition ${
                       unlockPlan === "full"
-                        ? "border-fuchsia-300/70 bg-fuchsia-500/10 ring-1 ring-fuchsia-300/40"
-                        : "border-white/10 bg-white/5 hover:border-white/20"
+                        ? "border-jade bg-cream-soft ring-1 ring-jade"
+                        : "border-sand bg-cream-soft hover:border-jade"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-extrabold">{t.paywall.standard}</span>
-                      <span className="text-sm font-extrabold">{shareTier ? TIER_PRICE_LABEL[shareTier] : ""}</span>
+                      <span className="text-sm font-extrabold text-ink">{t.paywall.standard}</span>
+                      <span className="text-sm font-extrabold text-ink">{shareTier ? TIER_PRICE_LABEL[shareTier] : ""}</span>
                     </div>
-                    <ul className="mt-1.5 space-y-1 text-xs">
-                      <li className="flex items-start gap-2"><span className="text-emerald-300">✓</span><span>{t.paywall.bulletCompleteSong}</span></li>
-                      <li className="flex items-start gap-2"><span className="text-emerald-300">✓</span><span>{t.paywall.bulletMp3}</span></li>
-                      <li className="flex items-start gap-2"><span className="text-emerald-300">✓</span><span>{t.paywall.bulletShareVideo}</span></li>
-                      <li className="flex items-start gap-2"><span className="text-emerald-300">✓</span><span>{t.paywall.bulletReplay}</span></li>
+                    <ul className="mt-1.5 space-y-1 text-xs text-ink-soft">
+                      <li className="flex items-start gap-2"><span className="text-jade">✓</span><span>{t.paywall.bulletCompleteSong}</span></li>
+                      <li className="flex items-start gap-2"><span className="text-jade">✓</span><span>{t.paywall.bulletMp3}</span></li>
+                      <li className="flex items-start gap-2"><span className="text-jade">✓</span><span>{t.paywall.bulletShareVideo}</span></li>
+                      <li className="flex items-start gap-2"><span className="text-jade">✓</span><span>{t.paywall.bulletReplay}</span></li>
                     </ul>
                   </button>
 
@@ -2597,19 +2908,19 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                     aria-pressed={unlockPlan === "deluxe"}
                     className={`block w-full rounded-2xl border p-3.5 text-left transition ${
                       unlockPlan === "deluxe"
-                        ? "border-amber-300/70 bg-amber-400/10 ring-1 ring-amber-300/40"
-                        : "border-white/10 bg-white/5 hover:border-white/20"
+                        ? "border-gold bg-cream-soft ring-1 ring-gold"
+                        : "border-sand bg-cream-soft hover:border-jade"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-extrabold">
-                        {t.paywall.deluxe} <span className="ml-1 rounded-full bg-gradient-to-r from-pink-500 via-fuchsia-500 to-amber-400 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">{t.paywall.bestValue}</span>
+                      <span className="text-sm font-extrabold text-ink">
+                        {t.paywall.deluxe} <span className="ml-1 rounded-full bg-warm-gradient px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">{t.paywall.bestValue}</span>
                       </span>
-                      <span className="text-sm font-extrabold">{shareTier ? DELUXE_PRICE_LABEL[shareTier] : ""}</span>
+                      <span className="text-sm font-extrabold text-ink">{shareTier ? DELUXE_PRICE_LABEL[shareTier] : ""}</span>
                     </div>
-                    <ul className="mt-1.5 space-y-1 text-xs">
-                      <li className="flex items-start gap-2"><span className="text-emerald-300">✓</span><span>{t.paywall.bulletEverythingStandard}</span></li>
-                      <li className="flex items-start gap-2"><span className="text-amber-300">★</span><span className="font-semibold">{t.paywall.bulletSlideshow}</span></li>
+                    <ul className="mt-1.5 space-y-1 text-xs text-ink-soft">
+                      <li className="flex items-start gap-2"><span className="text-jade">✓</span><span>{t.paywall.bulletEverythingStandard}</span></li>
+                      <li className="flex items-start gap-2"><span className="text-gold">★</span><span className="font-semibold text-ink">{t.paywall.bulletSlideshow}</span></li>
                     </ul>
                   </button>
                 </div>
@@ -2618,7 +2929,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                   type="button"
                   onClick={unlockFullSong}
                   disabled={!shareUrl || unlocking}
-                  className="mt-3 w-full rounded-2xl bg-gradient-to-r from-pink-500 via-fuchsia-500 to-amber-400 py-3.5 text-sm font-extrabold text-white shadow-xl transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="mt-3 w-full rounded-full bg-warm-gradient py-3.5 text-sm font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(255,111,145,0.7)] transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {unlocking
                     ? t.paywall.openingCheckout
@@ -2628,10 +2939,18 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                         ? `${t.paywall.unlockDeluxePrefix}${shareTier ? ` · ${DELUXE_PRICE_LABEL[shareTier]}` : ""} →`
                         : `${t.paywall.unlockStandardPrefix}${shareTier ? ` · ${TIER_PRICE_LABEL[shareTier]}` : ""} →`}
                 </button>
-                <p className="mt-3 flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-300">
-                  <span aria-hidden>✓</span> {t.paywall.moneyBack}
+                <p className="mt-3 flex items-center justify-center gap-1.5 text-xs font-bold text-jade">
+                  <span aria-hidden>✓</span>{" "}
+                  <a
+                    href="/refund"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline decoration-jade/40 underline-offset-2 hover:decoration-jade"
+                  >
+                    {t.paywall.moneyBack}
+                  </a>
                 </p>
-                <p className="mt-1 text-center text-[11px] opacity-60">
+                <p className="mt-1 text-center text-[11px] text-ink-soft">
                   {t.paywall.secureCheckout}
                 </p>
               </div>
@@ -2639,14 +2958,19 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
               {/* Optional: add photos for a Ken-Burns slideshow set to the song.
                   Entirely optional — skipping is fine. The photos persist on the
                   share; the slideshow video renders after unlock. */}
-              <div className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur">
+              <div className="rounded-3xl border border-sand bg-cream-soft p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-extrabold">📸 Add photos for a slideshow</p>
-                    <p className="mt-1 text-xs leading-relaxed opacity-70">
-                      Optional — add up to {MAX_SLIDESHOW_PHOTOS} photos and we&apos;ll
+                    <p className="text-sm font-extrabold text-ink">
+                      📸 Add photos for a slideshow
+                      <span className="ml-2 rounded-full bg-warm-gradient px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                        Deluxe
+                      </span>
+                    </p>
+                    <p className="mt-1 text-xs leading-relaxed text-ink-soft">
+                      Part of Deluxe — add up to {MAX_SLIDESHOW_PHOTOS} photos and we&apos;ll
                       turn them into a Ken-Burns video set to {name || "the"}&apos;s song
-                      after you unlock.
+                      after you unlock. Adding photos selects Deluxe.
                     </p>
                   </div>
                 </div>
@@ -2656,7 +2980,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                     {photoUrls.map((url, i) => (
                       <div
                         key={url}
-                        className="group relative aspect-square overflow-hidden rounded-xl border border-white/10 bg-white/5"
+                        className="group relative aspect-square overflow-hidden rounded-xl border border-sand bg-cream"
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element -- remote R2 thumbnails; no need for next/image optimization here */}
                         <img
@@ -2690,7 +3014,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                   type="button"
                   onClick={() => photoInputRef.current?.click()}
                   disabled={uploadingPhotos || photoUrls.length >= MAX_SLIDESHOW_PHOTOS}
-                  className="mt-3 w-full rounded-2xl border border-white/15 bg-white/5 py-2.5 text-sm font-semibold transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="mt-3 w-full rounded-xl border border-sand bg-cream py-2.5 text-sm font-semibold text-ink transition hover:border-jade disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {uploadingPhotos
                     ? "Uploading…"
@@ -2702,16 +3026,16 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                 </button>
 
                 {photoError && (
-                  <p className="mt-2 text-xs text-rose-300">{photoError}</p>
+                  <p className="mt-2 text-xs text-blush">{photoError}</p>
                 )}
               </div>
             </div>
           ) : loadingMusic ? (
-            <div className="mt-4 rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm opacity-80">
+            <div className="mt-4 rounded-2xl border border-sand bg-cream px-4 py-3 text-sm text-ink-soft">
               🎵 {ready ? "Audio is ready." : longWaitHint ? "Music is still rendering — almost there..." : "Music is rendering..."}
             </div>
           ) : (
-            <p className="mt-3 text-xs opacity-70">
+            <p className="mt-3 text-xs text-ink-soft">
               Edit any section below, then generate the music.
             </p>
           )}
@@ -2723,7 +3047,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
           >
             {editableSections.map((section, idx) => (
               <div key={idx}>
-                <label className="mb-1 block text-xs font-bold uppercase tracking-wide opacity-60">
+                <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-ink-soft">
                   [{section.tag}]
                 </label>
                 <textarea
@@ -2732,7 +3056,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                   disabled={musicLocked}
                   rows={Math.max(2, section.text.split("\n").length)}
                   dir={language === "Arabic" ? "rtl" : "ltr"}
-                  className={`w-full resize-none rounded-2xl border px-4 py-3 text-sm leading-relaxed outline-none transition focus:ring-2 focus:ring-purple-400 disabled:opacity-70 ${theme.input}`}
+                  className={`w-full resize-none rounded-xl border px-4 py-3 text-sm leading-relaxed text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade disabled:opacity-70 ${theme.input}`}
                 />
               </div>
             ))}
@@ -2744,7 +3068,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                   melody is generated, so users must iterate on lyrics here.
                   Real feedback (Lemoni): loved the melody, wanted to edit the
                   words after the fact, which the API doesn't support. */}
-              <div className="flex items-start gap-2 rounded-2xl border border-amber-300/30 bg-amber-300/10 px-4 py-3 text-xs leading-relaxed text-amber-100">
+              <div className="flex items-start gap-2 rounded-2xl border border-gold/30 bg-warm-soft px-4 py-3 text-xs leading-relaxed text-ink">
                 <span aria-hidden className="mt-px shrink-0">💡</span>
                 <span>
                   {t.generate.commitmentHint}
@@ -2758,7 +3082,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                   the music job → before song-ready → before auto-share and
                   abandoned-recovery enrollment. */}
               <div>
-                <label htmlFor="contact-email" className="mb-2 block text-[clamp(12px,2.5vw,14px)] font-bold">
+                <label htmlFor="contact-email" className="mb-2 block text-sm font-bold text-ink">
                   {t.generate.emailLabel}
                 </label>
                 <input
@@ -2768,16 +3092,16 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                   value={emailInput}
                   onChange={(e) => setEmailInput(e.target.value)}
                   placeholder={t.generate.emailPlaceholder}
-                  className={`w-full rounded-2xl border px-4 py-3.5 text-[clamp(14px,3vw,16px)] outline-none transition focus:ring-2 focus:ring-purple-400 ${theme.input}`}
+                  className={`w-full rounded-xl border px-4 py-3.5 text-base text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
                 />
-                <p className="mt-1.5 text-xs opacity-70">{t.generate.emailHint}</p>
+                <p className="mt-1.5 text-xs text-ink-soft">{t.generate.emailHint}</p>
               </div>
 
               <label
-                className={`flex items-start gap-3 rounded-2xl border p-3 text-sm transition ${
+                className={`flex items-start gap-3 rounded-2xl border p-3 text-sm text-ink transition ${
                   recipientIsMinor
-                    ? "border-amber-300/30 bg-amber-300/5"
-                    : "border-white/10 bg-white/5"
+                    ? "border-gold/30 bg-warm-soft"
+                    : "border-sand bg-cream-soft"
                 }`}
               >
                 <input
@@ -2785,11 +3109,11 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                   checked={attested}
                   onChange={(e) => setAttested(e.target.checked)}
                   disabled={recipientAge === null}
-                  className={`mt-1 h-4 w-4 shrink-0 rounded border-white/30 bg-white/10 ${
-                    recipientIsMinor ? "accent-amber-400" : "accent-purple-500"
+                  className={`mt-1 h-4 w-4 shrink-0 rounded border-sand bg-cream-soft ${
+                    recipientIsMinor ? "accent-gold" : "accent-jade"
                   }`}
                 />
-                <span className="opacity-90">
+                <span className="text-ink-soft">
                   {recipientIsMinor
                     ? `${t.generate.attestationGuardianPrefix}${name.trim() || t.generate.attestationGuardianFallback}.`
                     : t.generate.attestationAdult}
@@ -2805,9 +3129,9 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                     type="checkbox"
                     checked={marketingConsent}
                     onChange={(e) => setMarketingConsent(e.target.checked)}
-                    className="mt-1 h-4 w-4 shrink-0 rounded border-white/30 bg-white/10 accent-purple-500"
+                    className="mt-1 h-4 w-4 shrink-0 rounded border-sand bg-cream-soft accent-jade"
                   />
-                  <span className="opacity-70">
+                  <span className="text-ink-soft">
                     {t.generate.marketingConsent}
                   </span>
                 </label>
@@ -2818,7 +3142,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                   type="button"
                   onClick={generateMusicHandler}
                   disabled={!canGenerateMusic || loadingLyrics || loadingMusic}
-                  className={`flex-1 min-h-[44px] rounded-2xl bg-gradient-to-r ${theme.accent} py-3.5 text-sm font-extrabold text-white shadow-xl transition hover:-translate-y-1 disabled:cursor-not-allowed disabled:opacity-40`}
+                  className="flex-1 min-h-[44px] rounded-full bg-jade py-3.5 text-sm font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(31,142,125,0.7)] transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] hover:bg-jade-deep disabled:cursor-not-allowed disabled:bg-sand disabled:text-ink-soft disabled:shadow-none disabled:hover:translate-y-0 disabled:hover:bg-sand"
                 >
                   {loadingMusic ? t.generate.generatingMusic : t.generate.generateMusic}
                 </button>
@@ -2826,18 +3150,18 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                   type="button"
                   onClick={generateLyricsHandler}
                   disabled={loadingLyrics || loadingMusic}
-                  className="flex-1 min-h-[44px] rounded-2xl border border-white/20 bg-white/10 py-3.5 text-sm font-bold transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="flex-1 min-h-[44px] rounded-full border border-sand bg-cream-soft py-3.5 text-sm font-bold text-ink transition hover:border-jade disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {loadingLyrics ? t.generate.rewriting : t.generate.rewriteLyrics}
                 </button>
               </div>
 
               {!canGenerateMusic && !loadingLyrics && !loadingMusic && missingForMusic && (
-                <p className="text-center text-xs text-gray-400">{missingForMusic}</p>
+                <p className="text-center text-xs text-ink-soft">{missingForMusic}</p>
               )}
 
               {captureError && (
-                <p role="alert" className="text-center text-xs text-rose-300">
+                <p role="alert" className="text-center text-xs text-blush">
                   {captureError}
                 </p>
               )}
@@ -2851,10 +3175,10 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
           above already keeps the user informed during the render window —
           this card slides in fresh, in sync with the second confetti burst. */}
       {audioUrl && lyrics && (shareUrl || shareError) && (
-        <section className={`relative z-20 mx-auto mt-6 max-w-xl rounded-[2rem] border ${theme.card} p-6 shadow-2xl backdrop-blur-2xl animate-fade-in`}>
-          <h2 className="text-lg font-bold">🔗 Send this song</h2>
-          <p className="mt-1 text-sm opacity-70">
-            Your song is saved as a <span className="font-semibold">{TEMPLATE_LABELS[shareTemplate].name}</span> share — open the share page to send it.
+        <section className={`relative z-20 mx-auto mt-6 max-w-xl rounded-[2rem] border ${theme.card} p-6 shadow-sm animate-fade-in`}>
+          <h2 className="font-display text-lg font-bold text-ink">🔗 Send this song</h2>
+          <p className="mt-1 text-sm text-ink-soft">
+            Your song is saved as a <span className="font-semibold text-ink">{TEMPLATE_LABELS[shareTemplate].name}</span> share — open the share page to send it.
           </p>
 
           {shareUrl && (
@@ -2862,7 +3186,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
               <button
                 type="button"
                 onClick={openShareUi}
-                className="w-full rounded-2xl bg-brand py-4 text-base font-extrabold text-white shadow-2xl shadow-fuchsia-500/30 transition hover:-translate-y-1 hover:shadow-fuchsia-500/50"
+                className="w-full rounded-full bg-jade py-4 text-base font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(31,142,125,0.7)] transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] hover:bg-jade-deep"
               >
                 🔗 Open share page
               </button>
@@ -2871,12 +3195,12 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                   readOnly
                   value={shareUrl}
                   onFocus={(e) => e.currentTarget.select()}
-                  className={`flex-1 rounded-2xl border px-4 py-3 text-sm outline-none ${theme.input}`}
+                  className={`flex-1 rounded-xl border px-4 py-3 text-sm text-ink outline-none ${theme.input}`}
                 />
                 <button
                   type="button"
                   onClick={copyShareUrl}
-                  className={`rounded-2xl bg-gradient-to-r ${theme.accent} px-4 py-3 text-sm font-bold text-white shadow-lg transition hover:-translate-y-0.5`}
+                  className="rounded-full bg-warm-gradient px-4 py-3 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99]"
                 >
                   {copied ? "✓ Copied" : "Copy link"}
                 </button>
@@ -2886,33 +3210,33 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                   is shareable, and never on minor-recipient flows. Prominent but
                   fully optional — it does not gate the share CTA above. */}
               {!recipientIsMinor && (
-                <div className="mt-2 rounded-2xl border border-white/15 bg-white/5 p-4">
-                  <p className="text-sm font-bold">💜 Proud of this one? Let it inspire others.</p>
-                  <p className="mt-1 text-xs opacity-80">
+                <div className="mt-2 rounded-2xl border border-sand bg-cream-soft p-4">
+                  <p className="text-sm font-bold text-ink">💜 Proud of this one? Let it inspire others.</p>
+                  <p className="mt-1 text-xs text-ink-soft">
                     Yes — Sing My Birthday can feature my song in highlights &amp; ads.
                     You can change your mind anytime; we&apos;ll never share private
                     details, and never for songs made for kids.
                   </p>
                   {promoResponded ? (
-                    <p className="mt-3 text-sm font-semibold text-emerald-300">
+                    <p className="mt-3 text-sm font-semibold text-jade">
                       {promoGranted
                         ? "Thank you! You can feature it 💜"
                         : "No problem — we won't feature it."}
-                      {promoSaved && <span className="ml-1 opacity-70">Saved ✓</span>}
+                      {promoSaved && <span className="ml-1 text-ink-soft">Saved ✓</span>}
                     </p>
                   ) : (
                     <div className="mt-3 flex flex-wrap gap-2">
                       <button
                         type="button"
                         onClick={() => submitPromoPermission(true)}
-                        className={`rounded-2xl bg-gradient-to-r ${theme.accent} px-4 py-2.5 text-sm font-bold text-white shadow-lg transition hover:-translate-y-0.5`}
+                        className="rounded-full bg-jade px-4 py-2.5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] hover:bg-jade-deep"
                       >
                         Yes, you can feature it
                       </button>
                       <button
                         type="button"
                         onClick={() => submitPromoPermission(false)}
-                        className="rounded-2xl border border-white/20 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/80 transition hover:bg-white/10"
+                        className="rounded-full border border-sand bg-cream-soft px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-jade"
                       >
                         No thanks
                       </button>
@@ -2924,12 +3248,12 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
           )}
 
           {shareError && (
-            <p className="mt-3 text-sm text-rose-300">{shareError}</p>
+            <p className="mt-3 text-sm text-blush">{shareError}</p>
           )}
         </section>
       )}
 
-      <footer className="relative z-20 mt-8 text-center text-xs opacity-70">
+      <footer className="relative z-20 mt-8 text-center text-xs text-ink-soft">
         Made with 💜 for birthday celebrations
       </footer>
 
