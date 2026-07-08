@@ -810,6 +810,145 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
     };
   }, []);
 
+  // ── Casting: the feeling + the director's private note ───────────────────
+  // `feeling` is the emotional target chosen during casting (steers copy/tone).
+  // The director's note is the closing beat of the premiere — captured as text
+  // OR a short voice clip. The clip is uploaded to Vercel Blob via
+  // /api/audio/upload; only the returned URL + rounded duration are persisted.
+  // All three are optional and never gate song creation.
+  const [feeling, setFeeling] = useState("");
+  const [noteMode, setNoteMode] = useState<"text" | "voice">("text");
+  const [directorNoteText, setDirectorNoteText] = useState("");
+  const [directorNoteVoiceUrl, setDirectorNoteVoiceUrl] = useState<string | null>(null);
+  const [directorNoteVoiceDurationSec, setDirectorNoteVoiceDurationSec] =
+    useState<number | null>(null);
+  const [noteRecording, setNoteRecording] = useState(false);
+  const [noteUploading, setNoteUploading] = useState(false);
+  const [noteError, setNoteError] = useState<string | null>(null);
+  const noteRecorderRef = useRef<MediaRecorder | null>(null);
+  const noteStreamRef = useRef<MediaStream | null>(null);
+  const noteChunksRef = useRef<Blob[]>([]);
+  const noteStartMsRef = useRef<number>(0);
+  const noteStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const NOTE_RECORDING_CAP_MS = 30_000;
+
+  const feelingOptions = [
+    { value: "goosebumps", label: t.generate.feelingGoosebumps },
+    { value: "laughing", label: t.generate.feelingLaughing },
+    { value: "happy tears", label: t.generate.feelingHappyCry },
+    { value: "nostalgic", label: t.generate.feelingNostalgic },
+    { value: "hyped up", label: t.generate.feelingHyped },
+    { value: "deeply loved", label: t.generate.feelingLoved },
+  ];
+
+  async function uploadNoteBlob(blob: Blob, durationSec: number): Promise<void> {
+    setNoteUploading(true);
+    setNoteError(null);
+    try {
+      const fd = new FormData();
+      const ext = blob.type.includes("mp4") ? "mp4" : blob.type.includes("ogg") ? "ogg" : "webm";
+      fd.append("audio", blob, `director-note.${ext}`);
+      const res = await fetch("/api/audio/upload", { method: "POST", body: fd });
+      const data = (await res.json().catch(() => ({}))) as {
+        url?: string;
+        error?: { message?: string };
+      };
+      if (res.ok && typeof data.url === "string" && data.url.length > 0) {
+        setDirectorNoteVoiceUrl(data.url);
+        setDirectorNoteVoiceDurationSec(Math.max(1, Math.round(durationSec)));
+        return;
+      }
+      setNoteError(data.error?.message ?? t.generate.noteErrUpload);
+    } catch {
+      setNoteError(t.generate.noteErrUpload);
+    } finally {
+      setNoteUploading(false);
+    }
+  }
+
+  async function startNoteRecording(): Promise<void> {
+    setNoteError(null);
+    if (typeof navigator === "undefined") return;
+    const nav = navigator as Navigator & { mediaDevices?: MediaDevices };
+    if (!nav.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+      setNoteError(t.generate.noteErrNoMic);
+      return;
+    }
+    let stream: MediaStream;
+    try {
+      stream = await nav.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      setNoteError(t.generate.noteErrNoMic);
+      return;
+    }
+    noteStreamRef.current = stream;
+    noteChunksRef.current = [];
+    let recorder: MediaRecorder;
+    try {
+      recorder = new MediaRecorder(stream);
+    } catch {
+      stream.getTracks().forEach((track) => track.stop());
+      noteStreamRef.current = null;
+      setNoteError(t.generate.noteErrNoMic);
+      return;
+    }
+    noteRecorderRef.current = recorder;
+    noteStartMsRef.current = Date.now();
+    recorder.ondataavailable = (e: BlobEvent) => {
+      if (e.data && e.data.size > 0) noteChunksRef.current.push(e.data);
+    };
+    recorder.onstop = async () => {
+      const chunks = noteChunksRef.current;
+      noteChunksRef.current = [];
+      noteStreamRef.current?.getTracks().forEach((track) => track.stop());
+      noteStreamRef.current = null;
+      if (noteStopTimerRef.current) {
+        clearTimeout(noteStopTimerRef.current);
+        noteStopTimerRef.current = null;
+      }
+      setNoteRecording(false);
+      const durationSec = (Date.now() - noteStartMsRef.current) / 1000;
+      const blob = new Blob(chunks, { type: recorder.mimeType || "audio/webm" });
+      if (blob.size === 0 || durationSec < 0.5) {
+        setNoteError(t.generate.noteErrNoAudio);
+        return;
+      }
+      await uploadNoteBlob(blob, durationSec);
+    };
+    try {
+      recorder.start();
+    } catch {
+      stream.getTracks().forEach((track) => track.stop());
+      noteStreamRef.current = null;
+      setNoteError(t.generate.noteErrNoMic);
+      return;
+    }
+    setNoteRecording(true);
+    noteStopTimerRef.current = setTimeout(() => {
+      if (noteRecorderRef.current && noteRecorderRef.current.state === "recording") {
+        noteRecorderRef.current.stop();
+      }
+    }, NOTE_RECORDING_CAP_MS);
+  }
+
+  function stopNoteRecording(): void {
+    const rec = noteRecorderRef.current;
+    if (rec && rec.state === "recording") rec.stop();
+  }
+
+  function clearNoteVoice(): void {
+    setDirectorNoteVoiceUrl(null);
+    setDirectorNoteVoiceDurationSec(null);
+    setNoteError(null);
+  }
+
+  useEffect(() => {
+    return () => {
+      if (noteStopTimerRef.current) clearTimeout(noteStopTimerRef.current);
+      noteStreamRef.current?.getTracks().forEach((track) => track.stop());
+    };
+  }, []);
+
   // Funnel analytics: fire once on mount so we can measure top-of-funnel
   // traffic to the generator. Best-effort — never throw into the UI.
   useEffect(() => {
@@ -1535,6 +1674,10 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
     }
     const emailToSend = (storedEmail || emailInput).trim().toLowerCase();
     const trimmedStyleNotesForShare = styleNotes.trim();
+    // The "Produced & directed by" credit shown in the premiere titles — the
+    // relationship role when one was picked, otherwise the sender's own name.
+    const directorCredit = relationship.trim() ? relationshipRole : trimmedSender;
+    const trimmedNoteText = directorNoteText.trim();
 
     // Collect the wait-state capture into a single object — skip the field
     // when blank so we never persist empty-string entries to KV. The whole
@@ -1575,6 +1718,13 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
       ...(cakeStyle ? { cake_style: cakeStyle } : {}),
       ...(candleColor ? { candle_color: candleColor } : {}),
       ...(personalNote.trim() ? { personal_note: personalNote.trim() } : {}),
+      ...(directorCredit ? { director_credit: directorCredit } : {}),
+      ...(feeling.trim() ? { feeling: feeling.trim() } : {}),
+      ...(trimmedNoteText ? { director_note_text: trimmedNoteText } : {}),
+      ...(directorNoteVoiceUrl ? { director_note_voice_url: directorNoteVoiceUrl } : {}),
+      ...(directorNoteVoiceDurationSec != null
+        ? { director_note_voice_duration_sec: directorNoteVoiceDurationSec }
+        : {}),
       ...(photoUrls.length > 0 ? { photoUrls } : {}),
       ...(venue ? { venueSlug: venue.slug } : {}),
       ...(emailToSend ? { email: emailToSend } : {}),
@@ -2094,6 +2244,31 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
   const vibeFields = (
     <div className="space-y-5">
       <div>
+        <label className="mb-2 block text-sm font-bold text-ink">
+          {t.generate.feelingLabel}
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {feelingOptions.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() =>
+                setFeeling((cur) => (cur === opt.value ? "" : opt.value))
+              }
+              aria-pressed={feeling === opt.value}
+              className={`rounded-full border px-4 py-2 text-sm font-bold transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] ${
+                feeling === opt.value
+                  ? "border-transparent bg-warm-gradient text-white shadow-md"
+                  : "border-sand bg-cream text-ink hover:border-jade"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
         <label htmlFor="sender-name" className="mb-2 block text-sm font-bold text-ink">
           Your name <span className="opacity-60">(optional — shown on the share)</span>
         </label>
@@ -2399,6 +2574,100 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
             </div>
             <ProducerBubble emoji="🎛️">{t.generate.producerVibe}</ProducerBubble>
             {vibeFields}
+
+            {/* The director's private note — the closing beat of the premiere.
+                Captured as text OR a short voice clip; both optional. */}
+            <div className="mt-5 rounded-2xl border border-gold/30 bg-cream-soft p-4">
+              <h3 className="font-display text-base font-black text-ink">
+                {t.generate.noteHeading}
+              </h3>
+              <p className="mt-1 text-xs text-ink-soft">{t.generate.noteSubtext}</p>
+
+              <div className="mt-3 inline-flex rounded-full border border-sand bg-cream p-1">
+                <button
+                  type="button"
+                  onClick={() => setNoteMode("text")}
+                  aria-pressed={noteMode === "text"}
+                  className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition ${
+                    noteMode === "text"
+                      ? "bg-warm-gradient text-white shadow"
+                      : "text-ink-soft hover:text-ink"
+                  }`}
+                >
+                  {t.generate.noteTabText}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNoteMode("voice")}
+                  aria-pressed={noteMode === "voice"}
+                  className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition ${
+                    noteMode === "voice"
+                      ? "bg-warm-gradient text-white shadow"
+                      : "text-ink-soft hover:text-ink"
+                  }`}
+                >
+                  {t.generate.noteTabVoice}
+                </button>
+              </div>
+
+              {noteMode === "text" ? (
+                <textarea
+                  value={directorNoteText}
+                  onChange={(e) => setDirectorNoteText(e.target.value.slice(0, 280))}
+                  placeholder={t.generate.notePlaceholder}
+                  rows={3}
+                  maxLength={280}
+                  className={`mt-3 w-full resize-none rounded-xl border px-4 py-3.5 text-sm text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
+                />
+              ) : (
+                <div className="mt-3">
+                  {directorNoteVoiceUrl ? (
+                    <div className="flex items-center gap-3">
+                      <audio
+                        src={directorNoteVoiceUrl}
+                        controls
+                        className="h-10 w-full max-w-xs"
+                      />
+                      <button
+                        type="button"
+                        onClick={clearNoteVoice}
+                        className="shrink-0 rounded-full border border-sand bg-cream px-3 py-2 text-xs font-bold text-ink-soft transition hover:text-ink"
+                      >
+                        {t.generate.noteReRecord}
+                      </button>
+                    </div>
+                  ) : noteUploading ? (
+                    <p className="text-sm text-ink-soft">{t.generate.noteUploadingLabel}</p>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        noteRecording ? stopNoteRecording() : startNoteRecording()
+                      }
+                      className={`inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-extrabold text-white transition ${
+                        noteRecording ? "bg-blush" : "bg-jade hover:bg-jade-deep"
+                      }`}
+                    >
+                      {noteRecording ? t.generate.noteStopCta : t.generate.noteRecordCta}
+                    </button>
+                  )}
+                  {noteRecording && (
+                    <p className="mt-2 text-xs text-ink-soft">
+                      {t.generate.noteRecordingLabel}
+                    </p>
+                  )}
+                </div>
+              )}
+              {directorNoteVoiceUrl && directorNoteVoiceDurationSec != null && (
+                <p className="mt-2 text-xs text-jade">
+                  {t.generate.noteVoiceReady.replace(
+                    "{seconds}",
+                    String(directorNoteVoiceDurationSec),
+                  )}
+                </p>
+              )}
+              {noteError && <p className="mt-2 text-xs text-blush">{noteError}</p>}
+            </div>
 
             {/* Progressive disclosure: secondary personalization behind one tap. */}
             <div className="mt-5">

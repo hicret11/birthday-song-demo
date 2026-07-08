@@ -142,6 +142,30 @@ export const en = {
     coauthorPhotoCta: "📷 Add photos",
     coauthorPhotoAdding: "Adding photos…",
     coauthorPhotoDone: "{count} added — they’ll appear in the show.",
+    // Feeling chips — the emotional target the song should leave (v4 casting).
+    feelingLabel: "The feeling to leave them with",
+    feelingGoosebumps: "Goosebumps",
+    feelingLaughing: "Laughing",
+    feelingHappyCry: "Happy tears",
+    feelingNostalgic: "Nostalgic",
+    feelingHyped: "Hyped up",
+    feelingLoved: "Deeply loved",
+    // The director’s private note — revealed as the closing beat of the premiere.
+    noteHeading: "A private note from the director",
+    noteSubtext:
+      "Revealed at the very end of their premiere — after the song. Optional.",
+    noteTabText: "✍️ Write it",
+    noteTabVoice: "🎙️ Record it",
+    notePlaceholder: "Say the thing you’d say if the room went quiet…",
+    noteRecordCta: "● Record a voice note",
+    noteRecordingLabel: "Recording… tap to stop",
+    noteStopCta: "■ Stop",
+    noteUploadingLabel: "Saving your voice note…",
+    noteVoiceReady: "✓ Voice note saved ({seconds}s)",
+    noteReRecord: "Re-record",
+    noteErrNoMic: "Your browser can’t record audio — write the note instead.",
+    noteErrNoAudio: "No audio captured. Try again.",
+    noteErrUpload: "Couldn’t save that voice note — try again.",
   },
   paywall: {
     // Preview label — the 15s cap framed as the trailer/opening of the show
