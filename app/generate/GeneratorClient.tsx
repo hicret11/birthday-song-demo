@@ -38,6 +38,10 @@ import {
   PRODUCTION_PRICE_LABEL,
   LIVE_ANCHOR_PRICE_LABEL,
 } from "@/lib/pricing-display";
+import ProductionCallFields, {
+  isProductionCallReady,
+  type ProductionCallValue,
+} from "@/components/share/ProductionCallFields";
 import { track } from "@vercel/analytics";
 import { getAnonId, logClientEvent } from "@/lib/client-events";
 import { getDictionary, type Locale } from "@/lib/i18n";
@@ -1071,6 +1075,14 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
   const [unlocking, setUnlocking] = useState(false);
   const [previewEnded, setPreviewEnded] = useState(false);
   const [unlockPlan, setUnlockPlan] = useState<"full" | "deluxe" | "production">("full");
+  // Production-tier AI-call setup (character + recipient phone + optional date +
+  // consent). Only read when unlockPlan === "production"; validated server-side.
+  const [callSetup, setCallSetup] = useState<ProductionCallValue>({
+    characterId: "",
+    phone: "",
+    date: "",
+    consent: false,
+  });
   const PREVIEW_SECONDS = 15;
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -1764,14 +1776,30 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
   async function unlockFullSong() {
     const shareId = shareUrl ? shareUrl.split("/").pop() ?? null : null;
     if (!shareId || unlocking) return;
+    // Production bundles the AI call — don't open checkout until its details are
+    // complete (character + phone + consent). The server validates again.
+    if (unlockPlan === "production" && !isProductionCallReady(callSetup)) return;
     setUnlocking(true);
     setShareError(null);
     try {
       track("unlock_click", { share_id: shareId, tier: shareTier ?? "unknown", plan: unlockPlan });
+      const callBody =
+        unlockPlan === "production"
+          ? {
+              consent: callSetup.consent,
+              call: {
+                characterId: callSetup.characterId,
+                phone: callSetup.phone.trim(),
+                scheduledAt: callSetup.date
+                  ? new Date(`${callSetup.date}T10:00`).toISOString()
+                  : undefined,
+              },
+            }
+          : {};
       const res = await fetch("/api/stripe/checkout-song", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ shareId, plan: unlockPlan }),
+        body: JSON.stringify({ shareId, plan: unlockPlan, ...callBody }),
       });
       const data = await res.json();
       if (data?.url) {
@@ -3529,10 +3557,23 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                   <span className="font-bold text-ink">{LIVE_ANCHOR_PRICE_LABEL}</span>
                 </p>
 
+                {unlockPlan === "production" && (
+                  <ProductionCallFields
+                    recipientName={name}
+                    locale={locale}
+                    value={callSetup}
+                    onChange={setCallSetup}
+                  />
+                )}
+
                 <button
                   type="button"
                   onClick={unlockFullSong}
-                  disabled={!shareUrl || unlocking}
+                  disabled={
+                    !shareUrl ||
+                    unlocking ||
+                    (unlockPlan === "production" && !isProductionCallReady(callSetup))
+                  }
                   className="mt-3 w-full rounded-full bg-warm-gradient py-3.5 text-sm font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(255,111,145,0.7)] transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {unlocking

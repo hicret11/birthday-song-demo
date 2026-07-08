@@ -202,6 +202,16 @@ export const en = {
     secureCheckout: "One-time payment · instant unlock · secure checkout by Stripe",
     // Live-musician anchor row ({price} interpolated by caller)
     liveAnchorLabel: "Prefer a real musician in person? Live performances from",
+    // Production tier — AI character call setup ({name} interpolated by caller)
+    callHeading: "Set up the birthday call 🎬",
+    callSubtext: "An AI character will phone {name} to wish them a happy birthday, in their own voice.",
+    callCharacterLabel: "Who should call?",
+    callPhoneLabel: "{name}’s phone number",
+    callPhonePlaceholder: "+1 555 123 4567",
+    callPhoneHint: "International format, starting with +",
+    callDateLabel: "When should we call? (optional)",
+    callDateHint: "Leave blank to call as soon as it’s ready. We only ever call between 8am–9pm their local time.",
+    callConsentLabel: "I have {name}’s permission for them to receive this call.",
   },
   // The Premiere — the theatrical reveal of the finished song.
   premiere: {

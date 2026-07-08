@@ -1,6 +1,7 @@
 import { getStripe } from "@/lib/stripe";
 import { resolveTier, priceIdForPlanTier, type Plan } from "@/lib/pricing-tiers";
 import { loadSharedSong } from "@/lib/share";
+import { isCastCharacterId } from "@/lib/cast/characters";
 import {
   LEGAL_VERSION,
   LEGAL_ACCEPTANCE_SURFACE,
@@ -22,10 +23,18 @@ export const runtime = "nodejs";
  * success_url lands on the share page with ?unlocked=1 so the buyer immediately
  * gets the full song, download, video, and slideshow.
  */
+// Loose E.164: leading +, 7–15 digits, first digit non-zero (matches /api/cast/book).
+const PHONE_RE = /^\+[1-9]\d{6,14}$/;
+
 export async function POST(request: Request): Promise<Response> {
-  let body: { shareId?: unknown; plan?: unknown };
+  let body: {
+    shareId?: unknown;
+    plan?: unknown;
+    call?: { characterId?: unknown; phone?: unknown; scheduledAt?: unknown };
+    consent?: unknown;
+  };
   try {
-    body = (await request.json()) as { shareId?: unknown; plan?: unknown };
+    body = (await request.json()) as typeof body;
   } catch {
     return Response.json({ error: { message: "Invalid request." } }, { status: 400 });
   }
@@ -40,6 +49,41 @@ export async function POST(request: Request): Promise<Response> {
   // else is treated as "full".
   const plan: Plan =
     body.plan === "production" ? "production" : body.plan === "deluxe" ? "deluxe" : "full";
+
+  // Production bundles an AI character call, so it MUST carry valid call details
+  // (character + recipient phone + the giver's consent attestation). We validate
+  // here and stash them in the checkout metadata; the webhook creates the booking
+  // on payment. Reject an under-specified Production checkout rather than sell a
+  // call with no number to dial.
+  let callCharacterId = "";
+  let callPhone = "";
+  let callWhen = "";
+  if (plan === "production") {
+    const rawChar = typeof body.call?.characterId === "string" ? body.call.characterId : "";
+    const rawPhone = typeof body.call?.phone === "string" ? body.call.phone.trim() : "";
+    if (!isCastCharacterId(rawChar)) {
+      return Response.json({ error: { message: "Pick a character for the birthday call." } }, { status: 400 });
+    }
+    if (!PHONE_RE.test(rawPhone)) {
+      return Response.json(
+        { error: { message: "Enter the recipient's phone in international format (e.g. +15551234567)." } },
+        { status: 400 },
+      );
+    }
+    if (body.consent !== true) {
+      return Response.json(
+        { error: { message: "Please confirm you have their permission to receive the call." } },
+        { status: 400 },
+      );
+    }
+    callCharacterId = rawChar;
+    callPhone = rawPhone;
+    // Optional ISO timestamp for when to place the call; empty = as soon as due.
+    if (typeof body.call?.scheduledAt === "string" && body.call.scheduledAt) {
+      const t = Date.parse(body.call.scheduledAt);
+      if (!Number.isNaN(t)) callWhen = new Date(t).toISOString();
+    }
+  }
 
   const song = await loadSharedSong(shareId);
   if (!song) {
@@ -79,6 +123,13 @@ export async function POST(request: Request): Promise<Response> {
   };
   if (geo.country) metadata.accept_country = geo.country;
   if (geo.region) metadata.accept_region = geo.region;
+  // Production call details — the webhook books the AI call from these on payment.
+  if (plan === "production") {
+    metadata.call_character = callCharacterId;
+    metadata.call_phone = callPhone;
+    if (callWhen) metadata.call_when = callWhen;
+    metadata.call_consent = "1";
+  }
 
   try {
     const session = await stripe.checkout.sessions.create({

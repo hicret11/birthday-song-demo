@@ -185,6 +185,15 @@ export const es: Dict = {
     moneyBack: "Te encanta o te devolvemos el dinero",
     secureCheckout: "Pago único · desbloqueo al instante · pago seguro con Stripe",
     liveAnchorLabel: "¿Prefieres un músico real en persona? Actuaciones en vivo desde",
+    callHeading: "Configura la llamada de cumpleaños 🎬",
+    callSubtext: "Un personaje con IA llamará a {name} para felicitarle, con su propia voz.",
+    callCharacterLabel: "¿Quién debería llamar?",
+    callPhoneLabel: "Número de teléfono de {name}",
+    callPhonePlaceholder: "+34 612 34 56 78",
+    callPhoneHint: "Formato internacional, empezando por +",
+    callDateLabel: "¿Cuándo llamamos? (opcional)",
+    callDateHint: "Déjalo en blanco para llamar en cuanto esté listo. Solo llamamos entre las 8:00 y las 21:00 hora local.",
+    callConsentLabel: "Tengo el permiso de {name} para que reciba esta llamada.",
   },
   // El Estreno — la presentación teatral de la canción terminada.
   premiere: {

@@ -185,6 +185,15 @@ export const tr: Dict = {
     moneyBack: "Beğenin ya da paranızı geri alın",
     secureCheckout: "Tek seferlik ödeme · anında erişim · Stripe ile güvenli ödeme",
     liveAnchorLabel: "Sahnede gerçek bir müzisyen mi? Canlı performanslar şu fiyattan başlar:",
+    callHeading: "Doğum günü aramasını ayarla 🎬",
+    callSubtext: "Bir yapay zekâ karakteri {name} kişisini arayıp kendi sesiyle doğum gününü kutlayacak.",
+    callCharacterLabel: "Kim arasın?",
+    callPhoneLabel: "{name} kişisinin telefon numarası",
+    callPhonePlaceholder: "+90 532 123 45 67",
+    callPhoneHint: "+ ile başlayan uluslararası biçim",
+    callDateLabel: "Ne zaman arayalım? (isteğe bağlı)",
+    callDateHint: "Hazır olur olmaz aramak için boş bırakın. Yalnızca yerel saatle 08:00–21:00 arasında ararız.",
+    callConsentLabel: "{name} kişisinin bu aramayı almasına iznim var.",
   },
   // Prömiyer — tamamlanmış şarkının teatral açılışı.
   premiere: {

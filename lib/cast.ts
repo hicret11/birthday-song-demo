@@ -149,6 +149,26 @@ export async function getBooking(id: string): Promise<CastBooking | null> {
   return toBooking(data as Row);
 }
 
+/**
+ * The most recent AI-call booking for a gift/share id, if any. Used to make the
+ * Production-purchase auto-booking idempotent: the Stripe webhook may deliver
+ * `checkout.session.completed` more than once, and one paid Production song must
+ * create exactly one call booking. Returns null when none exists.
+ */
+export async function getAiCallBookingForGift(giftId: string): Promise<CastBooking | null> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select(COLS)
+    .eq("gift_id", giftId)
+    .eq("kind", "ai_call")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error || !data) return null;
+  return toBooking(data as Row);
+}
+
 export async function updateBookingStatus(
   id: string,
   status: CastStatus,

@@ -22,7 +22,12 @@ export type CastCharacter = {
   persona: string;
   /** Env var holding this character's ElevenLabs voice id. */
   voiceEnvKey: string;
-  /** One-time price in USD (whole dollars). */
+  /**
+   * À-la-carte standalone price (USD, whole dollars) for booking JUST this call
+   * via /api/cast/{book,checkout}. NOTE: the $44.99 "Full Production" song tier
+   * BUNDLES one call at no extra charge — that path creates the booking from the
+   * Stripe webhook (see app/api/stripe/webhook), not from this price.
+   */
   priceUsd: number;
 };
 
@@ -61,6 +66,23 @@ export const CAST_CHARACTERS: CastCharacter[] = [
 
 export function getCharacter(id: string): CastCharacter | undefined {
   return CAST_CHARACTERS.find((c) => c.id === id);
+}
+
+/** Client-safe subset for the character picker — no persona/system prompt. */
+export type CastCharacterChoice = {
+  id: string;
+  name: string;
+  emoji: string;
+  tagline: string;
+};
+
+export const CAST_CHARACTER_CHOICES: CastCharacterChoice[] = CAST_CHARACTERS.map(
+  ({ id, name, emoji, tagline }) => ({ id, name, emoji, tagline }),
+);
+
+/** Whether an id names a real character in the library. */
+export function isCastCharacterId(id: string): boolean {
+  return CAST_CHARACTERS.some((c) => c.id === id);
 }
 
 // Booking language (full name) → dictionary locale. Unknown languages fall back

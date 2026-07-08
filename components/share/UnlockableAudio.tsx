@@ -8,6 +8,10 @@ import {
   PRODUCTION_PRICE_LABEL,
   LIVE_ANCHOR_PRICE_LABEL,
 } from "@/lib/pricing-display";
+import ProductionCallFields, {
+  isProductionCallReady,
+  type ProductionCallValue,
+} from "@/components/share/ProductionCallFields";
 
 const PREVIEW_SECONDS = 15;
 
@@ -55,6 +59,12 @@ export default function UnlockableAudio({
   const [requesting, setRequesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [plan, setPlan] = useState<Plan>("full");
+  const [call, setCall] = useState<ProductionCallValue>({
+    characterId: "",
+    phone: "",
+    date: "",
+    consent: false,
+  });
 
   const t = tier ?? "C";
   const fullLabel = FULL_PRICE_LABEL[t];
@@ -81,15 +91,30 @@ export default function UnlockableAudio({
     }
   }
 
+  const productionReady = plan !== "production" || isProductionCallReady(call);
+
   async function startCheckout(): Promise<void> {
-    if (requesting) return;
+    if (requesting || !productionReady) return;
     setRequesting(true);
     setError(null);
     try {
+      const callBody =
+        plan === "production"
+          ? {
+              consent: call.consent,
+              call: {
+                characterId: call.characterId,
+                phone: call.phone.trim(),
+                scheduledAt: call.date
+                  ? new Date(`${call.date}T10:00`).toISOString()
+                  : undefined,
+              },
+            }
+          : {};
       const res = await fetch("/api/stripe/checkout-song", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ shareId, plan }),
+        body: JSON.stringify({ shareId, plan, ...callBody }),
       });
       const data = (await res.json().catch(() => ({}))) as { url?: string };
       if (!res.ok || typeof data.url !== "string") {
@@ -224,10 +249,19 @@ export default function UnlockableAudio({
           <span className="font-bold text-ink">{LIVE_ANCHOR_PRICE_LABEL}</span>
         </p>
 
+        {plan === "production" && (
+          <ProductionCallFields
+            recipientName={recipientName}
+            locale={locale}
+            value={call}
+            onChange={setCall}
+          />
+        )}
+
         <button
           type="button"
           onClick={startCheckout}
-          disabled={requesting}
+          disabled={requesting || !productionReady}
           className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-jade px-5 py-4 text-base font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(31,142,125,0.7)] transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] hover:bg-jade-deep disabled:cursor-not-allowed disabled:opacity-70"
         >
           {requesting ? (
