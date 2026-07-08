@@ -9,13 +9,16 @@
 // webhook flips the booking to "scheduled" and stores the payment id, and the
 // scheduler then places the call.
 //
-// Price uses inline `price_data` (character.priceUsd) rather than a pre-created
-// Stripe price id, so there's no per-character SKU to provision — the amount is
-// fixed in code (lib/cast/characters.ts) and can't be tampered with here.
+// Price uses inline `price_data` rather than a pre-created Stripe price id, so
+// there's no SKU to provision — the amount is fixed in code (an AI call uses the
+// character's priceUsd; a live booking uses the concierge deposit) and can't be
+// tampered with here. On success the shared webhook flips the booking to
+// "scheduled" (which, for a live booking, means "paid — awaiting our concierge").
 
 import { getStripe } from "@/lib/stripe";
 import { getBooking } from "@/lib/cast";
 import { getCharacter } from "@/lib/cast/characters";
+import { isLiveKind, liveDepositUsd, liveKindLabel } from "@/lib/cast/live";
 
 export const runtime = "nodejs";
 
@@ -41,8 +44,32 @@ export async function POST(request: Request): Promise<Response> {
   const booking = await getBooking(bookingId);
   if (!booking) return jsonError("Booking not found or expired.", 404);
 
-  const character = getCharacter(booking.characterId);
-  if (!character) return jsonError("Unknown character on this booking.", 400);
+  // Derive the line item + price from the booking kind (never trust the client).
+  const live = isLiveKind(booking.kind);
+  let lineName: string;
+  let lineDescription: string;
+  let unitAmountCents: number;
+  const metadata: Record<string, string> = {
+    kind: "cast_booking",
+    booking_id: bookingId,
+    accepted_at: new Date().toISOString(),
+  };
+
+  if (live) {
+    lineName = `${liveKindLabel(booking.kind)} — deposit`;
+    lineDescription = `Deposit to request a live performer for ${booking.recipientName}${
+      booking.city ? ` in ${booking.city}` : ""
+    }. We'll contact you to confirm the details.`;
+    unitAmountCents = liveDepositUsd() * 100;
+    metadata.cast_kind = booking.kind;
+  } else {
+    const character = getCharacter(booking.characterId);
+    if (!character) return jsonError("Unknown character on this booking.", 400);
+    lineName = `${character.name} — AI birthday call`;
+    lineDescription = `A personalized AI birthday phone call for ${booking.recipientName}.`;
+    unitAmountCents = character.priceUsd * 100;
+    metadata.character_id = character.id;
+  }
 
   // Already paid — short-circuit so a double-submit doesn't open a second
   // Checkout. Anything past "pending" means payment already advanced it.
@@ -54,13 +81,6 @@ export async function POST(request: Request): Promise<Response> {
   const origin = request.headers.get("origin") ?? new URL(request.url).origin;
   const stripe = getStripe();
 
-  const metadata: Record<string, string> = {
-    kind: "cast_booking",
-    booking_id: bookingId,
-    character_id: character.id,
-    accepted_at: new Date().toISOString(),
-  };
-
   try {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
@@ -69,10 +89,10 @@ export async function POST(request: Request): Promise<Response> {
           quantity: 1,
           price_data: {
             currency: "usd",
-            unit_amount: character.priceUsd * 100,
+            unit_amount: unitAmountCents,
             product_data: {
-              name: `${character.name} — AI birthday call`,
-              description: `A personalized AI birthday phone call for ${booking.recipientName}.`,
+              name: lineName,
+              description: lineDescription,
             },
           },
         },

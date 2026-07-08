@@ -11,6 +11,8 @@ import JsonLd from "@/components/JsonLd";
 import TrackShareView from "./TrackShareView";
 import { CrowdCreditProvider, type CrowdCredit } from "@/components/share/CrowdCreditContext";
 import CastAddOn from "@/components/cast/CastAddOn";
+import LiveCastAddOn from "@/components/cast/LiveCastAddOn";
+import { getLiveCities, isLiveCastEnabled, liveDepositUsd } from "@/lib/cast/live";
 import { getDictionary, isRtl, type Locale } from "@/lib/i18n";
 
 const SITE_URL = "https://singmybirthday.com";
@@ -123,8 +125,13 @@ export default async function SharePage({
   }
 
   const castLocale = LANGUAGE_TO_LOCALE[song.language] ?? "en";
-  const castDict = getDictionary(castLocale).cast;
+  const castDictAll = getDictionary(castLocale);
+  const castDict = castDictAll.cast;
   const castDir = isRtl(castLocale) ? "rtl" : "ltr";
+  // Live cast is a concierge pilot — only offered where CAST_LIVE_CITIES is set.
+  const liveEnabled = isLiveCastEnabled();
+  const liveCities = getLiveCities();
+  const liveDeposit = liveDepositUsd();
 
   const musicRecording = {
     "@context": "https://schema.org",
@@ -173,6 +180,16 @@ export default async function SharePage({
         t={castDict}
         dir={castDir}
       />
+      {liveEnabled && (
+        <LiveCastAddOn
+          giftId={song.id}
+          recipientName={song.name}
+          cities={liveCities}
+          depositUsd={liveDeposit}
+          t={castDictAll.castLive}
+          dir={castDir}
+        />
+      )}
     </>
   );
 }

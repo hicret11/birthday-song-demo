@@ -310,6 +310,47 @@ export const en = {
     noteIntro: "Someone who loves you wanted me to say: {note}",
     speak: "Speak entirely in English, warmly and naturally, and stay in character.",
   },
+  // The Live cast — request a real, in-person performer (concierge pilot). Not
+  // AI. {city}/{deposit}/{name} are filled at render time.
+  castLive: {
+    ctaTitle: "Bring a real performer to the party 🎸",
+    ctaSubtitle:
+      "Request a live musician or a costumed character to show up in person for {name}'s birthday.",
+    pilotBadge: "Limited pilot — {city} only",
+    open: "Request a live performer",
+    close: "Maybe later",
+    humanTitle: "A real human, not AI",
+    human:
+      "This is an in-person visit by a real performer we book for you — not an AI. We'll contact you to confirm every detail before anything is finalized.",
+    chooseKind: "What would you like?",
+    kindMusician: "🎸 Live musician",
+    kindVisit: "🎭 Character visit",
+    recipientNameLabel: "Who's the celebration for?",
+    recipientNamePlaceholder: "Birthday person's name",
+    cityLabel: "City",
+    eventDateLabel: "Event date",
+    addressLabel: "Where's the party? (optional)",
+    addressPlaceholder: "Venue or neighborhood — we'll confirm the exact address",
+    noteLabel: "Anything we should know? (optional)",
+    notePlaceholder: "Song requests, the vibe, a detail to mention…",
+    contactHeading: "How can we reach you to confirm?",
+    contactPhoneLabel: "Your phone",
+    contactPhonePlaceholder: "e.g. +1 555 123 4567",
+    contactEmailLabel: "Your email",
+    contactEmailPlaceholder: "you@example.com",
+    consentLabel:
+      "I understand this is a request for an in-person performer, and I'm happy to be contacted to arrange it.",
+    depositNote: "A {deposit} deposit reserves your request; we confirm the details before anything else.",
+    submit: "Request & pay deposit →",
+    submitting: "Setting up…",
+    errName: "Add the birthday person's name.",
+    errCity: "Choose a pilot city.",
+    errDate: "Pick a valid event date.",
+    errContact: "Add a phone or email so we can reach you.",
+    errConsent: "Please confirm you're happy to be contacted.",
+    errGeneric: "Couldn't set that up — please try again.",
+    errNetwork: "Network hiccup — try again.",
+  },
 };
 
 export type Dict = typeof en;

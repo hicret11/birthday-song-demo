@@ -149,11 +149,12 @@ async function handleEvent(event: Stripe.Event, stripe: Stripe): Promise<void> {
       return;
     }
 
-    // Cast booking (AI character call) — a separate one-time payment. Advance
-    // the booking to "scheduled" and store the payment id; the scheduler then
-    // places the call. Idempotent: markBookingPaid only advances a still-pending
-    // booking, so a re-delivered event is a harmless no-op. The song_unlock path
-    // above is untouched.
+    // Cast booking — a separate one-time payment (AI call OR a live concierge
+    // deposit). Advance the booking to "scheduled" and store the payment id. For
+    // an AI call the scheduler then places it; for a live booking "scheduled"
+    // means paid + awaiting our concierge (handled by hand in the admin).
+    // Idempotent: markBookingPaid only advances a still-pending booking, so a
+    // re-delivered event is a harmless no-op. The song_unlock path is untouched.
     if (session.mode === "payment" && session.metadata?.kind === "cast_booking") {
       const bookingId = session.metadata.booking_id || session.client_reference_id || "";
       if (bookingId) {

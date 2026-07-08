@@ -13,7 +13,10 @@ export type CastStatus =
   | "calling"
   | "completed"
   | "failed"
-  | "canceled";
+  | "canceled"
+  // Human-fulfilment states for the live (in-person) concierge cast:
+  | "contacted"
+  | "confirmed";
 
 export type CastBooking = {
   id: string;
@@ -31,6 +34,12 @@ export type CastBooking = {
   bookerToken: string | null;
   resultNote: string | null;
   createdAt: string;
+  // Live (in-person) cast logistics — null for AI-call bookings.
+  city: string | null;
+  eventDate: string | null;
+  addressNote: string | null;
+  contactPhone: string | null;
+  contactEmail: string | null;
 };
 
 const TABLE = "cast_bookings";
@@ -51,6 +60,11 @@ type Row = {
   booker_token: string | null;
   result_note: string | null;
   created_at: string;
+  city: string | null;
+  event_date: string | null;
+  address_note: string | null;
+  contact_phone: string | null;
+  contact_email: string | null;
 };
 
 function toBooking(r: Row): CastBooking {
@@ -70,11 +84,16 @@ function toBooking(r: Row): CastBooking {
     bookerToken: r.booker_token,
     resultNote: r.result_note,
     createdAt: r.created_at,
+    city: r.city,
+    eventDate: r.event_date,
+    addressNote: r.address_note,
+    contactPhone: r.contact_phone,
+    contactEmail: r.contact_email,
   };
 }
 
 const COLS =
-  "id, gift_id, kind, character_id, recipient_name, recipient_phone, language, personal_note, scheduled_at, consent_confirmed, status, stripe_payment_id, booker_token, result_note, created_at";
+  "id, gift_id, kind, character_id, recipient_name, recipient_phone, language, personal_note, scheduled_at, consent_confirmed, status, stripe_payment_id, booker_token, result_note, created_at, city, event_date, address_note, contact_phone, contact_email";
 
 export async function createBooking(input: {
   giftId?: string | null;
@@ -87,6 +106,11 @@ export async function createBooking(input: {
   scheduledAt?: string | null;
   consentConfirmed: boolean;
   bookerToken?: string | null;
+  city?: string | null;
+  eventDate?: string | null;
+  addressNote?: string | null;
+  contactPhone?: string | null;
+  contactEmail?: string | null;
 }): Promise<CastBooking | null> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
@@ -103,6 +127,11 @@ export async function createBooking(input: {
       consent_confirmed: input.consentConfirmed,
       booker_token: input.bookerToken ?? null,
       status: "pending",
+      city: input.city ?? null,
+      event_date: input.eventDate ?? null,
+      address_note: input.addressNote ?? null,
+      contact_phone: input.contactPhone ?? null,
+      contact_email: input.contactEmail ?? null,
     })
     .select(COLS)
     .single();
@@ -206,6 +235,45 @@ export async function claimBookingForCalling(id: string): Promise<boolean> {
     .maybeSingle();
   if (error) {
     console.error("[cast] claimBookingForCalling failed:", error.message);
+    return false;
+  }
+  return !!data;
+}
+
+/**
+ * All live (in-person) cast bookings, newest first, for the admin concierge
+ * view. Excludes AI calls (kind "ai_call") — those are automated elsewhere.
+ */
+export async function listLiveBookings(limit = 200): Promise<CastBooking[]> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select(COLS)
+    .in("kind", ["live_musician", "character_visit"])
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error || !data) {
+    console.error("[cast] listLiveBookings failed:", error?.message);
+    return [];
+  }
+  return (data as Row[]).map(toBooking);
+}
+
+/**
+ * Admin: set a booking's status directly (no side effects), preserving
+ * result_note. Used by the manual concierge fulfilment actions. Returns whether
+ * the row was updated.
+ */
+export async function setBookingStatus(id: string, status: CastStatus): Promise<boolean> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from(TABLE)
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
+  if (error) {
+    console.error("[cast] setBookingStatus failed:", error.message);
     return false;
   }
   return !!data;
