@@ -272,4 +272,11 @@ export const tr: Dict = {
       },
     },
   },
+  castCall: {
+    disclosure:
+      "Merhaba! Ben {character} — sana özel bir mesajla arayan yapay zekâ bir doğum günü karakteriyim.",
+    greet: "İyi ki doğdun, {name}!",
+    noteIntro: "Seni seven biri şunu söylememi istedi: {note}",
+    speak: "Tamamen Türkçe konuş, sıcak ve doğal bir şekilde, ve karakterinden çıkma.",
+  },
 };

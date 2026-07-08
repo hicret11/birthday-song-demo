@@ -290,6 +290,15 @@ export const en = {
       },
     },
   },
+  // Spoken call content (composeGreeting + persona directive). {character}/{name}/
+  // {note} are filled at call time. `disclosure` MUST open the call — legal.
+  castCall: {
+    disclosure:
+      "Hello! This is {character} — an AI birthday character calling with a special message just for you.",
+    greet: "Happy birthday, {name}!",
+    noteIntro: "Someone who loves you wanted me to say: {note}",
+    speak: "Speak entirely in English, warmly and naturally, and stay in character.",
+  },
 };
 
 export type Dict = typeof en;

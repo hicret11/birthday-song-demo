@@ -272,4 +272,11 @@ export const es: Dict = {
       },
     },
   },
+  castCall: {
+    disclosure:
+      "¡Hola! Soy {character}, un personaje de cumpleaños con inteligencia artificial que te llama con un mensaje especial solo para ti.",
+    greet: "¡Feliz cumpleaños, {name}!",
+    noteIntro: "Alguien que te quiere me pidió que te dijera: {note}",
+    speak: "Habla completamente en español, con calidez y naturalidad, y mantente en personaje.",
+  },
 };

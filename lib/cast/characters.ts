@@ -10,6 +10,8 @@
 // A character's `voiceEnvKey` names the env var holding its ElevenLabs voice id,
 // so voices are swappable without code changes and no ids are committed.
 
+import { getDictionary, type Locale } from "../i18n";
+
 export type CastCharacter = {
   id: string;
   name: string;
@@ -61,10 +63,28 @@ export function getCharacter(id: string): CastCharacter | undefined {
   return CAST_CHARACTERS.find((c) => c.id === id);
 }
 
+// Booking language (full name) → dictionary locale. Unknown languages fall back
+// to English copy, matching the rest of the app (CrowdPremiere / /join / share).
+const LANGUAGE_TO_LOCALE: Record<string, Locale> = {
+  English: "en",
+  Spanish: "es",
+  Turkish: "tr",
+  Arabic: "ar",
+};
+
+function localeFor(language?: string): Locale {
+  return LANGUAGE_TO_LOCALE[language ?? "English"] ?? "en";
+}
+
+function fill(tpl: string, vars: Record<string, string>): string {
+  return tpl.replace(/\{(\w+)\}/g, (_, k: string) => vars[k] ?? "");
+}
+
 /**
- * Compose the spoken opening for a call. ALWAYS starts with an AI disclosure —
- * honest, and required in some jurisdictions. Personalized with the recipient's
- * name, the character, and (optionally) the booker's note.
+ * Compose the spoken opening for a call, IN THE BOOKING'S LANGUAGE. ALWAYS starts
+ * with an AI disclosure — honest, and required in some jurisdictions.
+ * Personalized with the recipient's name, the character, and (optionally) the
+ * booker's note. Copy lives in the `castCall` dictionary block for all locales.
  */
 export function composeGreeting(args: {
   character: CastCharacter;
@@ -73,10 +93,18 @@ export function composeGreeting(args: {
   language?: string;
 }): string {
   const { character, recipientName, personalNote } = args;
-  const disclosure = `Hello! This is ${character.name} — an AI birthday character calling with a special message just for you.`;
-  const greet = `Happy birthday, ${recipientName}!`;
-  const note = personalNote?.trim()
-    ? ` Someone who loves you wanted me to say: ${personalNote.trim()}`
-    : "";
+  const t = getDictionary(localeFor(args.language)).castCall;
+  const disclosure = fill(t.disclosure, { character: character.name });
+  const greet = fill(t.greet, { name: recipientName });
+  const note = personalNote?.trim() ? ` ${fill(t.noteIntro, { note: personalNote.trim() })}` : "";
   return `${disclosure} ${greet}${note}`;
+}
+
+/**
+ * A short directive appended to the agent persona so the voice speaks in the
+ * booking's language and stays in character. Localized per-language so the model
+ * gets the instruction in the target tongue too.
+ */
+export function speakDirective(language?: string): string {
+  return getDictionary(localeFor(language)).castCall.speak;
 }

@@ -21,7 +21,7 @@
 
 import type { CastBooking } from "../cast";
 import { updateBookingStatus } from "../cast";
-import { getCharacter, composeGreeting, type CastCharacter } from "./characters";
+import { getCharacter, composeGreeting, speakDirective, type CastCharacter } from "./characters";
 
 const ELEVEN_OUTBOUND_URL = "https://api.elevenlabs.io/v1/convai/twilio/outbound-call";
 const REQUEST_TIMEOUT_MS = 20_000;
@@ -55,7 +55,9 @@ export function composeCallScript(
       personalNote: booking.personalNote,
       language: booking.language,
     }),
-    persona: character.persona,
+    // Append the language directive so the agent speaks the booking's language
+    // (and stays in character), not just English.
+    persona: `${character.persona}\n\n${speakDirective(booking.language)}`,
   };
 }
 
