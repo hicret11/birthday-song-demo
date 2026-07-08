@@ -9,8 +9,8 @@
 #
 # It creates:
 #   • Product "Sing My Birthday — Full Song" with 6 one-time prices
-#       full   A/B/C = $9.99 / $5.99 / $2.99   → STRIPE_PRICE_ID_TIER_A/B/C
-#       deluxe A/B/C = $14.99 / $9.99 / $5.99  → STRIPE_PRICE_ID_DELUXE_A/B/C
+#       full   A/B/C = $14.99 / $9.99 / $6.99   → STRIPE_PRICE_ID_TIER_A/B/C
+#       deluxe A/B/C = $24.99 / $16.99 / $11.99 → STRIPE_PRICE_ID_DELUXE_A/B/C
 #   • Product "Sing My Birthday — Founding Venue" with 1 recurring price
 #       $299 / month                            → STRIPE_FOUNDING_VENUE_PRICE_ID
 #   • A webhook endpoint at $SITE_URL/api/stripe/webhook subscribing to the 5
@@ -105,12 +105,12 @@ SONG_PROD=$(find_or_create_product \
 [ -n "$SONG_PROD" ] || { echo "✗ could not create/find song product"; exit 1; }
 
 echo "→ Song prices…"
-PRICE_TIER_A=$(find_or_create_price smb_song_full_a   "$SONG_PROD"  999 "Full — Tier A ($9.99)")
-PRICE_TIER_B=$(find_or_create_price smb_song_full_b   "$SONG_PROD"  599 "Full — Tier B ($5.99)")
-PRICE_TIER_C=$(find_or_create_price smb_song_full_c   "$SONG_PROD"  299 "Full — Tier C ($2.99)")
-PRICE_DLX_A=$(find_or_create_price  smb_song_deluxe_a "$SONG_PROD" 1499 "Deluxe — Tier A ($14.99)")
-PRICE_DLX_B=$(find_or_create_price  smb_song_deluxe_b "$SONG_PROD"  999 "Deluxe — Tier B ($9.99)")
-PRICE_DLX_C=$(find_or_create_price  smb_song_deluxe_c "$SONG_PROD"  599 "Deluxe — Tier C ($5.99)")
+PRICE_TIER_A=$(find_or_create_price smb_song_full_a_v2   "$SONG_PROD" 1499 "Full — Tier A ($14.99)")
+PRICE_TIER_B=$(find_or_create_price smb_song_full_b_v2   "$SONG_PROD"  999 "Full — Tier B ($9.99)")
+PRICE_TIER_C=$(find_or_create_price smb_song_full_c_v2   "$SONG_PROD"  699 "Full — Tier C ($6.99)")
+PRICE_DLX_A=$(find_or_create_price  smb_song_deluxe_a_v2 "$SONG_PROD" 2499 "Deluxe — Tier A ($24.99)")
+PRICE_DLX_B=$(find_or_create_price  smb_song_deluxe_b_v2 "$SONG_PROD" 1699 "Deluxe — Tier B ($16.99)")
+PRICE_DLX_C=$(find_or_create_price  smb_song_deluxe_c_v2 "$SONG_PROD" 1199 "Deluxe — Tier C ($11.99)")
 
 echo "→ Venue product + subscription price…"
 VENUE_PROD=$(find_or_create_product \
