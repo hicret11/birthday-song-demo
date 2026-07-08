@@ -9,7 +9,7 @@
 // A slow 30s poll stays as a graceful fallback when Realtime isn't configured
 // (missing public env). No media, no paywall — this is pure participation.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import { crowdChannelName, CROWD_CONTRIBUTION_EVENT } from "@/lib/crowd-realtime";
 import type { Dict } from "@/lib/i18n";
@@ -70,12 +70,16 @@ export default function JoinClient({
   t,
   dir,
   initialContributions,
+  chipInSlot,
 }: {
   giftId: string;
   recipientName: string;
   t: CrowdContributorDict;
   dir: "ltr" | "rtl";
   initialContributions: Contribution[];
+  // Optional group-split-payment card, rendered by the server when
+  // GROUP_PAY_ENABLED is on. Null/absent ⇒ the feature is off (v1 default).
+  chipInSlot?: ReactNode;
 }) {
   const [kind, setKind] = useState<Kind>("line");
   const [content, setContent] = useState("");
@@ -657,6 +661,9 @@ export default function JoinClient({
             </p>
           )}
         </div>
+
+        {/* Group split payment — an additive upsell, off by default. */}
+        {chipInSlot}
 
         {/* The circle so far */}
         {count > 0 && (

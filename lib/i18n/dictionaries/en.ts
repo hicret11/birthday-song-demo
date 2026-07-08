@@ -351,6 +351,26 @@ export const en = {
     errGeneric: "Couldn't set that up — please try again.",
     errNetwork: "Network hiccup — try again.",
   },
+  groupPay: {
+    title: "Chip in together 🎁",
+    subtitle:
+      "Pitch in with friends to unlock {name}'s birthday song — everyone covers a little.",
+    progress: "{paid} of {total}",
+    friendsOne: "{count} friend chipped in",
+    friendsMany: "{count} friends chipped in",
+    noneYet: "Be the first to chip in",
+    remaining: "{amount} to go",
+    funded: "Fully funded — the song is unlocked! 🎉",
+    open: "Chip in",
+    close: "Maybe later",
+    amountLabel: "Your amount (USD)",
+    coverRest: "Cover the rest · {amount}",
+    submit: "Chip in {amount} →",
+    submitting: "Setting up…",
+    errAmount: "Enter at least {min}.",
+    errGeneric: "Couldn't set that up — please try again.",
+    errNetwork: "Network hiccup — try again.",
+  },
 };
 
 export type Dict = typeof en;

@@ -8,6 +8,7 @@ import { getStripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { loadSharedSong, markSharedSongUnlocked } from "@/lib/share";
 import { markBookingPaid } from "@/lib/cast";
+import { applyChipIn } from "@/lib/group-pay";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://singmybirthday.com";
 const DUNNING_TOKEN_TTL_SECONDS = 24 * 60 * 60;
@@ -167,6 +168,53 @@ async function handleEvent(event: Stripe.Event, stripe: Stripe): Promise<void> {
         else console.log(`[stripe-webhook] cast_booking: ${bookingId} not pending (already handled?)`);
       } else {
         console.error("[stripe-webhook] cast_booking: missing booking_id in metadata");
+      }
+      return;
+    }
+
+    // Group split payment — one friend's chip-in toward a gift's price. Record
+    // the paid contribution (idempotent by Stripe payment id), then, once the
+    // running total reaches the gift's price, unlock via the SAME path a solo
+    // purchase uses. The solo song_unlock branch above is untouched. Behind the
+    // GROUP_PAY_ENABLED flag on the write side, but recording a genuine paid
+    // event here is always safe.
+    if (session.mode === "payment" && session.metadata?.kind === "gift_chip_in") {
+      const giftId = session.metadata.gift_id || session.client_reference_id || "";
+      const contributorToken = session.metadata.contributor_token || "anonymous";
+      const amountCents = Number(session.metadata.amount_cents ?? session.amount_total ?? 0);
+      const paymentId =
+        typeof session.payment_intent === "string"
+          ? session.payment_intent
+          : session.payment_intent?.id || session.id;
+      if (!giftId || !Number.isFinite(amountCents) || amountCents <= 0) {
+        console.error("[stripe-webhook] gift_chip_in: missing gift_id or amount in metadata");
+        return;
+      }
+      const result = await applyChipIn({
+        giftId,
+        contributorToken,
+        amountCents,
+        stripePaymentId: paymentId,
+      });
+      if (!result.recorded) {
+        // Duplicate webhook delivery (or a write error already logged) — the
+        // contribution is already counted, so nothing more to do.
+        console.log(`[stripe-webhook] gift_chip_in: ${giftId} chip-in already recorded`);
+        return;
+      }
+      console.log(
+        `[stripe-webhook] gift_chip_in: ${giftId} now ${result.paidCents}/${result.targetCents}` +
+          (result.justUnlocked ? " — pool reached, unlocked" : ""),
+      );
+      if (result.justUnlocked) {
+        // Kick the premium render like the solo unlock path (no-op unless
+        // RENDER_WORKER_URL is set). Non-blocking; best-effort.
+        after(
+          (async () => {
+            const unlocked = await loadSharedSong(giftId);
+            if (unlocked) await requestPremiumRender(unlocked);
+          })().catch(() => undefined),
+        );
       }
       return;
     }
