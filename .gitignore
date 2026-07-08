@@ -37,6 +37,9 @@ yarn-error.log*
 .env*
 !.env.local.example
 
+# Stripe live setup scratch — holds secret keys; never commit
+stripe-live-env.txt
+
 # vercel
 .vercel
 
