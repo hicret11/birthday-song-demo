@@ -194,6 +194,7 @@ export const es: Dict = {
     callDateLabel: "¿Cuándo llamamos? (opcional)",
     callDateHint: "Déjalo en blanco para llamar en cuanto esté listo. Solo llamamos entre las 8:00 y las 21:00 hora local.",
     callConsentLabel: "Tengo el permiso de {name} para que reciba esta llamada.",
+    callConsentMicrocopy: "Es una felicitación de cumpleaños personal, no una llamada comercial. Eres responsable de contar con su consentimiento; registramos esta declaración con tu pedido.",
   },
   // El Estreno — la presentación teatral de la canción terminada.
   premiere: {
@@ -356,6 +357,7 @@ export const es: Dict = {
     greet: "¡Feliz cumpleaños, {name}!",
     noteIntro: "Alguien que te quiere me pidió que te dijera: {note}",
     speak: "Habla completamente en español, con calidez y naturalidad, y mantente en personaje.",
+    callback: "Si quieres contactar con la persona que organizó esta llamada, puedes llamar al {number}.",
   },
   castLive: {
     ctaTitle: "Lleva un artista de verdad a la fiesta 🎸",

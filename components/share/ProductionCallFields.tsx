@@ -31,6 +31,15 @@ export function isProductionCallReady(v: ProductionCallValue): boolean {
   );
 }
 
+/**
+ * The EXACT attestation wording the giver agreed to, in their locale — persisted
+ * as consent evidence (burden-of-proof trail for the giver-attests model).
+ */
+export function consentAttestationText(recipientName: string, locale: Locale = "en"): string {
+  const who = recipientName.trim() || "them";
+  return getDictionary(locale).paywall.callConsentLabel.replace("{name}", who);
+}
+
 export default function ProductionCallFields({
   recipientName,
   locale = "en",
@@ -110,6 +119,7 @@ export default function ProductionCallFields({
         />
         <span>{fill(t.callConsentLabel)}</span>
       </label>
+      <p className="mt-1.5 text-[11px] leading-snug text-ink-soft">{t.callConsentMicrocopy}</p>
     </div>
   );
 }

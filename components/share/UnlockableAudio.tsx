@@ -10,6 +10,7 @@ import {
 } from "@/lib/pricing-display";
 import ProductionCallFields, {
   isProductionCallReady,
+  consentAttestationText,
   type ProductionCallValue,
 } from "@/components/share/ProductionCallFields";
 
@@ -102,6 +103,7 @@ export default function UnlockableAudio({
         plan === "production"
           ? {
               consent: call.consent,
+              consentText: consentAttestationText(recipientName, locale),
               call: {
                 characterId: call.characterId,
                 phone: call.phone.trim(),

@@ -18,6 +18,7 @@ import { getClientIp, rateLimitFixedWindow } from "@/lib/rate-limit";
 import { moderateShareInput } from "@/lib/moderation";
 import { createBooking } from "@/lib/cast";
 import { getCharacter } from "@/lib/cast/characters";
+import { timezoneForPhone } from "@/lib/cast/quiet-hours";
 import {
   isLiveKind,
   isLiveCastEnabled,
@@ -202,6 +203,10 @@ export async function POST(request: Request): Promise<Response> {
     return jsonError("MODERATION", "That didn't pass our content check — try rephrasing.", 422);
   }
 
+  // Consent evidence (giver-attests model) — the exact wording the booker agreed
+  // to (client-supplied), their IP, and the time. Persisted as a burden-of-proof
+  // trail. recipient_timezone drives the quiet-hours guard in the scheduler.
+  const consentText = str(body.consentText, 300) || "Booker attested the recipient consents to the call.";
   const booking = await createBooking({
     giftId,
     kind: "ai_call",
@@ -213,6 +218,10 @@ export async function POST(request: Request): Promise<Response> {
     scheduledAt,
     consentConfirmed: true,
     bookerToken: token,
+    consentIp: ip.slice(0, 64),
+    consentAttestation: consentText,
+    consentAt: new Date().toISOString(),
+    recipientTimezone: timezoneForPhone(recipientPhone),
   });
   if (!booking) {
     return jsonError("INTERNAL", "Couldn't save the booking — please try again.", 502);

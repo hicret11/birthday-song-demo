@@ -119,7 +119,11 @@ export function composeGreeting(args: {
   const disclosure = fill(t.disclosure, { character: character.name });
   const greet = fill(t.greet, { name: recipientName });
   const note = personalNote?.trim() ? ` ${fill(t.noteIntro, { note: personalNote.trim() })}` : "";
-  return `${disclosure} ${greet}${note}`;
+  // Caller identity + callback number (47 CFR 64.1200(b)). Only appended when a
+  // callback number is configured; server-only env, never bundled to the client.
+  const callbackNumber = process.env.CAST_CALLBACK_NUMBER?.trim();
+  const callback = callbackNumber ? ` ${fill(t.callback, { number: callbackNumber })}` : "";
+  return `${disclosure} ${greet}${note}${callback}`;
 }
 
 /**

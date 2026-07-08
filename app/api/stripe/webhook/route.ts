@@ -169,6 +169,10 @@ async function handleEvent(event: Stripe.Event, stripe: Stripe): Promise<void> {
                       personalNote: song.directorNote?.text ?? null,
                       scheduledAt: session.metadata?.call_when || null,
                       consentConfirmed: session.metadata?.call_consent === "1",
+                      consentIp: session.metadata?.consent_ip ?? null,
+                      consentAttestation: session.metadata?.consent_text ?? null,
+                      consentAt: session.metadata?.accepted_at ?? null,
+                      recipientTimezone: session.metadata?.call_tz ?? null,
                     });
                     if (booking) await markBookingPaid(booking.id, paymentId);
                   }

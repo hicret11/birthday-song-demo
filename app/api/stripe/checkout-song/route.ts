@@ -2,6 +2,8 @@ import { getStripe } from "@/lib/stripe";
 import { resolveTier, priceIdForPlanTier, type Plan } from "@/lib/pricing-tiers";
 import { loadSharedSong } from "@/lib/share";
 import { isCastCharacterId } from "@/lib/cast/characters";
+import { timezoneForPhone } from "@/lib/cast/quiet-hours";
+import { getClientIp } from "@/lib/rate-limit";
 import {
   LEGAL_VERSION,
   LEGAL_ACCEPTANCE_SURFACE,
@@ -32,6 +34,7 @@ export async function POST(request: Request): Promise<Response> {
     plan?: unknown;
     call?: { characterId?: unknown; phone?: unknown; scheduledAt?: unknown };
     consent?: unknown;
+    consentText?: unknown;
   };
   try {
     body = (await request.json()) as typeof body;
@@ -124,11 +127,20 @@ export async function POST(request: Request): Promise<Response> {
   if (geo.country) metadata.accept_country = geo.country;
   if (geo.region) metadata.accept_region = geo.region;
   // Production call details — the webhook books the AI call from these on payment.
+  // We also persist consent evidence (giver-attests model): the client IP, the
+  // exact attestation wording the giver agreed to, and a representative recipient
+  // timezone (for the quiet-hours guard). accepted_at above is the consent time.
   if (plan === "production") {
     metadata.call_character = callCharacterId;
     metadata.call_phone = callPhone;
     if (callWhen) metadata.call_when = callWhen;
     metadata.call_consent = "1";
+    metadata.consent_ip = getClientIp(request).slice(0, 64);
+    const consentText =
+      typeof body.consentText === "string" ? body.consentText.trim().slice(0, 300) : "";
+    if (consentText) metadata.consent_text = consentText;
+    const tz = timezoneForPhone(callPhone);
+    if (tz) metadata.call_tz = tz;
   }
 
   try {

@@ -40,6 +40,7 @@ import {
 } from "@/lib/pricing-display";
 import ProductionCallFields, {
   isProductionCallReady,
+  consentAttestationText,
   type ProductionCallValue,
 } from "@/components/share/ProductionCallFields";
 import { track } from "@vercel/analytics";
@@ -1787,6 +1788,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
         unlockPlan === "production"
           ? {
               consent: callSetup.consent,
+              consentText: consentAttestationText(name, locale),
               call: {
                 characterId: callSetup.characterId,
                 phone: callSetup.phone.trim(),

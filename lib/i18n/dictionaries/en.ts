@@ -212,6 +212,7 @@ export const en = {
     callDateLabel: "When should we call? (optional)",
     callDateHint: "Leave blank to call as soon as it’s ready. We only ever call between 8am–9pm their local time.",
     callConsentLabel: "I have {name}’s permission for them to receive this call.",
+    callConsentMicrocopy: "This is a personal birthday greeting, not a marketing call. You’re responsible for having their consent; we record this attestation with your order.",
   },
   // The Premiere — the theatrical reveal of the finished song.
   premiere: {
@@ -382,6 +383,7 @@ export const en = {
     greet: "Happy birthday, {name}!",
     noteIntro: "Someone who loves you wanted me to say: {note}",
     speak: "Speak entirely in English, warmly and naturally, and stay in character.",
+    callback: "If you'd like to reach the person who arranged this call, you can call {number}.",
   },
   // The Live cast — request a real, in-person performer (concierge pilot). Not
   // AI. {city}/{deposit}/{name} are filled at render time.

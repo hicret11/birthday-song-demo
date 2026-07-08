@@ -194,6 +194,7 @@ export const tr: Dict = {
     callDateLabel: "Ne zaman arayalım? (isteğe bağlı)",
     callDateHint: "Hazır olur olmaz aramak için boş bırakın. Yalnızca yerel saatle 08:00–21:00 arasında ararız.",
     callConsentLabel: "{name} kişisinin bu aramayı almasına iznim var.",
+    callConsentMicrocopy: "Bu, kişisel bir doğum günü kutlamasıdır, pazarlama araması değildir. Onların iznine sahip olmaktan siz sorumlusunuz; bu beyanı siparişinizle birlikte kaydediyoruz.",
   },
   // Prömiyer — tamamlanmış şarkının teatral açılışı.
   premiere: {
@@ -356,6 +357,7 @@ export const tr: Dict = {
     greet: "İyi ki doğdun, {name}!",
     noteIntro: "Seni seven biri şunu söylememi istedi: {note}",
     speak: "Tamamen Türkçe konuş, sıcak ve doğal bir şekilde, ve karakterinden çıkma.",
+    callback: "Bu aramayı ayarlayan kişiye ulaşmak isterseniz {number} numarasını arayabilirsiniz.",
   },
   castLive: {
     ctaTitle: "Partiye gerçek bir sanatçı getir 🎸",
