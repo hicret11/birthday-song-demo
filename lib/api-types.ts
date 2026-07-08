@@ -49,6 +49,16 @@ export type GenerateSongRequest = {
    * Example: "Afro house like Palm Monkey, upbeat tribal, ~120 BPM".
    */
   style_notes?: string;
+  /**
+   * Emotional target chosen during casting ("goosebumps", "happy tears"…).
+   * Aims the lyric's emotional arc.
+   */
+  feeling?: string;
+  /**
+   * "Produced & directed by" credit — relationship role or sender name. Sets
+   * the point of view the lyrics are written from.
+   */
+  director_credit?: string;
 };
 
 export type GenerateLyricsResponse = {

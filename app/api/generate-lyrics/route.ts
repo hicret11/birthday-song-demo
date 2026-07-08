@@ -101,6 +101,8 @@ export async function POST(request: Request): Promise<Response> {
     memory: sanitizeAdvanced(body.memory),
     extras: sanitizeAdvanced(body.extras),
     styleNotes: sanitizeAdvanced(body.style_notes),
+    feeling: sanitizeAdvanced(body.feeling),
+    directorCredit: sanitizeAdvanced(body.director_credit),
   };
   // pronunciation_hint is intentionally NOT passed to the lyric generator.
   // The displayed lyrics must keep the original name spelling. The hint is

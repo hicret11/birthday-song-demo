@@ -1502,6 +1502,9 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
       extras: extras.trim() || undefined,
       pronunciation_hint: pronunciationHint.trim() || undefined,
       style_notes: styleNotes.trim() || undefined,
+      feeling: feeling.trim() || undefined,
+      director_credit:
+        (relationship.trim() ? relationshipRole : senderName.trim()) || undefined,
     };
 
     try {
