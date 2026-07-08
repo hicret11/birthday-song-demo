@@ -266,6 +266,12 @@ export type SharedSong = {
   previewAudioUrl?: string;
   /** User-uploaded photo URLs (R2) for the optional paid photo slideshow. */
   photoUrls?: string[];
+  /**
+   * Crowd voice-note audio URLs (Vercel Blob) folded in at merge time. Their
+   * spoken words are transcribed into the lyrics; the audio is kept here for a
+   * future voice montage. Crowd songs only; absent otherwise.
+   */
+  voiceUrls?: string[];
   /** Rendered photo-slideshow MP4 (R2 URL), produced after unlock. */
   slideshowVideoUrl?: string;
   /**

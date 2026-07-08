@@ -23,7 +23,15 @@ import {
   loadCrowdDirectorToken,
 } from "@/lib/share";
 import { generateLyrics, type LyricsInput } from "@/lib/anthropic";
-import { listApprovedContributions, composeLyricContext, collectPhotoUrls } from "@/lib/crowd";
+import {
+  listApprovedContributions,
+  composeLyricContext,
+  collectPhotoUrls,
+  collectVoiceUrls,
+  setContributionContent,
+} from "@/lib/crowd";
+import { transcribeFromUrl } from "@/lib/transcribe-audio";
+import { moderateShareInput } from "@/lib/moderation";
 import { getMusicProvider } from "@/lib/music-provider";
 import type { Lyrics, SharedSong } from "@/lib/api-types";
 
@@ -77,16 +85,41 @@ async function stepCloseCollection(song: SharedSong): Promise<void> {
   await saveSharedSong(song);
 }
 
-/** Gather approved contributions into a lyric-prompt context block, and pull out
- *  any photo contributions' URLs for the merged song's Deluxe slideshow. */
+/**
+ * Gather approved contributions into a lyric-prompt context block, plus the
+ * photo URLs (Deluxe slideshow) and voice URLs (future montage).
+ *
+ * Voice notes carry no text at contribute time, so here we Whisper-transcribe
+ * each one (in the gift's language), moderate the words, and persist the clean
+ * transcript onto the contribution's `content` — which makes composeLyricContext
+ * fold the spoken words into the lyrics. Persisting is idempotent: a re-close
+ * skips clips that already have a transcript. Best-effort per clip — a failed or
+ * flagged transcription just leaves that voice out of the words (its audio is
+ * still kept in voiceUrls).
+ */
 async function stepBuildContext(
   id: string,
-): Promise<{ context: string; count: number; photoUrls: string[] }> {
+  language: string,
+): Promise<{ context: string; count: number; photoUrls: string[]; voiceUrls: string[] }> {
   const contributions = await listApprovedContributions(id);
+
+  await Promise.all(
+    contributions.map(async (c) => {
+      if (c.kind !== "voice" || !c.contentUrl || c.content?.trim()) return;
+      const transcript = await transcribeFromUrl(c.contentUrl, language);
+      if (!transcript) return;
+      const mod = await moderateShareInput([transcript]).catch(() => ({ allowed: true }));
+      if (!mod.allowed) return; // flagged words never reach the lyrics
+      c.content = transcript; // update in-memory so composeLyricContext sees it
+      await setContributionContent(c.id, transcript); // persist for idempotent re-close
+    }),
+  );
+
   return {
     context: composeLyricContext(contributions),
     count: contributions.length,
     photoUrls: collectPhotoUrls(contributions),
+    voiceUrls: collectVoiceUrls(contributions),
   };
 }
 
@@ -97,7 +130,7 @@ async function stepGenerateLyrics(
   context: string,
 ): Promise<Lyrics> {
   const extras = context
-    ? `The birthday person's friends and family each added lines, memories, and wishes below — weave in as many as you naturally can:\n${context}`
+    ? `The birthday person's friends and family each added lines, memories, wishes, and voice notes below — weave in as many as you naturally can:\n${context}`
     : undefined;
   const input: LyricsInput = {
     name: song.name,
@@ -156,19 +189,24 @@ async function stepAwaitAudio(jobId: string): Promise<{ audioUrl: string; durati
 }
 
 /** Persist the finished merged song. Crowd photo contributions are folded into
- *  song.photoUrls (merged with any existing, deduped, capped 6) so the Deluxe
- *  slideshow uses them after unlock. */
+ *  song.photoUrls (deduped, capped 6) for the Deluxe slideshow; crowd voice
+ *  notes are kept on song.voiceUrls (deduped, capped 10) for a future montage. */
 async function stepPersistMerged(
   song: SharedSong,
   lyrics: Lyrics,
   audioUrl: string,
   photoUrls: string[],
+  voiceUrls: string[],
 ): Promise<void> {
   song.lyrics = lyrics;
   song.audioUrl = audioUrl;
   if (photoUrls.length > 0) {
     const merged = [...(song.photoUrls ?? []), ...photoUrls];
     song.photoUrls = Array.from(new Set(merged)).slice(0, 6);
+  }
+  if (voiceUrls.length > 0) {
+    const merged = [...(song.voiceUrls ?? []), ...voiceUrls];
+    song.voiceUrls = Array.from(new Set(merged)).slice(0, 10);
   }
   if (song.crowd) song.crowd.status = "merged";
   await saveSharedSong(song);
@@ -211,16 +249,17 @@ export async function POST(
     if (song.crowd.status === "collecting") {
       await stepCloseCollection(song);
     }
-    // 2. Assemble the circle's contributions (text context + photo URLs).
-    const { context, count, photoUrls } = await stepBuildContext(id);
+    // 2. Assemble the circle's contributions: text + transcribed voice notes
+    //    for the lyrics, plus photo + voice URLs for the merged song.
+    const { context, count, photoUrls, voiceUrls } = await stepBuildContext(id, song.language);
     // 3. Lyrics (solo pipeline + crowd context).
     const lyrics = await stepGenerateLyrics(song, genre, context);
     // 4. Music submit.
     const jobId = await stepSubmitMusic(lyrics, genre);
     // 5. Await audio.
     const { audioUrl } = await stepAwaitAudio(jobId);
-    // 6. Persist the merged song (folding crowd photos into the slideshow).
-    await stepPersistMerged(song, lyrics, audioUrl, photoUrls);
+    // 6. Persist the merged song (crowd photos → slideshow, voices → montage).
+    await stepPersistMerged(song, lyrics, audioUrl, photoUrls, voiceUrls);
 
     return Response.json({
       id,

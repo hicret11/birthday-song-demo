@@ -1,16 +1,18 @@
 // Add a crowd-magic contribution to a gift.
 //
-// POST /api/crowd/[id]/contribute  { kind, content, authorName? }
+// POST /api/crowd/[id]/contribute  { kind, content | content_url, authorName? }
 // - id = KV share id of the gift (must exist).
 // - Anonymous contributor identity via a first-party cookie (no login).
 // - Rate-limited per IP; per-author cap; every text runs through moderation
 //   (same gate the share input uses) BEFORE it's stored, because contributions
 //   surface publicly on the contributor page and in the final song.
 //
-// Text contributions (line / memory / wish) carry `content`; a `photo`
-// contribution instead carries a `content_url` — an image already uploaded via
-// /api/photos/upload (Vercel Blob). Photos skip text moderation (no text) but
-// still run author-name moderation. Voice is still deferred.
+// Text contributions (line / memory / wish) carry `content`; a media
+// contribution (`photo` / `voice`) instead carries a `content_url` — a file
+// already uploaded via /api/photos/upload or /api/audio/upload (Vercel Blob).
+// Media kinds skip text moderation (no text of their own) but still run
+// author-name moderation. A voice note's spoken words are transcribed +
+// folded into the lyrics later, at merge time (see /api/crowd/[id]/close).
 
 import { randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
@@ -32,12 +34,15 @@ export const runtime = "nodejs";
 const ID_RE = /^[a-zA-Z0-9]{1,32}$/;
 const CONTRIBUTOR_COOKIE = "smb_contributor";
 const TEXT_KINDS: ContributionKind[] = ["line", "memory", "wish"];
-const ALLOWED_KINDS: ContributionKind[] = [...TEXT_KINDS, "photo"];
+// Media kinds carry an already-uploaded content_url instead of text (photo →
+// /api/photos/upload, voice → /api/audio/upload) and skip content moderation.
+const MEDIA_KINDS: ContributionKind[] = ["photo", "voice"];
+const ALLOWED_KINDS: ContributionKind[] = [...TEXT_KINDS, ...MEDIA_KINDS];
 
-// A photo URL must be a well-formed https URL. Storage is Vercel Blob
+// A media URL must be a well-formed https URL. Storage is Vercel Blob
 // (uploadToR2 → *.public.blob.vercel-storage.com), but we don't hardcode that
 // host — just require https so we never store a javascript:/data: URL.
-function isValidPhotoUrl(u: string): boolean {
+function isValidMediaUrl(u: string): boolean {
   try {
     return new URL(u).protocol === "https:";
   } catch {
@@ -101,12 +106,13 @@ export async function POST(
   if (!ALLOWED_KINDS.includes(kind)) {
     return jsonError("INVALID_INPUT", "Unsupported contribution kind.", 400);
   }
-  const isPhoto = kind === "photo";
+  const isMedia = MEDIA_KINDS.includes(kind);
 
-  // Text kinds carry `content`; a photo carries `content_url` (already uploaded).
+  // Text kinds carry `content`; a media kind (photo/voice) carries `content_url`
+  // (already uploaded to Vercel Blob).
   let content: string | null = null;
   let contentUrl: string | null = null;
-  if (isPhoto) {
+  if (isMedia) {
     const rawUrl =
       typeof body.content_url === "string"
         ? body.content_url
@@ -114,8 +120,14 @@ export async function POST(
           ? body.contentUrl
           : "";
     contentUrl = rawUrl.trim();
-    if (!contentUrl || !isValidPhotoUrl(contentUrl)) {
-      return jsonError("INVALID_INPUT", "A photo needs a valid uploaded image URL.", 400);
+    if (!contentUrl || !isValidMediaUrl(contentUrl)) {
+      return jsonError(
+        "INVALID_INPUT",
+        kind === "voice"
+          ? "A voice note needs a valid uploaded audio URL."
+          : "A photo needs a valid uploaded image URL.",
+        400,
+      );
     }
   } else {
     content = stripControl(typeof body.content === "string" ? body.content : "")
@@ -149,10 +161,11 @@ export async function POST(
     );
   }
 
-  // Moderation gate — contributions are public + go into the song. A photo has
-  // no text of its own, so only its author name is moderated; text kinds
-  // moderate both content and author name.
-  const mod = await moderateShareInput(isPhoto ? [authorName] : [content, authorName]);
+  // Moderation gate — contributions are public + go into the song. A media
+  // contribution (photo/voice) has no text of its own, so only its author name
+  // is moderated; text kinds moderate both content and author name. (A voice
+  // note's transcript is produced + moderated separately at merge time.)
+  const mod = await moderateShareInput(isMedia ? [authorName] : [content, authorName]);
   if (!mod.allowed) {
     return jsonError("MODERATION", "That didn't pass our content check — try rephrasing.", 422);
   }

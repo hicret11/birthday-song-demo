@@ -125,20 +125,46 @@ export async function listApprovedContributions(
 }
 
 /**
- * Compose approved text contributions into a context block for the lyric
- * prompt. This is what turns "many people's bits" into ONE song at merge time
- * (Phase 2b / Inngest). Photos & voice are handled separately.
+ * Compose approved contributions into a context block for the lyric prompt.
+ * This is what turns "many people's bits" into ONE song at merge time. Text
+ * kinds (line/memory/wish) use their content directly; a voice note contributes
+ * its TRANSCRIPT (persisted into `content` by the close route after Whisper).
+ * Photos have no words, so they're excluded here (they feed the slideshow).
  */
 export function composeLyricContext(contributions: CrowdContribution[]): string {
   const lines = contributions
-    .filter((c) => (c.kind === "line" || c.kind === "memory" || c.kind === "wish") && c.content)
+    .filter(
+      (c) =>
+        (c.kind === "line" || c.kind === "memory" || c.kind === "wish" || c.kind === "voice") &&
+        c.content?.trim(),
+    )
     .map((c) => {
       const who = c.authorName?.trim() ? ` (from ${c.authorName.trim()})` : "";
       const label =
-        c.kind === "line" ? "Lyric idea" : c.kind === "memory" ? "Memory" : "Wish";
+        c.kind === "line"
+          ? "Lyric idea"
+          : c.kind === "memory"
+            ? "Memory"
+            : c.kind === "wish"
+              ? "Wish"
+              : "Voice note";
       return `- ${label}${who}: ${c.content!.trim()}`;
     });
   return lines.join("\n");
+}
+
+/** Collect one media kind's contribution URLs, deduped and in order. */
+function collectMediaUrls(contributions: CrowdContribution[], kind: ContributionKind): string[] {
+  const seen = new Set<string>();
+  const urls: string[] = [];
+  for (const c of contributions) {
+    if (c.kind !== kind) continue;
+    const url = c.contentUrl?.trim();
+    if (!url || seen.has(url)) continue;
+    seen.add(url);
+    urls.push(url);
+  }
+  return urls;
 }
 
 /**
@@ -146,14 +172,24 @@ export function composeLyricContext(contributions: CrowdContribution[]): string 
  * the merged song's Deluxe slideshow (song.photoUrls) at close/merge time.
  */
 export function collectPhotoUrls(contributions: CrowdContribution[]): string[] {
-  const seen = new Set<string>();
-  const urls: string[] = [];
-  for (const c of contributions) {
-    if (c.kind !== "photo") continue;
-    const url = c.contentUrl?.trim();
-    if (!url || seen.has(url)) continue;
-    seen.add(url);
-    urls.push(url);
-  }
-  return urls;
+  return collectMediaUrls(contributions, "photo");
+}
+
+/**
+ * Collect approved voice-note contributions' audio URLs, deduped and in order.
+ * Persisted on the merged song (song.voiceUrls) for a future voice montage —
+ * the words themselves are separately transcribed into the lyrics.
+ */
+export function collectVoiceUrls(contributions: CrowdContribution[]): string[] {
+  return collectMediaUrls(contributions, "voice");
+}
+
+/**
+ * Persist text onto a contribution's `content` (e.g. a voice note's Whisper
+ * transcript, computed at merge time). Best-effort; logs and swallows errors.
+ */
+export async function setContributionContent(id: string, content: string): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase.from(TABLE).update({ content }).eq("id", id);
+  if (error) console.error("[crowd] setContributionContent failed:", error.message);
 }

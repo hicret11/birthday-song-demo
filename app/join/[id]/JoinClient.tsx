@@ -18,8 +18,8 @@ type CrowdContributorDict = Dict["crowdContributor"];
 
 type TextKind = "line" | "memory" | "wish";
 // What the composer is set to. "photo" swaps the textarea for an image picker;
-// "voice" is a disabled "coming soon" affordance (never becomes the active kind).
-type Kind = TextKind | "photo";
+// "voice" swaps it for a MediaRecorder mic recorder.
+type Kind = TextKind | "photo" | "voice";
 
 type Contribution = {
   id: string;
@@ -41,6 +41,23 @@ const MAX_LEN = 280;
 // Mirror /api/photos/upload's guardrails so we fail fast, before the round-trip.
 const MAX_PHOTO_BYTES = 6 * 1024 * 1024;
 const PHOTO_ACCEPT = "image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif";
+// Voice notes: auto-stop at 30s, and a client cap mirroring /api/audio/upload.
+const MAX_VOICE_MS = 30_000;
+const MAX_VOICE_BYTES = 5 * 1024 * 1024;
+
+// Pick a MediaRecorder mime type the browser actually supports (Chrome/Firefox
+// → webm/opus, Safari → mp4), so the blob + filename extension line up.
+function pickAudioMime(): string {
+  if (typeof MediaRecorder === "undefined") return "";
+  const candidates = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg"];
+  return candidates.find((t) => MediaRecorder.isTypeSupported(t)) ?? "";
+}
+
+function extForMime(mime: string): string {
+  if (/mp4/i.test(mime)) return "mp4";
+  if (/ogg/i.test(mime)) return "ogg";
+  return "webm";
+}
 
 /** Fill {placeholder} tokens in a dictionary string. */
 function fill(tpl: string, vars: Record<string, string | number>): string {
@@ -67,6 +84,16 @@ export default function JoinClient({
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  // Voice composer state: MediaRecorder + the recorded blob and its preview.
+  const [recording, setRecording] = useState(false);
+  const [voiceBlob, setVoiceBlob] = useState<Blob | null>(null);
+  const [voicePreview, setVoicePreview] = useState<string | null>(null);
+  const [recordMs, setRecordMs] = useState(0);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const autoStopRef = useRef<number | null>(null);
+  const tickRef = useRef<number | null>(null);
   // Newest-first: the server returns contributions oldest-first, so reverse the
   // seed and prepend live ones on top (broadcast + optimistic own submit).
   const [contributions, setContributions] = useState<Contribution[]>(
@@ -272,7 +299,151 @@ export default function JoinClient({
     }
   }, [photoFile, authorName, giftId, refresh, clearPhoto, t]);
 
-  const submit = kind === "photo" ? submitPhoto : submitText;
+  // Free the voice preview object-URL when replaced or on unmount, and make sure
+  // the mic stream is released if the component unmounts mid-recording.
+  useEffect(() => {
+    return () => {
+      if (voicePreview) URL.revokeObjectURL(voicePreview);
+    };
+  }, [voicePreview]);
+  useEffect(() => {
+    return () => {
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      if (autoStopRef.current) window.clearTimeout(autoStopRef.current);
+      if (tickRef.current) window.clearInterval(tickRef.current);
+    };
+  }, []);
+
+  const clearVoice = useCallback(() => {
+    setVoiceBlob(null);
+    setRecordMs(0);
+    setVoicePreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+  }, []);
+
+  const stopRecording = useCallback(() => {
+    if (autoStopRef.current) {
+      window.clearTimeout(autoStopRef.current);
+      autoStopRef.current = null;
+    }
+    if (tickRef.current) {
+      window.clearInterval(tickRef.current);
+      tickRef.current = null;
+    }
+    const rec = recorderRef.current;
+    if (rec && rec.state !== "inactive") rec.stop();
+    setRecording(false);
+  }, []);
+
+  const startRecording = useCallback(async () => {
+    setError(null);
+    setDone(false);
+    clearVoice();
+    if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+      setError(t.errMic);
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      const mime = pickAudioMime();
+      const rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+      recorderRef.current = rec;
+      chunksRef.current = [];
+      rec.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
+      };
+      rec.onstop = () => {
+        stream.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+        const type = rec.mimeType || mime || "audio/webm";
+        const blob = new Blob(chunksRef.current, { type });
+        if (blob.size === 0) return;
+        if (blob.size > MAX_VOICE_BYTES) {
+          setError(t.errTooBig);
+          return;
+        }
+        setVoiceBlob(blob);
+        setVoicePreview((prev) => {
+          if (prev) URL.revokeObjectURL(prev);
+          return URL.createObjectURL(blob);
+        });
+      };
+      rec.start();
+      setRecording(true);
+      const startedAt = Date.now();
+      tickRef.current = window.setInterval(() => setRecordMs(Date.now() - startedAt), 200);
+      autoStopRef.current = window.setTimeout(stopRecording, MAX_VOICE_MS);
+    } catch {
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+      setError(t.errMic);
+    }
+  }, [clearVoice, stopRecording, t]);
+
+  const submitVoice = useCallback(async () => {
+    if (!voiceBlob) {
+      setError(t.errNeedVoice);
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    try {
+      // 1. Upload the recording → get its public URL.
+      const form = new FormData();
+      const ext = extForMime(voiceBlob.type);
+      form.append("audio", voiceBlob, `voice.${ext}`);
+      const upRes = await fetch("/api/audio/upload", { method: "POST", body: form });
+      const upData = (await upRes.json().catch(() => ({}))) as {
+        url?: string;
+        error?: { message?: string };
+      };
+      if (!upRes.ok || !upData.url) {
+        setError(upData.error?.message ?? t.errUploadVoice);
+        return;
+      }
+      // 2. Attach it to the gift as a voice contribution.
+      const res = await fetch(`/api/crowd/${giftId}/contribute`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "voice",
+          content_url: upData.url,
+          authorName: authorName.trim() || undefined,
+        }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        error?: { message?: string };
+      };
+      if (res.ok && data.ok) {
+        clearVoice();
+        setDone(true);
+        await refresh();
+      } else {
+        setError(data.error?.message ?? t.errAddVoice);
+      }
+    } catch {
+      setError(t.errNetwork);
+    } finally {
+      setSubmitting(false);
+    }
+  }, [voiceBlob, authorName, giftId, refresh, clearVoice, t]);
+
+  // Switch composer tab; stop any live recording so the mic is released.
+  const switchKind = useCallback(
+    (k: Kind) => {
+      if (recording) stopRecording();
+      setKind(k);
+      setDone(false);
+      setError(null);
+    },
+    [recording, stopRecording],
+  );
+
+  const submit = kind === "photo" ? submitPhoto : kind === "voice" ? submitVoice : submitText;
 
   const count = contributions.length;
 
@@ -317,11 +488,7 @@ export default function JoinClient({
                 <button
                   key={k}
                   type="button"
-                  onClick={() => {
-                    setKind(k);
-                    setDone(false);
-                    setError(null);
-                  }}
+                  onClick={() => switchKind(k)}
                   aria-pressed={sel}
                   className={`rounded-full px-4 py-2 text-sm font-bold transition ${
                     sel
@@ -337,11 +504,7 @@ export default function JoinClient({
             {/* Photo — uploads an image instead of text. */}
             <button
               type="button"
-              onClick={() => {
-                setKind("photo");
-                setDone(false);
-                setError(null);
-              }}
+              onClick={() => switchKind("photo")}
               aria-pressed={kind === "photo"}
               className={`rounded-full px-4 py-2 text-sm font-bold transition ${
                 kind === "photo"
@@ -352,19 +515,58 @@ export default function JoinClient({
               📷 {t.photoTab}
             </button>
 
-            {/* Voice — coming soon, disabled affordance. */}
+            {/* Voice — records a short clip with MediaRecorder. */}
             <button
               type="button"
-              disabled
-              aria-disabled="true"
-              title={t.voiceTitle}
-              className="cursor-not-allowed rounded-full border border-dashed border-sand bg-cream px-4 py-2 text-sm font-bold text-ink-soft/60"
+              onClick={() => switchKind("voice")}
+              aria-pressed={kind === "voice"}
+              className={`rounded-full px-4 py-2 text-sm font-bold transition ${
+                kind === "voice"
+                  ? "bg-gradient-to-r from-brand-amber to-brand-pink text-white"
+                  : "border border-sand bg-cream text-ink hover:border-brand-pink"
+              }`}
             >
               🎤 {t.voiceTab}
             </button>
           </div>
 
-          {kind === "photo" ? (
+          {kind === "voice" ? (
+            <div className="mt-4">
+              {voicePreview ? (
+                <div className="rounded-2xl border border-sand bg-cream p-4">
+                  <p className="mb-2 text-xs font-semibold text-ink-soft">{t.voicePreviewLabel}</p>
+                  <audio src={voicePreview} controls className="w-full" />
+                  <button
+                    type="button"
+                    onClick={startRecording}
+                    className="mt-3 rounded-full border border-sand bg-cream px-4 py-2 text-xs font-bold text-ink transition hover:border-brand-pink"
+                  >
+                    🎤 {t.voiceReRecord}
+                  </button>
+                </div>
+              ) : recording ? (
+                <button
+                  type="button"
+                  onClick={stopRecording}
+                  className="flex w-full flex-col items-center justify-center gap-1 rounded-2xl border border-brand-pink bg-cream px-4 py-8 text-center text-sm font-bold text-brand-pink transition"
+                >
+                  <span className="inline-block animate-pulse text-2xl">🔴</span>
+                  {t.voiceRecording} {Math.floor(recordMs / 1000)}s
+                  <span className="text-[11px] font-normal text-ink-soft/70">■ {t.voiceStop}</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={startRecording}
+                  className="flex w-full flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-sand bg-cream px-4 py-8 text-center text-sm font-semibold text-ink-soft transition hover:border-brand-pink"
+                >
+                  <span className="text-2xl">🎤</span>
+                  {t.voiceRecordPrompt}
+                  <span className="text-[11px] font-normal text-ink-soft/70">{t.voiceHint}</span>
+                </button>
+              )}
+            </div>
+          ) : kind === "photo" ? (
             <div className="mt-4">
               <input
                 ref={fileInputRef}
@@ -431,18 +633,20 @@ export default function JoinClient({
           <button
             type="button"
             onClick={submit}
-            disabled={submitting}
+            disabled={submitting || (kind === "voice" && (recording || !voiceBlob))}
             className="mt-4 w-full rounded-2xl bg-gradient-to-r from-brand-amber to-brand-pink px-6 py-4 text-base font-extrabold text-white shadow-lg transition hover:-translate-y-0.5 disabled:opacity-60"
           >
             {submitting
-              ? kind === "photo"
+              ? kind === "photo" || kind === "voice"
                 ? t.uploading
                 : t.sending
               : done
                 ? t.addAnother
                 : kind === "photo"
                   ? t.submitPhoto
-                  : t.submitText}
+                  : kind === "voice"
+                    ? t.submitVoice
+                    : t.submitText}
           </button>
 
           {done && (
@@ -464,7 +668,24 @@ export default function JoinClient({
             </p>
             <ul className="space-y-3">
               {contributions.map((c) =>
-                c.kind === "photo" && c.contentUrl ? (
+                c.kind === "voice" && c.contentUrl ? (
+                  <li
+                    key={c.id}
+                    className="rounded-2xl border border-sand bg-cream-soft px-4 py-3 text-sm text-ink"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span>🎤</span>
+                      <audio src={c.contentUrl} controls preload="none" className="h-8 w-full" />
+                    </div>
+                    {c.authorName ? (
+                      <span className="mt-1 block text-xs font-semibold text-ink-soft">
+                        — {c.authorName}
+                      </span>
+                    ) : (
+                      <span className="mt-1 block text-xs text-ink-soft">{t.voiceCaption}</span>
+                    )}
+                  </li>
+                ) : c.kind === "photo" && c.contentUrl ? (
                   <li
                     key={c.id}
                     className="overflow-hidden rounded-2xl border border-sand bg-cream-soft text-sm text-ink"
