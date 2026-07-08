@@ -1,11 +1,14 @@
 "use client";
 
-import { useMemo } from "react";
+import { useState } from "react";
 
 const COLORS = ["#ec4899", "#a855f7", "#f59e0b", "#fde047", "#fb7185", "#c084fc"];
 
 export default function Confetti({ count = 60 }: { count?: number }) {
-  const pieces = useMemo(() => {
+  // The random piece layout is decorative and only needs to be computed once on
+  // mount. A lazy useState initializer keeps the impure Math.random calls out of
+  // the render path (they run exactly once) instead of in a render-time useMemo.
+  const [pieces] = useState(() => {
     return Array.from({ length: count }, (_, i) => {
       const startX = Math.random() * 100; // vw
       const drift = (Math.random() - 0.5) * 320; // ±160px lateral drift
@@ -25,7 +28,7 @@ export default function Confetti({ count = 60 }: { count?: number }) {
         } as React.CSSProperties,
       };
     });
-  }, [count]);
+  });
 
   return (
     <div

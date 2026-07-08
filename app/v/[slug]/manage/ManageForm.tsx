@@ -43,10 +43,10 @@ export default function ManageForm({ slug, brand }: Props) {
 
   if (status === "sent") {
     return (
-      <div className="rounded-2xl border border-emerald-300/30 bg-emerald-300/5 p-4 text-sm">
-        <p className="font-semibold text-emerald-200">Check your email.</p>
-        <p className="mt-1 text-emerald-100/80">
-          If the address matches the one on file, we'll send a one-time link in a minute. It expires in 30 minutes.
+      <div className="rounded-2xl border border-sand bg-cream-soft p-4 text-sm">
+        <p className="font-semibold text-jade">Check your email.</p>
+        <p className="mt-1 text-ink-soft">
+          If the address matches the one on file, we&apos;ll send a one-time link in a minute. It expires in 30 minutes.
         </p>
       </div>
     );
@@ -66,18 +66,18 @@ export default function ManageForm({ slug, brand }: Props) {
         onChange={(e) => setEmail(e.target.value)}
         placeholder="you@example.com"
         disabled={status === "submitting"}
-        className="w-full rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white outline-none transition placeholder:text-gray-400 focus:ring-2 focus:ring-purple-400 disabled:opacity-60"
+        className="w-full rounded-2xl border border-sand bg-cream-soft px-4 py-3 text-sm text-ink outline-none transition placeholder:text-ink-soft focus:border-jade focus:ring-1 focus:ring-jade disabled:opacity-60"
       />
       <button
         type="submit"
         disabled={!canSubmit}
         style={{ backgroundColor: brand }}
-        className="w-full rounded-2xl py-3.5 text-sm font-extrabold text-white shadow-xl transition hover:-translate-y-1 disabled:cursor-not-allowed disabled:opacity-40"
+        className="w-full rounded-2xl py-3.5 text-sm font-extrabold text-white shadow-xl transition hover:-translate-y-1 active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
       >
         {status === "submitting" ? "Sending…" : "Send me the link"}
       </button>
       {error && (
-        <p role="alert" className="text-xs text-rose-300">
+        <p role="alert" className="text-xs text-blush">
           {error}
         </p>
       )}

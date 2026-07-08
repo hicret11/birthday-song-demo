@@ -32,7 +32,7 @@ export function Playful({ song }: { song: SharedSong }) {
   ];
 
   return (
-    <main className="relative min-h-screen overflow-hidden text-gray-900" style={{ background: "linear-gradient(135deg, #ff8a8a 0%, #ffb86b 50%, #ff4faf 100%)" }}>
+    <main className="grain relative min-h-screen overflow-hidden bg-warm-soft text-ink">
       <style>{`
         @keyframes floatBalloon {
           0%, 100% { transform: translateY(0px) rotate(-3deg); }
@@ -80,11 +80,11 @@ export function Playful({ song }: { song: SharedSong }) {
       {stars.map((s, i) => (
         <svg
           key={i}
-          className="absolute pointer-events-none wiggle"
-          style={{ top: s.top, left: s.left, animationDelay: s.delay, opacity: 0.75 }}
+          className="absolute pointer-events-none wiggle text-gold"
+          style={{ top: s.top, left: s.left, animationDelay: s.delay, opacity: 0.6 }}
           width={s.size} height={s.size} viewBox="0 0 20 20"
         >
-          <path d="M10 1 L12 7.5 L19 7.5 L13.5 12 L15.5 19 L10 15 L4.5 19 L6.5 12 L1 7.5 L8 7.5 Z" fill="white"/>
+          <path d="M10 1 L12 7.5 L19 7.5 L13.5 12 L15.5 19 L10 15 L4.5 19 L6.5 12 L1 7.5 L8 7.5 Z" fill="currentColor"/>
         </svg>
       ))}
 
@@ -160,17 +160,19 @@ export function Playful({ song }: { song: SharedSong }) {
       {/* Content */}
       <div className="relative z-10 mx-auto max-w-2xl px-6 py-16">
 
-        <div className="flex justify-center mb-6">
-          <div className="rounded-full bg-white/30 backdrop-blur-sm px-5 py-2 text-sm font-bold text-white shadow-lg border border-white/40">
-            🎉 It's Your Special Day!
+        <div className="mb-6 flex justify-center">
+          <div className="rounded-full border border-sand bg-cream-soft px-5 py-2 text-sm font-bold text-blush shadow-sm">
+            🎉 It&apos;s Your Special Day!
           </div>
         </div>
 
-        <h1 className="text-center text-5xl font-extrabold leading-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.15)]">
-          🎂 Happy Birthday,<br />{song.name}! 🎈
+        <h1 className="text-center font-display text-5xl font-extrabold leading-tight tracking-tight text-ink">
+          🎂 Happy Birthday,
+          <br />
+          <span className="font-serif font-normal italic text-blush">{song.name}</span>! 🎈
         </h1>
 
-        <div className="mt-10 rounded-3xl border border-white/40 bg-white/25 p-6 shadow-xl backdrop-blur-md">
+        <div className="mt-10 rounded-2xl border border-sand bg-cream-soft p-6 shadow-sm">
           <SharedSongBody song={song} className="mt-2" />
         </div>
       </div>

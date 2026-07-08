@@ -29,6 +29,13 @@ export async function GET(
   const song = await loadSharedSong(id);
   if (!song) return new Response("Not found", { status: 404 });
 
+  // Paywall enforcement: downloads (full song + video) are a paid entitlement.
+  // A locked song exposes only the gated 15s preview route, never this endpoint.
+  // 402 Payment Required is the honest status.
+  if (!song.unlocked) {
+    return new Response("Unlock required", { status: 402 });
+  }
+
   // Best-effort durable event — never blocks the download.
   after(
     logGenerationEvent("download_requested", request, {
@@ -40,10 +47,17 @@ export async function GET(
     }),
   );
 
-  // Prefer the muxed video; fall back to raw Suno audio when video render
-  // failed at share-create time.
-  const hasVideo = typeof song.videoUrl === "string" && song.videoUrl.length > 0;
-  const sourceUrl = hasVideo ? (song.videoUrl as string) : song.audioUrl;
+  // Prefer the muxed share video; else the full-length song (persisted to R2 —
+  // Standard delivers the complete track), else the raw Suno audio as a last
+  // resort. The highlight cut is only ever used for the preview + video source,
+  // never as the buyer's downloaded song.
+  // Prefer the premium Remotion render when it exists, else the ffmpeg share
+  // video, else audio. (premiumVideoUrl is populated once the render worker is
+  // deployed; until then this transparently serves the ffmpeg video.)
+  const videoSource = song.premiumVideoUrl ?? song.videoUrl;
+  const hasVideo = typeof videoSource === "string" && videoSource.length > 0;
+  const audioFallback = song.fullAudioUrl ?? song.audioUrl;
+  const sourceUrl = hasVideo ? (videoSource as string) : audioFallback;
   const ext = hasVideo ? "mp4" : "mp3";
   const contentType = hasVideo ? "video/mp4" : "audio/mpeg";
   const nameSlug = slugify(song.name) || "song";

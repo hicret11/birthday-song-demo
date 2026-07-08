@@ -22,10 +22,12 @@ import { checkCapStatus, recordSpendCents } from "@/lib/spend-cap";
 const ANTHROPIC_COST_PER_LYRICS_CENTS = 1;
 
 export const runtime = "nodejs";
-export const maxDuration = 15;
+export const maxDuration = 30;
 
 const MAX_NAME_LEN = 80;
-const MAX_ADVANCED_LEN = 500;
+// Advanced free-text fields (style notes, memory, etc.) — generous so long
+// descriptions pass through to the lyric generator instead of being truncated.
+const MAX_ADVANCED_LEN = 2000;
 
 function errorResponse(code: ApiErrorCode, message: string, status: number): Response {
   const body: ApiError = { error: { code, message } };
@@ -52,7 +54,7 @@ function sanitizeAdvanced(value: unknown): string | undefined {
 }
 
 export async function POST(request: Request): Promise<Response> {
-  const cap = await checkCapStatus("anthropic");
+  const cap = await checkCapStatus("openai");
   if (cap.overCap) {
     if (cap.shouldAlert) {
       void alertSpendCapExceeded("anthropic", cap.spentCents, cap.capCents);
@@ -107,7 +109,7 @@ export async function POST(request: Request): Promise<Response> {
 
   try {
     const lyrics = await generateLyrics(lyricsInput);
-    void recordSpendCents("anthropic", ANTHROPIC_COST_PER_LYRICS_CENTS);
+    void recordSpendCents("openai", ANTHROPIC_COST_PER_LYRICS_CENTS);
     // Best-effort durable event — never blocks the response.
     after(
       logGenerationEvent("generation_started", request, {

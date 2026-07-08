@@ -9,7 +9,7 @@
 import { uploadToR2 } from "@/lib/r2";
 import { getClientIp, rateLimitFixedWindow } from "@/lib/rate-limit";
 import { loadSharedSong, updateSharedSong } from "@/lib/share";
-import { renderSlideshow } from "@/lib/slideshow";
+import { renderSlideshow, slideshowFiltersSupported } from "@/lib/slideshow";
 
 export const runtime = "nodejs";
 // 120s buffer: photo fetch + zoompan/xfade encode at 1080x1920 typically lands
@@ -71,6 +71,12 @@ export async function POST(request: Request): Promise<Response> {
     return jsonError("LOCKED", "Unlock the song to render its photo slideshow.", 402);
   }
 
+  // The photo slideshow is a Deluxe-only entitlement. A Standard ("full")
+  // unlock does not include it.
+  if (song.plan !== "deluxe") {
+    return jsonError("DELUXE_REQUIRED", "Deluxe required to render the photo slideshow.", 402);
+  }
+
   if (!song.photoUrls || song.photoUrls.length === 0) {
     return jsonError("INVALID_INPUT", "No photos were added for this song.", 400);
   }
@@ -78,6 +84,19 @@ export async function POST(request: Request): Promise<Response> {
   // Idempotent — return the existing slideshow if we've already rendered one.
   if (song.slideshowVideoUrl) {
     return Response.json({ url: song.slideshowVideoUrl });
+  }
+
+  // If this deploy's ffmpeg can't run the Ken-Burns filtergraph, say so once and
+  // honestly (503 UNSUPPORTED) so the client shows a permanent, reassuring note
+  // rather than looping on "try again" for something that can't succeed here.
+  // The song + branded video the buyer already has are unaffected.
+  if (!(await slideshowFiltersSupported())) {
+    console.error(`[slideshow-render:unsupported] id=${shareId} ffmpeg build lacks zoompan/xfade`);
+    return jsonError(
+      "UNSUPPORTED",
+      "The photo slideshow isn't available on this deploy yet — your song and video are ready above.",
+      503,
+    );
   }
 
   try {

@@ -11,6 +11,7 @@
 // below — the rest of the application already passes `tier` through.
 
 import { getCountryCode } from "./geo";
+import { FULL_PRICE_LABEL, DELUXE_PRICE_LABEL } from "./pricing-display";
 
 export type Tier = "A" | "B" | "C";
 
@@ -98,9 +99,9 @@ export function resolveTier(request: Request): Tier {
 //   1. Create ONE Product "Sing My Birthday — Full Song".
 //   2. Add THREE one-time prices on it (amounts below are the defaults we chose;
 //      adjust freely). Copy each price_id into the matching env var:
-//        STRIPE_PRICE_ID_TIER_A  → $9.99  (US/UK/UAE/EU & other high-PPP)
-//        STRIPE_PRICE_ID_TIER_B  → $5.99  (LatAm, SE-Asia, Eastern Europe, TR)
-//        STRIPE_PRICE_ID_TIER_C  → $2.99  (everywhere else / unknown geo)
+//        STRIPE_PRICE_ID_TIER_A  → $14.99  (US/UK/UAE/EU & other high-PPP)
+//        STRIPE_PRICE_ID_TIER_B  → $9.99   (LatAm, SE-Asia, Eastern Europe, TR)
+//        STRIPE_PRICE_ID_TIER_C  → $6.99   (everywhere else / unknown geo)
 //   3. Add STRIPE_WEBHOOK_SECRET (already used by the venue flow) and make sure
 //      the webhook endpoint subscribes to `checkout.session.completed`.
 //
@@ -116,12 +117,60 @@ export const STRIPE_PRICE_IDS: Record<Tier, string | undefined> = {
 
 /** Display-only amounts. Keep in sync with the Stripe prices you create. */
 export const TIER_PRICE_DISPLAY: Record<Tier, { label: string; amountCents: number; currency: string }> = {
-  A: { label: "$9.99", amountCents: 999, currency: "usd" },
-  B: { label: "$5.99", amountCents: 599, currency: "usd" },
-  C: { label: "$2.99", amountCents: 299, currency: "usd" },
+  A: { label: FULL_PRICE_LABEL.A, amountCents: 1499, currency: "usd" },
+  B: { label: FULL_PRICE_LABEL.B, amountCents: 999, currency: "usd" },
+  C: { label: FULL_PRICE_LABEL.C, amountCents: 699, currency: "usd" },
 };
 
 /** Stripe price_id for a tier, or undefined if not configured yet. */
 export function priceIdForTier(tier: Tier): string | undefined {
+  return STRIPE_PRICE_IDS[tier];
+}
+
+// ── Deluxe upsell tier (good-better-best) ─────────────────────────────────────
+//
+// "Deluxe" is the higher of two consumer plans: everything in the Standard
+// "Full Song" unlock PLUS a rendered photo-slideshow video set to the music.
+// It raises average order value without changing the base flow.
+//
+// SETUP (optional — the feature degrades gracefully without it):
+//   Create THREE more one-time prices (higher amounts) on the same product and
+//   set the matching env vars:
+//     STRIPE_PRICE_ID_DELUXE_A → $24.99  (high-PPP)
+//     STRIPE_PRICE_ID_DELUXE_B → $16.99  (mid-PPP)
+//     STRIPE_PRICE_ID_DELUXE_C → $11.99  (low-PPP / unknown geo)
+//
+// If a Deluxe price is unset, a Deluxe checkout transparently FALLS BACK to the
+// corresponding Standard "full" price (priceIdForPlanTier below), so nothing
+// breaks before the Deluxe SKUs are configured — the buyer simply pays the
+// Standard price for the Deluxe selection until the prices are added.
+
+export type Plan = "full" | "deluxe";
+
+export const STRIPE_PRICE_IDS_DELUXE: Record<Tier, string | undefined> = {
+  A: process.env.STRIPE_PRICE_ID_DELUXE_A,
+  B: process.env.STRIPE_PRICE_ID_DELUXE_B,
+  C: process.env.STRIPE_PRICE_ID_DELUXE_C,
+};
+
+/** Display-only Deluxe amounts. Keep in sync with the Stripe Deluxe prices. */
+export const TIER_PRICE_DISPLAY_DELUXE: Record<Tier, { label: string; amountCents: number; currency: string }> = {
+  A: { label: DELUXE_PRICE_LABEL.A, amountCents: 2499, currency: "usd" },
+  B: { label: DELUXE_PRICE_LABEL.B, amountCents: 1699, currency: "usd" },
+  C: { label: DELUXE_PRICE_LABEL.C, amountCents: 1199, currency: "usd" },
+};
+
+/**
+ * Stripe price_id for a (plan, tier) pair.
+ *
+ * For plan="deluxe" returns the Deluxe price when configured; otherwise falls
+ * back to the Standard "full" price for that tier (graceful degradation). For
+ * plan="full" always returns the Standard price. May be undefined only if even
+ * the Standard tier price is unconfigured.
+ */
+export function priceIdForPlanTier(plan: Plan, tier: Tier): string | undefined {
+  if (plan === "deluxe") {
+    return STRIPE_PRICE_IDS_DELUXE[tier] ?? STRIPE_PRICE_IDS[tier];
+  }
   return STRIPE_PRICE_IDS[tier];
 }

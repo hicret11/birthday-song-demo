@@ -567,6 +567,366 @@ export async function sendLoginLinkEmail(props: LoginLinkEmailProps): Promise<vo
   }
 }
 
+// ── Abandoned-preview unlock-reminder email ─────────────────────────────────
+// Sent by the recover-previews cron to people who created a song + heard the
+// 15-second preview but did NOT pay to unlock. Up to 3 reminders, escalating
+// in tone. `stage` (1, 2, or 3) drives the subject + copy. Best-effort: any
+// failure is caught and logged, never thrown.
+
+export type UnlockReminderEmailProps = {
+  to: string;
+  recipientName: string;
+  shareUrl: string;
+  /** Which reminder this is: 1 = gentle, 2 = value, 3 = final nudge. */
+  stage: number;
+};
+
+type UnlockReminderCopy = {
+  subject: string;
+  preheader: string;
+  headline: string;
+  body: string;
+  cta: string;
+};
+
+function unlockReminderCopy(name: string, stage: number): UnlockReminderCopy {
+  if (stage <= 1) {
+    return {
+      subject: `🎵 ${name}'s song is ready — hear the full version`,
+      preheader: "Your preview was just the start — unlock the whole song 🎶",
+      headline: `${name}'s song is waiting`,
+      body: `You heard the preview — the full song is even better. Unlock it now to play the complete version, download the MP3, and send it their way.`,
+      cta: "Hear the full song →",
+    };
+  }
+  if (stage === 2) {
+    return {
+      subject: `🎶 Don't let ${name}'s song slip away`,
+      preheader: "Full song, MP3 download, and the shareable video — all in one unlock.",
+      headline: `${name}'s song is still ready for you`,
+      body: `Unlocking gives you the complete song, a downloadable MP3, and the branded video you can text, WhatsApp, or post — everything you need to make their day. It only takes a moment.`,
+      cta: "Unlock the full song →",
+    };
+  }
+  return {
+    subject: `⏳ Last chance to unlock ${name}'s song`,
+    preheader: "Your song link won't stay up forever — unlock it before it's gone.",
+    headline: `Last chance for ${name}'s song`,
+    body: `This is the final reminder — your song link won't stay up forever. Unlock now to get the full version, the MP3, and the shareable video before it's gone.`,
+    cta: "Unlock it now →",
+  };
+}
+
+function buildUnlockReminderHtml(props: UnlockReminderEmailProps): string {
+  const name = escapeHtml(props.recipientName);
+  const copy = unlockReminderCopy(name, props.stage);
+  const shareUrl = props.shareUrl;
+  const preheaderPad = "&#847; &zwnj; &nbsp; &#8199; &#65279; ".repeat(20);
+
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="x-apple-disable-message-reformatting" />
+    <title>${escapeHtml(copy.subject)}</title>
+  </head>
+  <body style="margin:0;padding:0;background-color:#f5f3ff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;-webkit-text-size-adjust:100%;">
+    <div style="display:none;font-size:1px;color:#f5f3ff;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">
+      ${copy.preheader} ${preheaderPad}
+    </div>
+
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" bgcolor="#f5f3ff" style="background-color:#f5f3ff;padding:32px 0;">
+      <tr>
+        <td align="center">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="560" style="max-width:560px;width:100%;background-color:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 4px 16px rgba(15,23,42,0.08);">
+
+            <!-- Header: brand gradient + logo + wordmark -->
+            <tr>
+              <td bgcolor="${BRAND_PURPLE}" style="background-color:${BRAND_PURPLE};background-image:${BRAND_GRADIENT};padding:28px 32px;text-align:center;">
+                <img src="${LOGO_MARK_WHITE_URL}" alt="" width="64" height="64" style="display:inline-block;border:0;outline:none;height:64px;width:64px;vertical-align:middle;" />
+                <span style="display:inline-block;margin-left:14px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:24px;font-weight:800;letter-spacing:0.2px;color:#ffffff;vertical-align:middle;line-height:64px;">
+                  Sing My Birthday
+                </span>
+              </td>
+            </tr>
+
+            <!-- Headline -->
+            <tr>
+              <td align="center" style="padding:30px 32px 0 32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:25px;line-height:1.25;font-weight:800;color:#0f172a;">
+                ${copy.headline}
+              </td>
+            </tr>
+
+            <!-- Body -->
+            <tr>
+              <td align="center" style="padding:14px 36px 0 36px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:15px;line-height:1.6;color:#4b5563;">
+                ${copy.body}
+              </td>
+            </tr>
+
+            <!-- Primary CTA -->
+            <tr>
+              <td align="center" style="padding:28px 32px 10px 32px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td bgcolor="${BRAND_PURPLE}" style="background-color:${BRAND_PURPLE};background-image:${BRAND_GRADIENT};border-radius:14px;">
+                      <a href="${shareUrl}" target="_blank" rel="noopener" style="display:inline-block;padding:16px 38px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:17px;font-weight:800;color:#ffffff;text-decoration:none;border-radius:14px;line-height:1;">
+                        ${copy.cta}
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Copyable link -->
+            <tr>
+              <td align="center" style="padding:8px 32px 28px 32px;">
+                <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:11px;color:#9ca3af;word-break:break-all;">
+                  Or copy: <a href="${shareUrl}" style="color:#6b7280;">${shareUrl}</a>
+                </p>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td align="center" style="padding:24px 32px 28px 32px;border-top:1px solid #f3f4f6;">
+                <img src="${LOGO_LOCKUP_URL}" alt="" width="150" height="116" style="display:block;margin:0 auto 12px auto;border:0;outline:none;opacity:0.9;" />
+                <p style="margin:0 0 4px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:12px;color:#4b5563;">
+                  Made with love by Sing My Birthday
+                </p>
+                <p style="margin:0 0 6px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:11px;color:#6b7280;">
+                  Sing My Birthday <span style="color:#d1d5db;">·</span> A glomotec Labs product
+                </p>
+                <p style="margin:0 0 10px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:11px;line-height:1.5;color:#9ca3af;">
+                  Sent by GLOBAL MOBILITY TECHNOLOGIES LLC, 1309 Coffeen Avenue STE 15705, Sheridan, WY 82801
+                </p>
+                <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:11px;color:#9ca3af;">
+                  <a href="${UNSUBSCRIBE_MAILTO}" style="color:#9ca3af;text-decoration:underline;">Unsubscribe</a>
+                </p>
+              </td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+}
+
+function buildUnlockReminderText(props: UnlockReminderEmailProps): string {
+  const copy = unlockReminderCopy(props.recipientName, props.stage);
+  return [
+    "Sing My Birthday",
+    "",
+    copy.headline,
+    "",
+    copy.body,
+    "",
+    `${copy.cta} ${props.shareUrl}`,
+    "",
+    "---",
+    "Made with love by Sing My Birthday",
+    "Sing My Birthday · A glomotec Labs product",
+    "Sent by GLOBAL MOBILITY TECHNOLOGIES LLC, 1309 Coffeen Avenue STE 15705, Sheridan, WY 82801",
+    `Unsubscribe: ${UNSUBSCRIBE_MAILTO}`,
+  ].join("\n");
+}
+
+export async function sendUnlockReminderEmail(props: UnlockReminderEmailProps): Promise<void> {
+  try {
+    const client = getResend();
+    if (!client) {
+      console.warn("[resend] RESEND_API_KEY not set; unlock-reminder not sent");
+      return;
+    }
+    const copy = unlockReminderCopy(props.recipientName, props.stage);
+    const result = await client.emails.send({
+      from: fromAddress(),
+      to: props.to,
+      subject: copy.subject,
+      html: buildUnlockReminderHtml(props),
+      text: buildUnlockReminderText(props),
+      tags: [
+        { name: "category", value: "unlock_reminder" },
+        { name: "stage", value: String(props.stage) },
+      ],
+    });
+    if (result.error) {
+      console.error("[resend] unlock-reminder send returned error", result.error);
+      return;
+    }
+    console.log(
+      `[resend] unlock-reminder stage=${props.stage} sent ${result.data?.id ?? "?"} to ${props.to}`,
+    );
+  } catch (err) {
+    console.error("[resend] unlock-reminder send failed", err);
+  }
+}
+
+// ── Annual birthday-reminder email ──────────────────────────────────────────
+// Sent by the daily birthday-reminders cron ~7 days before a past recipient's
+// next birthday, to a buyer who opted in (year_reminder) and gave a date. Warm
+// nudge to make this year's song (repeat purchase). Best-effort: any failure is
+// caught and logged, never thrown.
+
+export type BirthdayReminderEmailProps = {
+  to: string;
+  recipientName: string;
+};
+
+function birthdayGenerateUrl(): string {
+  const base = process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://singmybirthday.com";
+  const trimmed = base.replace(/\/+$/, "");
+  return `${trimmed}/generate`;
+}
+
+function buildBirthdayReminderHtml(props: BirthdayReminderEmailProps): string {
+  const name = escapeHtml(props.recipientName);
+  const generateUrl = birthdayGenerateUrl();
+  const preheader = `It's almost ${name}'s birthday — make this year's song in a minute 🎂`;
+  const preheaderPad = "&#847; &zwnj; &nbsp; &#8199; &#65279; ".repeat(20);
+
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="x-apple-disable-message-reformatting" />
+    <title>🎂 ${name}'s birthday is coming up!</title>
+  </head>
+  <body style="margin:0;padding:0;background-color:#f5f3ff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;-webkit-text-size-adjust:100%;">
+    <div style="display:none;font-size:1px;color:#f5f3ff;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">
+      ${preheader} ${preheaderPad}
+    </div>
+
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" bgcolor="#f5f3ff" style="background-color:#f5f3ff;padding:32px 0;">
+      <tr>
+        <td align="center">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="560" style="max-width:560px;width:100%;background-color:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 4px 16px rgba(15,23,42,0.08);">
+
+            <!-- Header: brand gradient + logo + wordmark -->
+            <tr>
+              <td bgcolor="${BRAND_PURPLE}" style="background-color:${BRAND_PURPLE};background-image:${BRAND_GRADIENT};padding:28px 32px;text-align:center;">
+                <img src="${LOGO_MARK_WHITE_URL}" alt="" width="64" height="64" style="display:inline-block;border:0;outline:none;height:64px;width:64px;vertical-align:middle;" />
+                <span style="display:inline-block;margin-left:14px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:24px;font-weight:800;letter-spacing:0.2px;color:#ffffff;vertical-align:middle;line-height:64px;">
+                  Sing My Birthday
+                </span>
+              </td>
+            </tr>
+
+            <!-- Headline -->
+            <tr>
+              <td align="center" style="padding:30px 32px 0 32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:25px;line-height:1.25;font-weight:800;color:#0f172a;">
+                🎂 ${name}'s birthday is coming up!
+              </td>
+            </tr>
+
+            <!-- Body -->
+            <tr>
+              <td align="center" style="padding:14px 36px 0 36px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:15px;line-height:1.6;color:#4b5563;">
+                It's almost ${name}'s birthday — make them this year's song in a minute. A fresh, personalized track to send their way and make their day.
+              </td>
+            </tr>
+
+            <!-- Primary CTA -->
+            <tr>
+              <td align="center" style="padding:28px 32px 10px 32px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td bgcolor="${BRAND_PURPLE}" style="background-color:${BRAND_PURPLE};background-image:${BRAND_GRADIENT};border-radius:14px;">
+                      <a href="${generateUrl}" target="_blank" rel="noopener" style="display:inline-block;padding:16px 38px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:17px;font-weight:800;color:#ffffff;text-decoration:none;border-radius:14px;line-height:1;">
+                        Make ${name}'s song →
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Copyable link -->
+            <tr>
+              <td align="center" style="padding:8px 32px 28px 32px;">
+                <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:11px;color:#9ca3af;word-break:break-all;">
+                  Or copy: <a href="${generateUrl}" style="color:#6b7280;">${generateUrl}</a>
+                </p>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td align="center" style="padding:24px 32px 28px 32px;border-top:1px solid #f3f4f6;">
+                <img src="${LOGO_LOCKUP_URL}" alt="" width="150" height="116" style="display:block;margin:0 auto 12px auto;border:0;outline:none;opacity:0.9;" />
+                <p style="margin:0 0 4px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:12px;color:#4b5563;">
+                  Made with love by Sing My Birthday
+                </p>
+                <p style="margin:0 0 6px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:11px;color:#6b7280;">
+                  Sing My Birthday <span style="color:#d1d5db;">·</span> A glomotec Labs product
+                </p>
+                <p style="margin:0 0 10px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:11px;line-height:1.5;color:#9ca3af;">
+                  Sent by GLOBAL MOBILITY TECHNOLOGIES LLC, 1309 Coffeen Avenue STE 15705, Sheridan, WY 82801
+                </p>
+                <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:11px;color:#9ca3af;">
+                  <a href="${UNSUBSCRIBE_MAILTO}" style="color:#9ca3af;text-decoration:underline;">Unsubscribe</a>
+                </p>
+              </td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+}
+
+function buildBirthdayReminderText(props: BirthdayReminderEmailProps): string {
+  const name = props.recipientName;
+  const generateUrl = birthdayGenerateUrl();
+  return [
+    "Sing My Birthday",
+    "",
+    `🎂 ${name}'s birthday is coming up!`,
+    "",
+    `It's almost ${name}'s birthday — make them this year's song in a minute.`,
+    "",
+    `Make ${name}'s song: ${generateUrl}`,
+    "",
+    "---",
+    "Made with love by Sing My Birthday",
+    "Sing My Birthday · A glomotec Labs product",
+    "Sent by GLOBAL MOBILITY TECHNOLOGIES LLC, 1309 Coffeen Avenue STE 15705, Sheridan, WY 82801",
+    `Unsubscribe: ${UNSUBSCRIBE_MAILTO}`,
+  ].join("\n");
+}
+
+export async function sendBirthdayReminderEmail(props: BirthdayReminderEmailProps): Promise<void> {
+  try {
+    const client = getResend();
+    if (!client) {
+      console.warn("[resend] RESEND_API_KEY not set; birthday-reminder not sent");
+      return;
+    }
+    const result = await client.emails.send({
+      from: fromAddress(),
+      to: props.to,
+      subject: `🎂 ${props.recipientName}'s birthday is coming up!`,
+      html: buildBirthdayReminderHtml(props),
+      text: buildBirthdayReminderText(props),
+      tags: [{ name: "category", value: "birthday_reminder" }],
+    });
+    if (result.error) {
+      console.error("[resend] birthday-reminder send returned error", result.error);
+      return;
+    }
+    console.log(`[resend] birthday-reminder sent ${result.data?.id ?? "?"} to ${props.to}`);
+  } catch (err) {
+    console.error("[resend] birthday-reminder send failed", err);
+  }
+}
+
 // ── Original song-ready email (unchanged below) ─────────────────────────────
 
 export async function sendSongReadyEmail(props: SongReadyEmailProps): Promise<void> {

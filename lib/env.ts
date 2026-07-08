@@ -12,11 +12,17 @@ function optional(name: string, fallback: string): string {
 }
 
 export const env = {
-  get anthropicApiKey(): string {
-    return required("ANTHROPIC_API_KEY");
+  // OpenAI powers lyric generation + style refinement (and moderation/Whisper).
+  get openaiApiKey(): string {
+    return required("OPENAI_API_KEY");
   },
-  get anthropicModel(): string {
-    return optional("ANTHROPIC_MODEL", "claude-haiku-4-5-20251001");
+  // Lyrics: a stronger model for better instruction-following + JSON reliability.
+  get openaiLyricsModel(): string {
+    return optional("OPENAI_LYRICS_MODEL", "gpt-5-mini");
+  },
+  // Style-refine: a cheaper model with the web_search tool for niche references.
+  get openaiRefineModel(): string {
+    return optional("OPENAI_REFINE_MODEL", "gpt-5-mini");
   },
   get sunoApiKey(): string {
     return required("SUNO_API_KEY");

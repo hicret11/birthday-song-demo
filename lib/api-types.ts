@@ -207,6 +207,14 @@ export type SharedSong = {
    */
   waitCapture?: WaitCapture;
   /**
+   * Recipient's birthday as a month-day "MM-DD" string (year stripped at
+   * persist time). Optional and additive. When present alongside an opted-in
+   * year_reminder and a buyer email, the share route enrolls the buyer in the
+   * annual birthday-reminder sequence (see lib/birthday-reminders.ts). Never
+   * surfaced on the share page.
+   */
+  birthdayDate?: string;
+  /**
    * "Make it Yours" personalization picked during the wait. cakeStyle and
    * candleColor are closed enums; personalNote is free text capped at
    * PERSONAL_NOTE_MAX_LEN. Used by lib/video.ts to add a caption under the
@@ -226,12 +234,81 @@ export type SharedSong = {
    */
   unlocked?: boolean;
   unlockedAt?: number;
+  /**
+   * Which plan the buyer purchased. "full" (Standard) is the base unlock;
+   * "deluxe" additionally entitles the photo-slideshow video. Missing on
+   * legacy/pre-Deluxe entries — treat absence as "full".
+   */
+  plan?: "full" | "deluxe";
   /** Pricing tier resolved from geo/IP at creation; drives the unlock price. */
   tier?: "A" | "B" | "C";
+  /**
+   * Audio highlight-cut (lib/audio-cut.ts). Suno always returns a full ~2–3
+   * min repetitive track; at share-create we carve a tight ~55s highlight
+   * (`highlightAudioUrl`) used ONLY as the video/audiogram + karaoke source and
+   * as the basis for the 15s preview — NOT as the buyer's song. The buyer's
+   * deliverable is the complete track: `fullAudioUrl` is our persisted R2 copy
+   * of the untouched full-length recording (Suno tempfiles expire), and it is
+   * what Standard playback + MP3 download serve. Both absent when the cut failed
+   * or wasn't needed (short source), in which case the raw `audioUrl` is used.
+   */
+  highlightAudioUrl?: string;
+  fullAudioUrl?: string;
+  /** Duration (seconds, rounded) of highlightAudioUrl when present. */
+  highlightDurationSec?: number;
+  /**
+   * ~15s free preview clip (R2). This is the ONLY audio a locked visitor can
+   * fetch — the gated /api/share/[id]/preview route serves it, and the server
+   * strips all full-media URLs from the locked client payload (see
+   * lib/public-song.ts). Absent on legacy locked songs, in which case the
+   * preview route lazily generates it.
+   */
+  previewAudioUrl?: string;
   /** User-uploaded photo URLs (R2) for the optional paid photo slideshow. */
   photoUrls?: string[];
+  /**
+   * Crowd voice-note audio URLs (Vercel Blob) folded in at merge time. Their
+   * spoken words are transcribed into the lyrics; the audio is kept here for a
+   * future voice montage. Crowd songs only; absent otherwise.
+   */
+  voiceUrls?: string[];
   /** Rendered photo-slideshow MP4 (R2 URL), produced after unlock. */
   slideshowVideoUrl?: string;
+  /**
+   * Word-level karaoke captions for the premium Remotion video. Produced by
+   * lib/transcribe.ts (Whisper verbose_json word timings, reconciled against
+   * the known lyrics) and persisted so the render worker can consume them
+   * without re-transcribing. Grouped into short lines (≤6 words). Timings are
+   * milliseconds relative to the start of the song audio. Best-effort — absent
+   * when transcription failed or hasn't run yet.
+   */
+  captions?: { text: string; startMs: number; endMs: number }[];
+  /**
+   * Rendered premium Remotion video (R2 URL), produced by the separate render
+   * worker after unlock. When present, the share page prefers this over the
+   * ffmpeg-rendered `videoUrl`. Absent until the worker finishes (or if the
+   * worker isn't configured — the ffmpeg `videoUrl` remains the shown video).
+   */
+  premiumVideoUrl?: string;
+  /**
+   * Lifecycle of the premium Remotion render. "pending" once a job is POSTed
+   * to the worker, "ready" when premiumVideoUrl is set, "failed" on error.
+   * Absent when no premium render was ever requested.
+   */
+  videoStatus?: "pending" | "ready" | "failed";
+  /**
+   * Crowd-magic state. Present only on gifts minted for collaborative songs
+   * (POST /api/crowd/create), where the id exists BEFORE any song so the
+   * recipient's circle can contribute lines/memories via /join/[id] first.
+   * "collecting" → open for contributions; "closed" → collection ended;
+   * "merged" → contributions woven into the generated song. Additive and
+   * optional — solo songs never carry it, and existing readers ignore it.
+   */
+  crowd?: {
+    status: "collecting" | "closed" | "merged";
+    directorName?: string;
+    closesAt?: number;
+  };
 };
 
 export type ShareCreateRequest = {
@@ -261,6 +338,13 @@ export type ShareCreateRequest = {
    * doesn't block share creation.
    */
   wait_capture?: WaitCapture;
+  /**
+   * Optional recipient birthday for the annual reminder. Accepts "YYYY-MM-DD"
+   * or "MM-DD"; the server extracts the month-day and drops anything invalid.
+   * Purely additive — never blocks share creation. Only triggers enrollment
+   * when paired with an opted-in year_reminder and a buyer email.
+   */
+  birthday_date?: string;
   /**
    * "Make it Yours" personalization. cake_style and candle_color must match
    * the closed enums; personal_note is free text and gets sanitized + capped

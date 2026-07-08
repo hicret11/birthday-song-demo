@@ -1,11 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import type { ShareTemplate, SharedSong } from "@/lib/api-types";
 import { toAudioProxyUrl } from "@/lib/audio-proxy";
 import { logClientEvent } from "@/lib/client-events";
 import { greetingFor } from "@/lib/greetings";
 import UnlockableAudio from "@/components/share/UnlockableAudio";
+import { CrowdPremiere } from "@/components/share/CrowdPremiere";
 
 const MAX_RETRIES = 2;
 
@@ -42,13 +44,32 @@ const OVERLAY_STYLES: Record<ShareTemplate, React.CSSProperties> = {
 export function SharedSongBody({ song, className }: { song: SharedSong; className?: string }) {
   const overlayStyle = OVERLAY_STYLES[song.template] ?? OVERLAY_STYLES.classic;
 
-  const [currentAudio, setCurrentAudio] = useState<string>(song.audioUrl);
-  const [currentVideo, setCurrentVideo] = useState<string | undefined>(song.videoUrl);
+  // Unlocked playback = the full-length song (persisted to R2 so it doesn't
+  // expire), falling back to the raw Suno track. The highlight cut is only used
+  // for the 15s preview + the video, not as the Standard deliverable.
+  // NOTE: on a LOCKED song the server (toPublicSong) strips these URLs, so this
+  // is "" and the player uses the gated preview route instead (see below).
+  const [currentAudio, setCurrentAudio] = useState<string>(
+    song.fullAudioUrl ?? song.audioUrl ?? "",
+  );
+  // Prefer the premium Remotion video when the render worker has produced one;
+  // otherwise fall back to the ffmpeg-rendered videoUrl so nothing breaks before
+  // the worker is configured.
+  const [currentVideo, setCurrentVideo] = useState<string | undefined>(
+    song.premiumVideoUrl ?? song.videoUrl,
+  );
   const [retriesUsed, setRetriesUsed] = useState<number>(song.retryCount ?? 0);
   const [regenStatus, setRegenStatus] = useState<"idle" | "loading" | "error">("idle");
   const [regenError, setRegenError] = useState<string | null>(null);
   const [retryStyleNotes, setRetryStyleNotes] = useState<string>(song.styleNotes ?? "");
   const [showStyleEditor, setShowStyleEditor] = useState<boolean>(false);
+
+  // Deluxe photo slideshow: rendered on-demand from the unlocked share view.
+  // `slideshowUrl` is seeded from the persisted URL so a return visit shows it
+  // straight away; a fresh render updates it in place (no manual refresh).
+  const [slideshowUrl, setSlideshowUrl] = useState<string | undefined>(song.slideshowVideoUrl);
+  const [slideshowStatus, setSlideshowStatus] = useState<"idle" | "rendering" | "error" | "unavailable">("idle");
+  const slideshowTriggeredRef = useRef(false);
 
   const [toast, setToast] = useState<string | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -156,9 +177,54 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
   const downloadExt = currentVideo ? "mp4" : "mp3";
   const unlocked = !!song.unlocked;
 
+  // Auto-trigger the Deluxe photo slideshow render once the song is unlocked.
+  // Nothing else calls /api/slideshow/render, so without this Deluxe buyers
+  // never get their slideshow. One-shot (guarded by a ref) — the ffmpeg render
+  // can take ~30–90s, so we don't impose any client-side timeout; the buyer
+  // sees an in-progress state and the <video> appears when the URL comes back.
+  useEffect(() => {
+    if (slideshowTriggeredRef.current) return;
+    if (!unlocked) return;
+    if (song.plan !== "deluxe") return;
+    if ((song.photoUrls?.length ?? 0) === 0) return;
+    if (slideshowUrl) return; // already rendered (persisted or from a prior run)
+    slideshowTriggeredRef.current = true;
+    void (async () => {
+      // setState lives in the async callback (not the effect body) so it reads as
+      // "syncing from an external system" rather than a synchronous cascade. Runs
+      // before the first await, so ordering is identical to the prior placement.
+      setSlideshowStatus("rendering");
+      try {
+        const res = await fetch("/api/slideshow/render", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ shareId: song.id }),
+        });
+        const data = (await res.json().catch(() => ({}))) as {
+          url?: unknown;
+          error?: { code?: unknown };
+        };
+        if (res.ok && typeof data.url === "string") {
+          setSlideshowUrl(data.url);
+          setSlideshowStatus("idle");
+        } else if (data.error?.code === "UNSUPPORTED") {
+          // Permanent for this deploy — don't invite a retry that can't succeed.
+          setSlideshowStatus("unavailable");
+        } else {
+          setSlideshowStatus("error");
+        }
+      } catch {
+        setSlideshowStatus("error");
+      }
+    })();
+  }, [unlocked, song.plan, song.photoUrls, song.id, slideshowUrl]);
+
+  const showSlideshowArea =
+    unlocked && song.plan === "deluxe" && (song.photoUrls?.length ?? 0) > 0;
+
   return (
     <div className={className}>
-      <p className="text-center text-sm opacity-70">
+      <p className="text-center text-sm font-medium text-ink-soft">
         {song.language} • {song.genre} • {song.lyrics.title}
       </p>
 
@@ -173,7 +239,7 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
             onPlay={handlePlay}
             src={currentVideo}
             poster=""
-            className="w-full rounded-2xl bg-black shadow-lg"
+            className="w-full rounded-2xl bg-noir shadow-lg"
           />
           <div
             className="pointer-events-none absolute bottom-10 left-0 right-0 px-6 text-center font-bold leading-tight"
@@ -184,41 +250,104 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
         </div>
       )}
 
-      {/* Audio: full playback + MP3 download when unlocked, 20s preview +
-          unlock CTA when locked. */}
-      <UnlockableAudio
-        shareId={song.id}
-        audioSrc={toAudioProxyUrl(currentAudio)}
-        unlocked={unlocked}
-        recipientName={song.name}
-      />
+      {/* Audio: full playback + MP3 download when unlocked, 15s preview + unlock
+          CTA when locked. A merged crowd song gets the theatrical Premiere reveal
+          instead of the flat player — same locked/unlocked audioSrc, so the
+          paywall behaves identically (locked → gated preview clip). */}
+      {song.crowd?.status === "merged" ? (
+        <>
+          <CrowdPremiere
+            recipientName={song.name}
+            directorName={song.crowd.directorName}
+            songTitle={song.lyrics.title}
+            audioSrc={
+              unlocked ? toAudioProxyUrl(currentAudio) : `/api/share/${song.id}/preview`
+            }
+            language={song.language}
+          />
+          {/* Premiere is the player; UnlockableAudio still owns the paywall CTA
+              (locked) / MP3 download (unlocked) — same gate, no second player. */}
+          <UnlockableAudio
+            shareId={song.id}
+            audioSrc={
+              unlocked ? toAudioProxyUrl(currentAudio) : `/api/share/${song.id}/preview`
+            }
+            unlocked={unlocked}
+            recipientName={song.name}
+            tier={song.tier}
+            hidePlayer
+          />
+        </>
+      ) : (
+        <UnlockableAudio
+          shareId={song.id}
+          audioSrc={
+            unlocked ? toAudioProxyUrl(currentAudio) : `/api/share/${song.id}/preview`
+          }
+          unlocked={unlocked}
+          recipientName={song.name}
+          tier={song.tier}
+        />
+      )}
 
       {/* Unlocked-only downloads: branded video + photo slideshow. */}
       {unlocked && currentVideo && (
         <a
           href={`/api/share/${song.id}/download`}
           download={`birthday-song-${nameSlug}.${downloadExt}`}
-          className="mt-3 block w-full rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-center text-sm font-bold transition hover:bg-white/15"
+          className="mt-3 block w-full rounded-2xl border border-sand bg-cream-soft px-5 py-3 text-center text-sm font-bold text-ink shadow-sm transition hover:bg-warm-soft"
         >
           <span aria-hidden>⬇</span> Download video
         </a>
       )}
 
-      {unlocked && song.slideshowVideoUrl && (
+      {showSlideshowArea && (
         <div className="mt-6">
-          <video
-            controls
-            playsInline
-            src={song.slideshowVideoUrl}
-            className="w-full rounded-2xl bg-black shadow-lg"
-          />
-          <a
-            href={song.slideshowVideoUrl}
-            download
-            className="mt-3 block w-full rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-center text-sm font-bold transition hover:bg-white/15"
-          >
-            <span aria-hidden>⬇</span> Download slideshow
-          </a>
+          {slideshowUrl ? (
+            <>
+              <video
+                key={slideshowUrl}
+                controls
+                playsInline
+                src={slideshowUrl}
+                className="w-full rounded-2xl bg-noir shadow-lg"
+              />
+              <a
+                href={slideshowUrl}
+                download
+                className="mt-3 block w-full rounded-2xl border border-sand bg-cream-soft px-5 py-3 text-center text-sm font-bold text-ink shadow-sm transition hover:bg-warm-soft"
+              >
+                <span aria-hidden>⬇</span> Download slideshow
+              </a>
+            </>
+          ) : slideshowStatus === "unavailable" ? (
+            <p
+              role="status"
+              className="rounded-2xl border border-sand bg-cream-soft px-5 py-4 text-center text-sm text-ink-soft"
+            >
+              🎬 The photo slideshow isn&apos;t available right now — your song
+              and video above are ready. Email info@singmybirthday.com and
+              we&apos;ll get your slideshow sorted.
+            </p>
+          ) : slideshowStatus === "error" ? (
+            <p
+              role="status"
+              className="rounded-2xl border border-sand bg-cream-soft px-5 py-4 text-center text-sm text-ink-soft"
+            >
+              Couldn&apos;t build the slideshow — refresh to retry.
+            </p>
+          ) : (
+            <div
+              role="status"
+              aria-live="polite"
+              className="flex flex-col items-center gap-2 rounded-2xl border border-sand bg-cream-soft px-5 py-6 text-center text-sm font-semibold text-ink shadow-sm"
+            >
+              <span className="text-lg">🎬 Creating your photo slideshow…</span>
+              <span className="text-xs font-normal text-ink-soft">
+                Stitching your photos to the song — this can take a minute.
+              </span>
+            </div>
+          )}
         </div>
       )}
 
@@ -227,7 +356,7 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
         <button
           type="button"
           onClick={openShareSheet}
-          className="w-full rounded-2xl bg-brand px-5 py-4 text-base font-extrabold text-white shadow-2xl shadow-fuchsia-500/30 transition hover:-translate-y-1 hover:shadow-fuchsia-500/50"
+          className="w-full rounded-full bg-jade px-5 py-4 text-base font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(31,142,125,0.7)] transition hover:-translate-y-0.5 hover:bg-jade-deep"
         >
           📤 Send to a friend
         </button>
@@ -236,11 +365,11 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
           <input
             type="text"
             value={retryStyleNotes}
-            onChange={(e) => setRetryStyleNotes(e.target.value.slice(0, 200))}
+            onChange={(e) => setRetryStyleNotes(e.target.value.slice(0, 2000))}
             placeholder="Tweak the style for the next take…"
-            maxLength={200}
+            maxLength={2000}
             disabled={isRegenerating}
-            className="block w-full rounded-2xl border border-white/15 bg-white/5 px-4 py-2 text-sm outline-none transition focus:ring-2 focus:ring-purple-400 disabled:opacity-60"
+            className="block w-full rounded-2xl border border-sand bg-cream-soft px-4 py-2 text-sm text-ink placeholder:text-ink-soft outline-none transition focus:ring-2 focus:ring-jade disabled:opacity-60"
           />
         )}
 
@@ -248,7 +377,7 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
           type="button"
           onClick={regenerate}
           disabled={isRegenerating || retriesUsed >= MAX_RETRIES}
-          className="block w-full rounded-2xl border border-white/15 bg-transparent px-5 py-2 text-center text-xs font-semibold opacity-80 transition hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-40"
+          className="block w-full rounded-full border border-sand bg-transparent px-5 py-2 text-center text-xs font-semibold text-ink-soft transition hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
         >
           {isRegenerating
             ? "Making a new version… (this takes about a minute)"
@@ -260,7 +389,7 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
         {/* Sets expectations for the retry button — it re-rolls the audio, it
             does NOT let you edit the words (Suno's API can't change lyrics on
             an existing melody). */}
-        <p className="text-center text-[11px] leading-relaxed opacity-50">
+        <p className="text-center text-[11px] leading-relaxed text-ink-soft">
           This creates a new audio take with the same lyrics. To change the
           words, start a new song.
         </p>
@@ -269,14 +398,14 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
           <button
             type="button"
             onClick={() => setShowStyleEditor((v) => !v)}
-            className="block w-full text-center text-[11px] opacity-60 hover:opacity-90"
+            className="block w-full text-center text-[11px] text-ink-soft hover:text-ink"
           >
             {showStyleEditor ? "hide style editor" : "tweak style for next take"}
           </button>
         )}
 
         {regenError && (
-          <p role="alert" className="text-center text-xs text-rose-300">
+          <p role="alert" className="text-center text-xs text-blush">
             {regenError}
           </p>
         )}
@@ -288,21 +417,21 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
         const venueStyle = song.venueColor ? { color: song.venueColor } : undefined;
         if (sender && venue) {
           return (
-            <p className="mt-6 text-center text-sm italic opacity-80">
+            <p className="mt-6 text-center font-serif text-base italic text-ink-soft">
               Made with love from {sender} · at <span style={venueStyle}>{venue}</span>
             </p>
           );
         }
         if (venue) {
           return (
-            <p className="mt-6 text-center text-sm italic opacity-80">
+            <p className="mt-6 text-center font-serif text-base italic text-ink-soft">
               A song from <span style={venueStyle}>{venue}</span>
             </p>
           );
         }
         if (sender) {
           return (
-            <p className="mt-6 text-center text-sm italic opacity-80">
+            <p className="mt-6 text-center font-serif text-base italic text-ink-soft">
               Made with love from {sender}
             </p>
           );
@@ -321,11 +450,11 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
       >
         {song.lyrics.sections.map((section, idx) => (
           <div key={idx}>
-            <div className="mb-1 text-xs font-bold uppercase tracking-wide opacity-60">
+            <div className="mb-1 text-xs font-bold uppercase tracking-wide text-jade">
               [{section.tag}]
             </div>
             {section.lines.map((line, lineIdx) => (
-              <p key={lineIdx} className="text-sm leading-relaxed">
+              <p key={lineIdx} className="text-sm leading-relaxed text-ink">
                 {line}
               </p>
             ))}
@@ -333,20 +462,21 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
         ))}
       </div>
 
-      {/* Re-conversion CTA — turns recipients into creators. Always shown. */}
+      {/* Re-conversion / post-purchase cross-sell — turns recipients into
+          creators, and nudges buyers to make a second song. One tasteful CTA. */}
       <div className="mt-12">
         <a
           href="/generate"
-          className="block w-full rounded-2xl bg-gradient-to-r from-pink-500 via-fuchsia-500 to-amber-400 px-5 py-4 text-center text-base font-extrabold text-white shadow-2xl shadow-fuchsia-500/30 transition hover:-translate-y-1 hover:shadow-fuchsia-500/50"
+          className="block w-full rounded-full bg-jade px-5 py-4 text-center text-base font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(31,142,125,0.7)] transition hover:-translate-y-0.5 hover:bg-jade-deep"
         >
-          🎂 Make your own birthday song →
+          {unlocked ? "🎂 Make another birthday song →" : "🎂 Make your own birthday song →"}
         </a>
       </div>
 
-      <footer className="mt-8 text-center text-xs opacity-70">
-        <a href="/" className="underline-offset-2 hover:underline">
+      <footer className="mt-8 text-center text-xs text-ink-soft">
+        <Link href="/" className="underline-offset-2 hover:underline">
           Made with Birthday Song Generator
-        </a>
+        </Link>
       </footer>
 
       {toast && (

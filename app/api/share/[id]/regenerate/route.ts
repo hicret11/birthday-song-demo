@@ -24,8 +24,8 @@ export const maxDuration = 120;
 const MAX_REGEN_RETRIES = 2;
 const POLL_INTERVAL_MS = 4_000;
 const SUNO_TIMEOUT_MS = 50_000;
-const MAX_STYLE_NOTES_LEN = 200;
-const MAX_STYLE_TOTAL_LEN = 320;
+const MAX_STYLE_NOTES_LEN = 2000;
+const MAX_STYLE_TOTAL_LEN = 600;
 
 const ID_RE = /^[a-zA-Z0-9]{1,32}$/;
 
@@ -48,7 +48,7 @@ function buildSunoStyle(genre: string, styleNotes?: string | null): string {
   const notes = stripControlChars(styleNotes ?? "").trim().slice(0, MAX_STYLE_NOTES_LEN);
   const parts = [cleanGenre];
   if (notes) parts.push(notes);
-  parts.push("short cheerful birthday song", "about 35 seconds", "natural ending");
+  parts.push("full, cheerful birthday song with a clear verse and chorus", "about 60 seconds", "natural ending");
   return parts.join(", ").slice(0, MAX_STYLE_TOTAL_LEN);
 }
 
@@ -58,8 +58,8 @@ function buildSunoStyle(genre: string, styleNotes?: string | null): string {
 function buildRefinedSunoStyle(refined: string): string {
   const parts = [
     refined,
-    "short cheerful birthday song",
-    "about 35 seconds",
+    "full, cheerful birthday song with a clear verse and chorus",
+    "about 60 seconds",
     "natural ending",
   ];
   return parts.join(", ").slice(0, MAX_STYLE_TOTAL_LEN);
@@ -135,7 +135,7 @@ export async function POST(
           styleNotes: styleNotesToUse,
           recipientName: song.name,
         });
-        void recordSpendCents("anthropic", 1);
+        void recordSpendCents("openai", 1);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         console.warn(`[regenerate ${id}] style-refine failed, falling back: ${msg}`);

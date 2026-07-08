@@ -5,54 +5,41 @@ import { SharedSongBody } from "./shared";
 
 export function Corporate({ song }: { song: SharedSong }) {
   return (
-    <main
-      className="relative min-h-screen overflow-hidden text-slate-100"
-      style={{ background: "linear-gradient(165deg, #0b1220 0%, #131c2e 55%, #1b2538 100%)" }}
-    >
-      {/* Restrained accent glow — a single brand-pink wash, kept low-key */}
+    <main className="grain relative min-h-screen overflow-hidden bg-cream text-ink">
+      {/* Restrained warm wash — a single soft accent, kept low-key */}
       <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: "radial-gradient(ellipse 60% 45% at 50% 0%, rgba(236,72,153,0.12) 0%, transparent 60%)",
-        }}
+        aria-hidden
+        className="pointer-events-none absolute -right-40 -top-40 z-0 h-[520px] w-[520px] rounded-full bg-[radial-gradient(circle,rgba(255,158,120,0.35),transparent_66%)] blur-2xl"
       />
 
-      {/* Faint blueprint grid for a crisp, professional feel */}
-      <div
-        className="absolute inset-0 pointer-events-none opacity-[0.06] bg-[linear-gradient(to_right,#ffffff14_1px,transparent_1px),linear-gradient(to_bottom,#ffffff14_1px,transparent_1px)] bg-[size:48px_48px]"
-      />
-
-      {/* Top accent rule — single brand-pink line, no gradient flourish */}
-      <div className="absolute top-0 left-0 right-0 h-[2px] pointer-events-none bg-[#ec4899]/70" />
+      {/* Top accent rule — single jade line */}
+      <div aria-hidden className="pointer-events-none absolute left-0 right-0 top-0 h-[2px] bg-jade" />
 
       {/* Content */}
       <div className="relative z-10 mx-auto max-w-2xl px-6 py-16">
 
         {/* Eyebrow / badge — understated */}
-        <div className="flex justify-center mb-6">
-          <div className="rounded-md border border-white/10 bg-white/[0.04] px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">
+        <div className="mb-6 flex justify-center">
+          <div className="rounded-full border border-sand bg-cream-soft px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-jade shadow-sm">
             Best Wishes
           </div>
         </div>
 
         {/* Short accent underline above the headline */}
-        <div className="flex items-center justify-center mb-6">
-          <div className="h-[3px] w-12 rounded-full bg-[#ec4899]" />
+        <div className="mb-6 flex items-center justify-center">
+          <div className="h-[3px] w-12 rounded-full bg-jade" />
         </div>
 
-        <h1
-          className="text-center text-4xl font-bold tracking-tight text-white"
-          style={{ fontFamily: "'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif", letterSpacing: "-0.01em" }}
-        >
+        <h1 className="text-center font-display text-4xl font-extrabold tracking-tight text-ink">
           Happy Birthday, {song.name}
         </h1>
 
-        <p className="mt-4 text-center text-sm text-slate-400">
+        <p className="mt-4 text-center text-sm text-ink-soft">
           A personalized birthday song, made just for you.
         </p>
 
-        {/* Clean card — crisp border, minimal blur, business-appropriate */}
-        <div className="mt-10 rounded-2xl border border-white/10 bg-white/[0.03] p-6 shadow-xl shadow-black/30 backdrop-blur-sm">
+        {/* Clean card — crisp border, business-appropriate */}
+        <div className="mt-10 rounded-2xl border border-sand bg-cream-soft p-6 shadow-sm">
           <SharedSongBody song={song} className="mt-2" />
         </div>
       </div>
