@@ -339,6 +339,50 @@ export async function POST(request: Request): Promise<Response> {
     if (cleaned) personalNote = cleaned;
   }
 
+  // v4 "Production Studio" capture — all additive/best-effort, never blocks
+  // share creation. directorCredit + feeling steer copy/tone; directorNote is
+  // the closing message revealed on the premiere (text and/or a recorded voice
+  // clip already uploaded to Blob and passed here as an https URL).
+  const cleanCapped = (value: unknown, max: number): string | undefined => {
+    if (typeof value !== "string") return undefined;
+    let cleaned = "";
+    for (const ch of value) {
+      const code = ch.codePointAt(0) ?? 0;
+      if (code < 0x20 || code === 0x7f) continue;
+      cleaned += ch;
+    }
+    cleaned = cleaned.trim().slice(0, max);
+    return cleaned || undefined;
+  };
+  const directorCredit = cleanCapped(body.director_credit, 60);
+  const feeling = cleanCapped(body.feeling, 40);
+  const directorNoteText = cleanCapped(body.director_note_text, 280);
+  const directorNoteVoiceUrl = isValidAudioUrl(body.director_note_voice_url)
+    ? body.director_note_voice_url
+    : undefined;
+  let directorNoteVoiceDurationSec: number | undefined;
+  if (
+    typeof body.director_note_voice_duration_sec === "number" &&
+    Number.isFinite(body.director_note_voice_duration_sec) &&
+    body.director_note_voice_duration_sec > 0
+  ) {
+    directorNoteVoiceDurationSec = Math.min(120, Math.round(body.director_note_voice_duration_sec));
+  }
+  const directorNote =
+    directorNoteText || directorNoteVoiceUrl
+      ? {
+          ...(directorNoteText ? { text: directorNoteText } : {}),
+          ...(directorNoteVoiceUrl
+            ? {
+                voiceUrl: directorNoteVoiceUrl,
+                ...(directorNoteVoiceDurationSec
+                  ? { voiceDurationSec: directorNoteVoiceDurationSec }
+                  : {}),
+              }
+            : {}),
+        }
+      : undefined;
+
   let venueFields: { venueSlug: string; venueName: string; venueColor: string } | null = null;
   if (typeof body.venueSlug === "string" && body.venueSlug.trim()) {
     const venue = await loadActiveVenue(body.venueSlug);
@@ -361,6 +405,8 @@ export async function POST(request: Request): Promise<Response> {
     personalNote,
     styleNotes,
     lyrics.raw,
+    directorCredit,
+    directorNoteText,
   ]);
   if (!moderation.allowed) {
     console.warn(`[share-create:moderation-blocked] cats=${moderation.categories?.join(",")}`);
@@ -466,6 +512,9 @@ export async function POST(request: Request): Promise<Response> {
     ...(candleColor ? { candleColor } : {}),
     ...(personalNote ? { personalNote } : {}),
     ...(photoUrls ? { photoUrls } : {}),
+    ...(directorCredit ? { directorCredit } : {}),
+    ...(feeling ? { feeling } : {}),
+    ...(directorNote ? { directorNote } : {}),
     ...(venueFields ?? {}),
   };
 
