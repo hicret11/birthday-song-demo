@@ -45,6 +45,33 @@ Code reads these via `lib/render-lambda.ts`. All five (plus the key/secret) must
 be present for `isLambdaConfigured()` to be true; otherwise the render path
 no-ops and falls back.
 
+## 3b. ⚠️ New-AWS-account limits (hit during go-live 2026-07-09 — READ THIS)
+The account was brand new, which surfaced two AWS-side limits. The deploy + a
+real render were verified anyway (1920×1080 h264+mp3, 29s, played from Vercel
+Blob), but for **production-speed renders you must lift the concurrency quota**:
+
+1. **Lambda concurrency quota (REQUIRED before relying on Lambda in prod).**
+   A single premiere render fans out across many parallel Lambdas. On a new
+   account the "Concurrent executions" quota is tiny, so the default render path
+   fails fast with *"AWS Concurrency limit reached (Rate Exceeded)"*. Fix:
+   AWS Console → **Service Quotas → AWS Lambda → "Concurrent executions"** →
+   request an increase (1,000 is the normal established-account value; ask for at
+   least a few hundred). Approval can take a few hours to a day.
+   - Until then, production is SAFE but not using Lambda: `requestPremiumRender`
+     catches the failure and falls back to the ffmpeg video, so buyers still get
+     *a* video — just not the Lambda premiere. Nothing breaks.
+
+2. **Memory capped at 3008 MB.** New accounts can't set Lambda memory > 3008 MB
+   without a limit increase. The function is deployed at **3008 MB / 600 s /
+   2048 MB disk** (`remotion-render-4-0-484-mem3008mb-disk2048mb-600sec`), which
+   is plenty. (The heavy PremiereVideo composition is ~0.3–0.5 s/frame, so the
+   generous timeout matters when concurrency is low; with the quota lifted, many
+   small chunks each finish well under the timeout and renders are fast.)
+
+Re-verify after the quota increase by simply unlocking a Deluxe song and
+confirming the Lambda premiere (not the ffmpeg fallback) appears on the share
+page.
+
 ## 4. How it runs once live
 - On unlock (Deluxe/Production), `requestPremiumRender` renders the `PremiereVideo`
   composition on Lambda, polls to completion, copies the MP4 from Lambda's S3 to
