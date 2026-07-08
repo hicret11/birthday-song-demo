@@ -179,7 +179,9 @@ export const en = {
     // Plan names
     standard: "Standard",
     deluxe: "Deluxe",
+    production: "Full Production",
     bestValue: "Best value",
+    mostChosen: "Most chosen",
     // Value-stack bullets
     bulletCompleteSong: "The full premiere — the complete song",
     bulletMp3: "MP3 download — keep it forever",
@@ -187,13 +189,19 @@ export const en = {
     bulletReplay: "Replay & re-send to family anytime",
     bulletEverythingStandard: "Everything in Standard",
     bulletSlideshow: "A photo slideshow video — their favorite moments set to the song",
+    bulletEverythingDeluxe: "Everything in Deluxe",
+    bulletCall:
+      "An AI character phones them on their birthday — a wizard, fairy godmother, or pirate captain, in their own voice",
     // CTAs ({price} interpolated by caller)
     unlockDeluxePrefix: "Raise the curtain · Deluxe",
     unlockStandardPrefix: "Raise the curtain · Standard",
+    unlockProductionPrefix: "Raise the curtain · Full Production",
     openingCheckout: "Opening secure checkout…",
     preparingSong: "Preparing the premiere…",
     moneyBack: "Love it or your money back",
     secureCheckout: "One-time payment · instant unlock · secure checkout by Stripe",
+    // Live-musician anchor row ({price} interpolated by caller)
+    liveAnchorLabel: "Prefer a real musician in person? Live performances from",
   },
   // The Premiere — the theatrical reveal of the finished song.
   premiere: {

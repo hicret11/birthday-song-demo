@@ -128,7 +128,12 @@ async function handleEvent(event: Stripe.Event, stripe: Stripe): Promise<void> {
     const session = event.data.object as Stripe.Checkout.Session;
     if (session.mode === "payment" && session.metadata?.kind === "song_unlock") {
       const shareId = session.metadata.share_id || session.client_reference_id || "";
-      const plan: "full" | "deluxe" = session.metadata.plan === "deluxe" ? "deluxe" : "full";
+      const plan: "full" | "deluxe" | "production" =
+        session.metadata.plan === "production"
+          ? "production"
+          : session.metadata.plan === "deluxe"
+            ? "deluxe"
+            : "full";
       if (shareId) {
         const ok = await markSharedSongUnlocked(shareId, plan);
         if (!ok) console.error(`[stripe-webhook] song_unlock: share ${shareId} not found (KV expired?)`);

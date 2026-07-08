@@ -172,7 +172,9 @@ export const ar: Dict = {
     // Plan names
     standard: "عادية",
     deluxe: "ديلوكس",
+    production: "إنتاج كامل",
     bestValue: "أفضل قيمة",
+    mostChosen: "الأكثر اختيارًا",
     // Value-stack bullets
     bulletCompleteSong: "العرض الأول كاملًا — الأغنية بالكامل",
     bulletMp3: "تنزيل MP3 — احتفظ به إلى الأبد",
@@ -180,12 +182,17 @@ export const ar: Dict = {
     bulletReplay: "أعد التشغيل وأعد الإرسال للعائلة في أي وقت",
     bulletEverythingStandard: "كل ما في الباقة العادية",
     bulletSlideshow: "فيديو عرض شرائح من الصور مصحوب بالموسيقى",
+    bulletEverythingDeluxe: "كل ما في باقة ديلوكس",
+    bulletCall:
+      "شخصية بالذكاء الاصطناعي تتصل به هاتفيًا في عيد ميلاده — ساحر أو جنية أو قبطان قراصنة، بصوته الخاص",
     // CTAs ({price} interpolated by caller)
     unlockDeluxePrefix: "ارفع الستار · ديلوكس",
     unlockStandardPrefix: "ارفع الستار · العادية",
+    unlockProductionPrefix: "ارفع الستار · إنتاج كامل",
     openingCheckout: "جارٍ فتح الدفع الآمن…",
     preparingSong: "جارٍ تحضير العرض الأول…",
     moneyBack: "أحببها أو استرد أموالك",
+    liveAnchorLabel: "تفضّل موسيقيًا حقيقيًا حضوريًا؟ عروض حية تبدأ من",
     secureCheckout: "دفعة واحدة · فتح فوري · دفع آمن عبر Stripe",
   },
   // العرض الأول — الكشف المسرحي عن الأغنية المكتملة.

@@ -35,9 +35,11 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: { message: "Missing or invalid shareId." } }, { status: 400 });
   }
 
-  // Plan selection (good-better-best). Defaults to Standard ("full"); anything
-  // other than the literal "deluxe" is treated as "full".
-  const plan: Plan = body.plan === "deluxe" ? "deluxe" : "full";
+  // Plan selection (good-better-best). Defaults to Standard ("full"); "deluxe"
+  // adds the slideshow video, "production" adds the AI character call. Anything
+  // else is treated as "full".
+  const plan: Plan =
+    body.plan === "production" ? "production" : body.plan === "deluxe" ? "deluxe" : "full";
 
   const song = await loadSharedSong(shareId);
   if (!song) {

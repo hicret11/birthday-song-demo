@@ -2,11 +2,16 @@
 
 import { useRef, useState } from "react";
 import { getDictionary, type Locale } from "@/lib/i18n";
-import { FULL_PRICE_LABEL, DELUXE_PRICE_LABEL } from "@/lib/pricing-display";
+import {
+  FULL_PRICE_LABEL,
+  DELUXE_PRICE_LABEL,
+  PRODUCTION_PRICE_LABEL,
+  LIVE_ANCHOR_PRICE_LABEL,
+} from "@/lib/pricing-display";
 
 const PREVIEW_SECONDS = 15;
 
-type Plan = "full" | "deluxe";
+type Plan = "full" | "deluxe" | "production";
 
 type Props = {
   shareId: string;
@@ -54,6 +59,7 @@ export default function UnlockableAudio({
   const t = tier ?? "C";
   const fullLabel = FULL_PRICE_LABEL[t];
   const deluxeLabel = DELUXE_PRICE_LABEL[t];
+  const productionLabel = PRODUCTION_PRICE_LABEL[t];
 
   function handleTimeUpdate(): void {
     if (unlocked) return;
@@ -179,7 +185,7 @@ export default function UnlockableAudio({
           >
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-extrabold text-ink">
-                {tr.paywall.deluxe} <span className="ml-1 rounded-full bg-warm-gradient px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">{tr.paywall.bestValue}</span>
+                {tr.paywall.deluxe} <span className="ml-1 rounded-full bg-warm-gradient px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">{tr.paywall.mostChosen}</span>
               </span>
               <span className="text-sm font-extrabold text-ink">{deluxeLabel}</span>
             </div>
@@ -188,7 +194,35 @@ export default function UnlockableAudio({
               <li className="flex items-start gap-2"><span className="text-gold">★</span><span className="font-semibold">{tr.paywall.bulletSlideshow}</span></li>
             </ul>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setPlan("production")}
+            aria-pressed={plan === "production"}
+            className={`block w-full rounded-2xl border p-4 text-left transition ${
+              plan === "production"
+                ? "border-blush bg-warm-soft ring-1 ring-blush"
+                : "border-sand bg-cream hover:border-blush"
+            }`}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-extrabold text-ink">
+                {tr.paywall.production} <span aria-hidden>🎬</span>
+              </span>
+              <span className="text-sm font-extrabold text-ink">{productionLabel}</span>
+            </div>
+            <ul className="mt-2 space-y-1.5 text-sm text-ink">
+              <li className="flex items-start gap-2"><span className="text-jade">✓</span><span>{tr.paywall.bulletEverythingDeluxe}</span></li>
+              <li className="flex items-start gap-2"><span className="text-blush">☎</span><span className="font-semibold">{tr.paywall.bulletCall}</span></li>
+            </ul>
+          </button>
         </div>
+
+        {/* Live-musician anchor — makes the tiers read as the smart middle. */}
+        <p className="mt-3 text-center text-[11px] text-ink-soft">
+          {tr.paywall.liveAnchorLabel}{" "}
+          <span className="font-bold text-ink">{LIVE_ANCHOR_PRICE_LABEL}</span>
+        </p>
 
         <button
           type="button"
@@ -204,6 +238,8 @@ export default function UnlockableAudio({
               />
               {tr.paywall.openingCheckout}
             </>
+          ) : plan === "production" ? (
+            `${tr.paywall.unlockProductionPrefix} · ${productionLabel} →`
           ) : plan === "deluxe" ? (
             `${tr.paywall.unlockDeluxePrefix} · ${deluxeLabel} →`
           ) : (

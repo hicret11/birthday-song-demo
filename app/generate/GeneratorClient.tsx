@@ -35,6 +35,8 @@ import ThemeToggle from "@/components/ThemeToggle";
 import {
   FULL_PRICE_LABEL as TIER_PRICE_LABEL,
   DELUXE_PRICE_LABEL,
+  PRODUCTION_PRICE_LABEL,
+  LIVE_ANCHOR_PRICE_LABEL,
 } from "@/lib/pricing-display";
 import { track } from "@vercel/analytics";
 import { getAnonId, logClientEvent } from "@/lib/client-events";
@@ -1068,7 +1070,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
   const [shareTier, setShareTier] = useState<"A" | "B" | "C" | null>(null);
   const [unlocking, setUnlocking] = useState(false);
   const [previewEnded, setPreviewEnded] = useState(false);
-  const [unlockPlan, setUnlockPlan] = useState<"full" | "deluxe">("full");
+  const [unlockPlan, setUnlockPlan] = useState<"full" | "deluxe" | "production">("full");
   const PREVIEW_SECONDS = 15;
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -3481,7 +3483,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-sm font-extrabold text-ink">
-                        {t.paywall.deluxe} <span className="ml-1 rounded-full bg-warm-gradient px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">{t.paywall.bestValue}</span>
+                        {t.paywall.deluxe} <span className="ml-1 rounded-full bg-warm-gradient px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">{t.paywall.mostChosen}</span>
                       </span>
                       <span className="text-sm font-extrabold text-ink">{shareTier ? DELUXE_PRICE_LABEL[shareTier] : ""}</span>
                     </div>
@@ -3490,7 +3492,42 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                       <li className="flex items-start gap-2"><span className="text-gold">★</span><span className="font-semibold text-ink">{t.paywall.bulletSlideshow}</span></li>
                     </ul>
                   </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUnlockPlan("production");
+                      try {
+                        track("plan_selected", { plan: "production", tier: shareTier ?? "unknown" });
+                      } catch {
+                        // Analytics is non-critical; swallow.
+                      }
+                    }}
+                    aria-pressed={unlockPlan === "production"}
+                    className={`block w-full rounded-2xl border p-3.5 text-left transition ${
+                      unlockPlan === "production"
+                        ? "border-blush bg-cream-soft ring-1 ring-blush"
+                        : "border-sand bg-cream-soft hover:border-blush"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-extrabold text-ink">
+                        {t.paywall.production} <span aria-hidden>🎬</span>
+                      </span>
+                      <span className="text-sm font-extrabold text-ink">{shareTier ? PRODUCTION_PRICE_LABEL[shareTier] : ""}</span>
+                    </div>
+                    <ul className="mt-1.5 space-y-1 text-xs text-ink-soft">
+                      <li className="flex items-start gap-2"><span className="text-jade">✓</span><span>{t.paywall.bulletEverythingDeluxe}</span></li>
+                      <li className="flex items-start gap-2"><span className="text-blush">☎</span><span className="font-semibold text-ink">{t.paywall.bulletCall}</span></li>
+                    </ul>
+                  </button>
                 </div>
+
+                {/* Live-musician anchor — frames the tiers as the smart middle. */}
+                <p className="mt-2.5 text-center text-[11px] text-ink-soft">
+                  {t.paywall.liveAnchorLabel}{" "}
+                  <span className="font-bold text-ink">{LIVE_ANCHOR_PRICE_LABEL}</span>
+                </p>
 
                 <button
                   type="button"
@@ -3502,9 +3539,11 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                     ? t.paywall.openingCheckout
                     : !shareUrl
                       ? t.paywall.preparingSong
-                      : unlockPlan === "deluxe"
-                        ? `${t.paywall.unlockDeluxePrefix}${shareTier ? ` · ${DELUXE_PRICE_LABEL[shareTier]}` : ""} →`
-                        : `${t.paywall.unlockStandardPrefix}${shareTier ? ` · ${TIER_PRICE_LABEL[shareTier]}` : ""} →`}
+                      : unlockPlan === "production"
+                        ? `${t.paywall.unlockProductionPrefix}${shareTier ? ` · ${PRODUCTION_PRICE_LABEL[shareTier]}` : ""} →`
+                        : unlockPlan === "deluxe"
+                          ? `${t.paywall.unlockDeluxePrefix}${shareTier ? ` · ${DELUXE_PRICE_LABEL[shareTier]}` : ""} →`
+                          : `${t.paywall.unlockStandardPrefix}${shareTier ? ` · ${TIER_PRICE_LABEL[shareTier]}` : ""} →`}
                 </button>
                 <p className="mt-3 flex items-center justify-center gap-1.5 text-xs font-bold text-jade">
                   <span aria-hidden>✓</span>{" "}

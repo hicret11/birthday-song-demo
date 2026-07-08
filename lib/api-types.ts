@@ -245,11 +245,12 @@ export type SharedSong = {
   unlocked?: boolean;
   unlockedAt?: number;
   /**
-   * Which plan the buyer purchased. "full" (Standard) is the base unlock;
-   * "deluxe" additionally entitles the photo-slideshow video. Missing on
-   * legacy/pre-Deluxe entries — treat absence as "full".
+   * Which plan the buyer purchased. "full" (Standard/Premiere) is the base
+   * unlock; "deluxe" adds the photo-slideshow video; "production" adds the AI
+   * character birthday call on top of Deluxe. Missing on legacy/pre-Deluxe
+   * entries — treat absence as "full".
    */
-  plan?: "full" | "deluxe";
+  plan?: "full" | "deluxe" | "production";
   /** Pricing tier resolved from geo/IP at creation; drives the unlock price. */
   tier?: "A" | "B" | "C";
   /**

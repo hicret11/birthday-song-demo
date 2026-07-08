@@ -8,9 +8,10 @@
 # reuse the existing price instead of creating duplicates.
 #
 # It creates:
-#   • Product "Sing My Birthday — Full Song" with 6 one-time prices
-#       full   A/B/C = $14.99 / $9.99 / $6.99   → STRIPE_PRICE_ID_TIER_A/B/C
-#       deluxe A/B/C = $24.99 / $16.99 / $11.99 → STRIPE_PRICE_ID_DELUXE_A/B/C
+#   • Product "Sing My Birthday — Full Song" with 9 one-time prices
+#       full       A/B/C = $14.99 / $9.99 / $6.99    → STRIPE_PRICE_ID_TIER_A/B/C
+#       deluxe     A/B/C = $24.99 / $16.99 / $11.99  → STRIPE_PRICE_ID_DELUXE_A/B/C
+#       production A/B/C = $44.99 / $29.99 / $21.99  → STRIPE_PRICE_ID_PRODUCTION_A/B/C
 #   • Product "Sing My Birthday — Founding Venue" with 1 recurring price
 #       $299 / month                            → STRIPE_FOUNDING_VENUE_PRICE_ID
 #   • A webhook endpoint at $SITE_URL/api/stripe/webhook subscribing to the 5
@@ -139,6 +140,11 @@ PRICE_TIER_C=$(find_or_create_price smb_song_full_c_v2   "$SONG_PROD"  699 'Full
 PRICE_DLX_A=$(find_or_create_price  smb_song_deluxe_a_v2 "$SONG_PROD" 2499 'Deluxe — Tier A ($24.99)')
 PRICE_DLX_B=$(find_or_create_price  smb_song_deluxe_b_v2 "$SONG_PROD" 1699 'Deluxe — Tier B ($16.99)')
 PRICE_DLX_C=$(find_or_create_price  smb_song_deluxe_c_v2 "$SONG_PROD" 1199 'Deluxe — Tier C ($11.99)')
+# Production ("Full Production") — Deluxe + the AI character birthday call.
+# New _v3 lookup keys (prices are immutable — never mutate existing ones).
+PRICE_PROD_A=$(find_or_create_price smb_song_production_a_v3 "$SONG_PROD" 4499 'Full Production — Tier A ($44.99)')
+PRICE_PROD_B=$(find_or_create_price smb_song_production_b_v3 "$SONG_PROD" 2999 'Full Production — Tier B ($29.99)')
+PRICE_PROD_C=$(find_or_create_price smb_song_production_c_v3 "$SONG_PROD" 2199 'Full Production — Tier C ($21.99)')
 
 echo "→ Venue product + subscription price…"
 VENUE_PROD=$(find_or_create_product \
@@ -182,12 +188,15 @@ echo "STRIPE_PRICE_ID_TIER_C=$PRICE_TIER_C"
 echo "STRIPE_PRICE_ID_DELUXE_A=$PRICE_DLX_A"
 echo "STRIPE_PRICE_ID_DELUXE_B=$PRICE_DLX_B"
 echo "STRIPE_PRICE_ID_DELUXE_C=$PRICE_DLX_C"
+echo "STRIPE_PRICE_ID_PRODUCTION_A=$PRICE_PROD_A"
+echo "STRIPE_PRICE_ID_PRODUCTION_B=$PRICE_PROD_B"
+echo "STRIPE_PRICE_ID_PRODUCTION_C=$PRICE_PROD_C"
 echo "STRIPE_FOUNDING_VENUE_PRICE_ID=$VENUE_PRICE"
 echo "════════════════════════════════════════════════════════════════════"
 
 # Write the results straight back into the scratch file so it self-fills — you
 # just open it and copy into Vercel. STRIPE_SECRET_KEY is already there; we fill
-# the webhook secret (if freshly created) and the 7 price ids.
+# the webhook secret (if freshly created) and the 10 price ids.
 setvar STRIPE_WEBHOOK_SECRET        "$WEBHOOK_SECRET"
 setvar STRIPE_PRICE_ID_TIER_A       "$PRICE_TIER_A"
 setvar STRIPE_PRICE_ID_TIER_B       "$PRICE_TIER_B"
@@ -195,6 +204,9 @@ setvar STRIPE_PRICE_ID_TIER_C       "$PRICE_TIER_C"
 setvar STRIPE_PRICE_ID_DELUXE_A     "$PRICE_DLX_A"
 setvar STRIPE_PRICE_ID_DELUXE_B     "$PRICE_DLX_B"
 setvar STRIPE_PRICE_ID_DELUXE_C     "$PRICE_DLX_C"
+setvar STRIPE_PRICE_ID_PRODUCTION_A "$PRICE_PROD_A"
+setvar STRIPE_PRICE_ID_PRODUCTION_B "$PRICE_PROD_B"
+setvar STRIPE_PRICE_ID_PRODUCTION_C "$PRICE_PROD_C"
 setvar STRIPE_FOUNDING_VENUE_PRICE_ID "$VENUE_PRICE"
 [ -f "$ENV_FILE" ] && echo "→ Filled $ENV_FILE — open it and copy the values into Vercel."
 

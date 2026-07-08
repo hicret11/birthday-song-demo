@@ -58,14 +58,14 @@ export async function loadCrowdDirectorToken(id: string): Promise<string | null>
  */
 export async function markSharedSongUnlocked(
   id: string,
-  plan?: "full" | "deluxe",
+  plan?: "full" | "deluxe" | "production",
 ): Promise<boolean> {
   const song = await loadSharedSong(id);
   if (!song) return false;
-  // Persist the purchased plan even on idempotent replays (e.g. a Deluxe
-  // upgrade after a prior Standard unlock, or a duplicate webhook delivery that
-  // now carries the plan). Default to "full" when unspecified.
-  const resolvedPlan: "full" | "deluxe" = plan ?? song.plan ?? "full";
+  // Persist the purchased plan even on idempotent replays (e.g. a Deluxe/
+  // Production upgrade after a prior Standard unlock, or a duplicate webhook
+  // delivery that now carries the plan). Default to "full" when unspecified.
+  const resolvedPlan: "full" | "deluxe" | "production" = plan ?? song.plan ?? "full";
   if (!song.unlocked || song.plan !== resolvedPlan) {
     song.unlocked = true;
     if (!song.unlockedAt) song.unlockedAt = Date.now();

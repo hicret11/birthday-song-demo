@@ -17,6 +17,7 @@ import { loadSharedSong, markSharedSongUnlocked } from "./share";
 import {
   TIER_PRICE_DISPLAY,
   TIER_PRICE_DISPLAY_DELUXE,
+  TIER_PRICE_DISPLAY_PRODUCTION,
   type Plan,
   type Tier,
 } from "./pricing-tiers";
@@ -44,8 +45,14 @@ export function isGroupPayEnabled(): boolean {
  */
 export function giftPoolTargetCents(song: Pick<SharedSong, "tier" | "plan">): number {
   const tier: Tier = song.tier ?? "C";
-  const plan: Plan = song.plan === "deluxe" ? "deluxe" : "full";
-  const map = plan === "deluxe" ? TIER_PRICE_DISPLAY_DELUXE : TIER_PRICE_DISPLAY;
+  const plan: Plan =
+    song.plan === "production" ? "production" : song.plan === "deluxe" ? "deluxe" : "full";
+  const map =
+    plan === "production"
+      ? TIER_PRICE_DISPLAY_PRODUCTION
+      : plan === "deluxe"
+        ? TIER_PRICE_DISPLAY_DELUXE
+        : TIER_PRICE_DISPLAY;
   return map[tier].amountCents;
 }
 

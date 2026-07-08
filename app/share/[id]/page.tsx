@@ -88,7 +88,14 @@ export default async function SharePage({
         session.metadata?.kind === "song_unlock" &&
         session.metadata?.share_id === id
       ) {
-        await markSharedSongUnlocked(id, session.metadata.plan === "deluxe" ? "deluxe" : "full");
+        await markSharedSongUnlocked(
+          id,
+          session.metadata.plan === "production"
+            ? "production"
+            : session.metadata.plan === "deluxe"
+              ? "deluxe"
+              : "full",
+        );
         song = (await loadSharedSong(id)) ?? song;
         // Kick the premium Remotion render on this verify-path unlock too, so a
         // buyer who lands here before the webhook fires still gets it started.

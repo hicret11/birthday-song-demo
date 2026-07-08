@@ -21,3 +21,21 @@ export const DELUXE_PRICE_LABEL: Record<Tier, string> = {
   B: "$16.99",
   C: "$11.99",
 };
+
+/**
+ * Production ("Full Production") — Deluxe PLUS an AI character birthday phone
+ * call. The premium anchor tier. Geo-tiered on the same ladder ratios as Deluxe
+ * (B≈0.67×A, C≈0.49×A).
+ */
+export const PRODUCTION_PRICE_LABEL: Record<Tier, string> = {
+  A: "$44.99",
+  B: "$29.99",
+  C: "$21.99",
+};
+
+/**
+ * The live-musician / in-person concierge anchor shown beneath the tiers so the
+ * $44.99 Production reads as the smart middle against a real premium option.
+ * Display-only; the live cast is a separate concierge booking (lib/cast/live).
+ */
+export const LIVE_ANCHOR_PRICE_LABEL = "~$120";
