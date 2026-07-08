@@ -16,6 +16,7 @@
 import type { SharedSong } from "./api-types";
 import { loadSharedSong, updateSharedSong } from "./share";
 import { transcribeWordTimings } from "./transcribe";
+import { isLambdaConfigured, renderPremiereOnLambda } from "./render-lambda";
 
 const REQUEST_TIMEOUT_MS = 5 * 60 * 1000; // rendering can take a couple minutes
 
@@ -34,12 +35,33 @@ const REQUEST_TIMEOUT_MS = 5 * 60 * 1000; // rendering can take a couple minutes
  */
 export async function requestPremiumRender(song: SharedSong): Promise<void> {
   try {
+    if (!song.unlocked) return;
+
+    // Phase D: prefer the Remotion Lambda premiere render when configured. It
+    // renders the full premiere (curtain/marquee/scenes/note/credits) and needs
+    // no captions. On success we're done; on failure we fall through to the
+    // Railway worker, then the ffmpeg video stays as the last-resort fallback.
+    if (isLambdaConfigured()) {
+      await updateSharedSong(song.id, { videoStatus: "pending" });
+      const freshForLambda = (await loadSharedSong(song.id)) ?? song;
+      const lambdaUrl = await renderPremiereOnLambda(freshForLambda);
+      if (lambdaUrl) {
+        await updateSharedSong(song.id, { premiumVideoUrl: lambdaUrl, videoStatus: "ready" });
+        console.log(`[render-video] Lambda premiere ready for ${song.id}`);
+        return;
+      }
+      console.error(`[render-video] Lambda render failed for ${song.id}; trying worker`);
+    }
+
     const workerUrl = process.env.RENDER_WORKER_URL;
     if (!workerUrl) {
-      // Worker not configured — the ffmpeg video remains the shown video.
+      // No worker configured. If Lambda was configured but failed, record it;
+      // otherwise nothing is configured and the ffmpeg video remains (clean no-op).
+      if (isLambdaConfigured()) {
+        await updateSharedSong(song.id, { videoStatus: "failed" });
+      }
       return;
     }
-    if (!song.unlocked) return;
 
     // 1) Ensure captions. Reuse persisted captions if we already have them.
     let captions = song.captions ?? null;
