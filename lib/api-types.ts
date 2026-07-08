@@ -1,3 +1,5 @@
+import type { Delivery } from "./delivery";
+
 export type LyricSectionTag = "Verse" | "Chorus" | "Bridge" | "Outro";
 
 export type LyricSection = {
@@ -225,6 +227,19 @@ export type SharedSong = {
    */
   birthdayDate?: string;
   /**
+   * Birthday countdown delivery (giver-sends model). When mode is "scheduled",
+   * the share page holds the premiere behind a locked countdown ticket until
+   * `deliverAt` (9am local on the recipient's next birthday) — an ADDITIONAL
+   * gate on top of the paywall, never a media leak. Absent/mode "now" = the
+   * current instant-reveal behavior. See lib/delivery.ts.
+   */
+  delivery?: Delivery;
+  /**
+   * Unguessable token that lets the GIVER preview their own premiere before
+   * `deliverAt` (via ?preview=<token>). Never included in the public share link.
+   */
+  previewToken?: string;
+  /**
    * "Make it Yours" personalization picked during the wait. cakeStyle and
    * candleColor are closed enums; personalNote is free text capped at
    * PERSONAL_NOTE_MAX_LEN. Used by lib/video.ts to add a caption under the
@@ -379,6 +394,13 @@ export type ShareCreateRequest = {
    */
   birthday_date?: string;
   /**
+   * Countdown-delivery choice (giver-sends). mode "scheduled" holds the premiere
+   * behind a countdown until the recipient's next birthday at 9am in `timezone`
+   * (the giver's IANA browser zone); "now" reveals immediately. The server
+   * computes the concrete deliverAt from birthday_date + timezone.
+   */
+  delivery?: { mode: "now" | "scheduled"; timezone?: string };
+  /**
    * "Make it Yours" personalization. cake_style and candle_color must match
    * the closed enums; personal_note is free text and gets sanitized + capped
    * server-side.
@@ -418,6 +440,14 @@ export type ShareCreateResponse = {
    * rules. Always present.
    */
   tier: "A" | "B" | "C";
+  /**
+   * Countdown delivery, echoed back when the giver chose a scheduled premiere.
+   * `deliverAt` is the UTC ISO reveal instant; `previewUrl` is the giver-only
+   * link (carries the preview token) to see the premiere before then. Absent for
+   * instant ("now") delivery.
+   */
+  deliverAt?: string;
+  previewUrl?: string;
 };
 
 export type SongStatusResponse =

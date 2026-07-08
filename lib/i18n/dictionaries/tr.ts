@@ -156,6 +156,11 @@ export const tr: Dict = {
     noteErrNoMic: "Tarayıcın ses kaydedemiyor — notu yaz.",
     noteErrNoAudio: "Ses yakalanamadı. Tekrar dene.",
     noteErrUpload: "Sesli not kaydedilemedi — tekrar dene.",
+    deliveryHeading: "Ne zaman görsünler?",
+    deliveryOnBirthday: "🎬 Doğum gününde açılsın",
+    deliveryNow: "Şimdi açılsın",
+    deliveryHint: "Prömiyeri o gün yerel saatle 09:00’a kadar bir geri sayımın arkasında tutarız. Dilediğin zaman önce kendin önizleyebilirsin.",
+    deliveryPreviewLink: "Prömiyerini önizle (erken yalnızca sen görebilirsin) →",
   },
   paywall: {
     previewLabelPrefix: "🎬 Prömiyerinin açılışı — ",
@@ -214,6 +219,18 @@ export const tr: Dict = {
     starringLabel: "Başrol",
     producedByLabel: "Yapımcı ve yönetmen",
     withLoveLabel: "Sevgiyle",
+  },
+  countdown: {
+    admission: "Şimdi sahnede · yalnızca bir gece",
+    title: "{name} için prömiyer",
+    theStar: "yıldız",
+    premieresOn: "{date} tarihinde başlıyor",
+    opensIn: "Perde şu süre sonra açılıyor",
+    days: "gün",
+    hrs: "sa",
+    mins: "dk",
+    secs: "sn",
+    footer: "Yalnızca onun için hazırlandı — perde açıldığında tekrar uğrayın.",
   },
   // Grup büyüsü — doğum günü sahibinin çevresini tek bir şarkıyı birlikte yazmaya davet et.
   crowd: {

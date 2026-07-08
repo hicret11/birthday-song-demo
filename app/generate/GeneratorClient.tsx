@@ -1021,6 +1021,21 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
   // the annual reminder when the buyer also opts into the year reminder. Purely
   // additive — never blocks song creation or sharing.
   const [waitBirthdayDate, setWaitBirthdayDate] = useState("");
+  // Countdown delivery (giver-sends): when a birthday is set, hold the premiere
+  // behind a countdown until that day by default ("scheduled"), or reveal now.
+  // The giver's IANA timezone is read client-side (unavailable during SSR).
+  const [deliveryMode, setDeliveryMode] = useState<"now" | "scheduled">("scheduled");
+  const [browserTz, setBrowserTz] = useState<string | null>(null);
+  const [premiereDeliverAt, setPremiereDeliverAt] = useState<string | null>(null);
+  const [premierePreviewUrl, setPremierePreviewUrl] = useState<string | null>(null);
+  useEffect(() => {
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- client-only tz read; Intl resolves the giver's zone, unavailable during SSR
+      setBrowserTz(Intl.DateTimeFormat().resolvedOptions().timeZone || null);
+    } catch {
+      // Intl unavailable — delivery simply falls back to instant reveal.
+    }
+  }, []);
   // "While you wait" panels — both default collapsed so the main wait
   // surface stays clean. User opts in by tapping the header chevron.
   const [previewPanelOpen, setPreviewPanelOpen] = useState(false);
@@ -1733,6 +1748,11 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
         : {}),
       ...(waitCaptureHasValue ? { wait_capture: waitCapture } : {}),
       ...(waitBirthdayDate.trim() ? { birthday_date: waitBirthdayDate.trim() } : {}),
+      // Only send delivery when we have both a birthday and the giver's tz; the
+      // server falls back to instant reveal otherwise.
+      ...(waitBirthdayDate.trim() && browserTz
+        ? { delivery: { mode: deliveryMode, timezone: browserTz } }
+        : {}),
       ...(cakeStyle ? { cake_style: cakeStyle } : {}),
       ...(candleColor ? { candle_color: candleColor } : {}),
       ...(personalNote.trim() ? { personal_note: personalNote.trim() } : {}),
@@ -1765,6 +1785,12 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
         : ok.shareUrl;
       setShareUrl(absolute);
       if (ok.tier === "A" || ok.tier === "B" || ok.tier === "C") setShareTier(ok.tier);
+      setPremiereDeliverAt(ok.deliverAt ?? null);
+      setPremierePreviewUrl(
+        ok.previewUrl && typeof window !== "undefined"
+          ? new URL(ok.previewUrl, window.location.origin).toString()
+          : ok.previewUrl ?? null,
+      );
     } catch {
       setShareError("Couldn't reach the server. Please try again.");
     } finally {
@@ -3248,6 +3274,46 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                   className="w-full rounded-xl border border-sand bg-cream-soft px-3 py-2 text-sm text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade placeholder:text-ink-soft"
                 />
               </div>
+
+              {/* Countdown delivery choice — only meaningful with a birthday. */}
+              {waitBirthdayDate.trim() && (
+                <div>
+                  <span className="mb-1.5 block text-xs font-semibold text-ink-soft">
+                    {t.generate.deliveryHeading}
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setDeliveryMode("scheduled")}
+                      aria-pressed={deliveryMode === "scheduled"}
+                      className={`flex-1 rounded-xl border px-3 py-2 text-xs font-bold transition ${
+                        deliveryMode === "scheduled"
+                          ? "border-blush bg-warm-soft text-ink ring-1 ring-blush"
+                          : "border-sand bg-cream-soft text-ink-soft hover:border-blush"
+                      }`}
+                    >
+                      {t.generate.deliveryOnBirthday}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeliveryMode("now")}
+                      aria-pressed={deliveryMode === "now"}
+                      className={`flex-1 rounded-xl border px-3 py-2 text-xs font-bold transition ${
+                        deliveryMode === "now"
+                          ? "border-jade bg-warm-soft text-ink ring-1 ring-jade"
+                          : "border-sand bg-cream-soft text-ink-soft hover:border-jade"
+                      }`}
+                    >
+                      {t.generate.deliveryNow}
+                    </button>
+                  </div>
+                  {deliveryMode === "scheduled" && (
+                    <p className="mt-1.5 text-[11px] leading-snug text-ink-soft">
+                      {t.generate.deliveryHint}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* "While you wait" panels — both collapsed by default so the
@@ -3854,6 +3920,19 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                   {copied ? "✓ Copied" : "Copy link"}
                 </button>
               </div>
+
+              {/* Scheduled premiere: the shared link shows a countdown until the
+                  birthday; give the giver a private preview link to see it now. */}
+              {premierePreviewUrl && premiereDeliverAt && (
+                <a
+                  href={premierePreviewUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block rounded-xl border border-blush/40 bg-warm-soft px-4 py-3 text-center text-sm font-bold text-ink transition hover:-translate-y-0.5"
+                >
+                  {t.generate.deliveryPreviewLink}
+                </a>
+              )}
 
               {/* Optional promotional-use permission. Shown only after the song
                   is shareable, and never on minor-recipient flows. Prominent but

@@ -5,6 +5,8 @@ import { ShareTemplateView } from "@/components/share/templates";
 import { requestPremiumRender } from "@/lib/render-video";
 import { loadSharedSong, markSharedSongUnlocked } from "@/lib/share";
 import { toPublicSong } from "@/lib/public-song";
+import { isDeliveredNow } from "@/lib/delivery";
+import PremiereCountdown from "@/components/share/PremiereCountdown";
 import { listApprovedContributions } from "@/lib/crowd";
 import { getStripe } from "@/lib/stripe";
 import JsonLd from "@/components/JsonLd";
@@ -69,7 +71,11 @@ export default async function SharePage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const { id } = await params;
-  const { unlocked: unlockedParam, session_id: sessionIdParam } = await searchParams;
+  const {
+    unlocked: unlockedParam,
+    session_id: sessionIdParam,
+    preview: previewParam,
+  } = await searchParams;
   let song = await loadSharedSong(id);
   if (!song) notFound();
 
@@ -113,6 +119,25 @@ export default async function SharePage({
   }
 
   const justUnlocked = !!song.unlocked && unlockedParam === "1";
+
+  // Countdown delivery gate (giver-sends). If the premiere is scheduled and the
+  // reveal instant hasn't passed, hold it behind the locked countdown ticket —
+  // UNLESS the viewer is the giver (correct ?preview=<token>). This is an
+  // additional gate ON TOP of the paywall and renders NO media, so there's
+  // nothing to leak; it runs before ShareTemplateView/toPublicSong entirely.
+  const previewToken = Array.isArray(previewParam) ? previewParam[0] : previewParam;
+  const isGiverPreview =
+    !!song.previewToken && typeof previewToken === "string" && previewToken === song.previewToken;
+  if (!isGiverPreview && !isDeliveredNow(song.delivery) && song.delivery?.deliverAt) {
+    return (
+      <PremiereCountdown
+        recipientName={song.name}
+        deliverAt={song.delivery.deliverAt}
+        timezone={song.delivery.timezone}
+        locale={LANGUAGE_TO_LOCALE[song.language] ?? "en"}
+      />
+    );
+  }
 
   // Crowd-song credit: for a merged group song, fetch the approved contributions
   // (Postgres) so the template's Premiere can frame it as "a song from N people"

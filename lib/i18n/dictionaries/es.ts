@@ -156,6 +156,11 @@ export const es: Dict = {
     noteErrNoMic: "Tu navegador no puede grabar audio — escribe la nota.",
     noteErrNoAudio: "No se capturó audio. Inténtalo de nuevo.",
     noteErrUpload: "No se pudo guardar esa nota de voz — inténtalo de nuevo.",
+    deliveryHeading: "¿Cuándo debería verlo?",
+    deliveryOnBirthday: "🎬 Que se abra en su cumpleaños",
+    deliveryNow: "Disponible ahora",
+    deliveryHint: "Guardaremos el estreno tras una cuenta atrás hasta las 9:00 de su hora ese día. Siempre puedes previsualizarlo tú primero.",
+    deliveryPreviewLink: "Previsualiza tu estreno (solo tú puedes verlo antes) →",
   },
   paywall: {
     previewLabelPrefix: "🎬 La apertura de su estreno — ",
@@ -214,6 +219,18 @@ export const es: Dict = {
     starringLabel: "Protagonista",
     producedByLabel: "Producido y dirigido por",
     withLoveLabel: "Con cariño de",
+  },
+  countdown: {
+    admission: "Ahora en cartel · una sola noche",
+    title: "El estreno de {name}",
+    theStar: "la estrella",
+    premieresOn: "Se estrena el {date}",
+    opensIn: "El telón se alza en",
+    days: "días",
+    hrs: "h",
+    mins: "min",
+    secs: "s",
+    footer: "Hecho solo para él o ella — vuelve cuando se alce el telón.",
   },
   // Magia de grupo — invita al círculo del homenajeado a co-escribir una canción.
   crowd: {

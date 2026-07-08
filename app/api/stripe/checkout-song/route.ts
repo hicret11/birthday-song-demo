@@ -144,11 +144,15 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   try {
+    // For a scheduled premiere, carry the giver's preview token back on the
+    // success redirect so the buyer lands on their unlocked song, not the
+    // recipient countdown gate.
+    const previewSuffix = song.previewToken ? `&preview=${song.previewToken}` : "";
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: [{ price, quantity: 1 }],
       client_reference_id: shareId,
-      success_url: `${origin}/share/${shareId}?unlocked=1&session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${origin}/share/${shareId}?unlocked=1&session_id={CHECKOUT_SESSION_ID}${previewSuffix}`,
       cancel_url: `${origin}/share/${shareId}`,
       allow_promotion_codes: true,
       metadata,

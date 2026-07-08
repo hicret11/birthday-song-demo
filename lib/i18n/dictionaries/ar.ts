@@ -160,6 +160,11 @@ export const ar: Dict = {
     noteErrNoMic: "متصفحك لا يستطيع التسجيل — اكتب الرسالة بدلاً من ذلك.",
     noteErrNoAudio: "لم يُلتقط أي صوت. حاول مرة أخرى.",
     noteErrUpload: "تعذّر حفظ الرسالة الصوتية — حاول مرة أخرى.",
+    deliveryHeading: "متى يراه؟",
+    deliveryOnBirthday: "🎬 يُفتح في عيد ميلاده",
+    deliveryNow: "متاح الآن",
+    deliveryHint: "سنحتفظ بالعرض الأول خلف عدٍّ تنازلي حتى الساعة 9 صباحًا بتوقيته في ذلك اليوم. يمكنك دائمًا معاينته بنفسك أولًا.",
+    deliveryPreviewLink: "عايِن عرضك الأول (يمكنك وحدك رؤيته مبكرًا) ←",
   },
   paywall: {
     // Preview label — the 15s cap framed as the opening/trailer of the show.
@@ -222,6 +227,18 @@ export const ar: Dict = {
     starringLabel: "بطولة",
     producedByLabel: "إنتاج وإخراج",
     withLoveLabel: "بكل حب من",
+  },
+  countdown: {
+    admission: "الاختيار الآن · ليلة واحدة فقط",
+    title: "العرض الأول لـ {name}",
+    theStar: "النجم",
+    premieresOn: "يبدأ العرض في {date}",
+    opensIn: "يُرفع الستار خلال",
+    days: "يوم",
+    hrs: "س",
+    mins: "د",
+    secs: "ث",
+    footer: "صُنع من أجله وحده — عُد عندما يُرفع الستار.",
   },
   // سحر المجموعة — ادعُ دائرة المحتفى به لكتابة أغنية واحدة معًا.
   crowd: {

@@ -25,6 +25,8 @@ import { getClientIp, rateLimitFixedWindow } from "@/lib/rate-limit";
 import { sendSongReadyEmail } from "@/lib/resend";
 import { logGenerationEvent } from "@/lib/events";
 import { generateShareId, saveSharedSong } from "@/lib/share";
+import { computeDeliverAt, isValidTimezone, type Delivery } from "@/lib/delivery";
+import { randomBytes } from "node:crypto";
 import { addPendingUnlock } from "@/lib/pending-unlocks";
 import { enrollBirthdayReminder } from "@/lib/birthday-reminders";
 import { addSongToUser } from "@/lib/user-songs";
@@ -305,6 +307,31 @@ export async function POST(request: Request): Promise<Response> {
   // into the year reminder (see the enrollment gate below). Additive.
   const birthdayDate = sanitizeBirthdayMonthDay(body.birthday_date);
 
+  // Countdown delivery (giver-sends): when the giver chose "scheduled" AND we
+  // have a birthday month-day + a valid giver timezone, hold the premiere behind
+  // a countdown until 9am local on the recipient's next birthday. Anything else
+  // (no birthday, no/invalid tz, or an unresolvable date) falls back to "now"
+  // (instant reveal) so delivery can never block a share. A previewToken lets
+  // the GIVER bypass the countdown to see their own premiere early.
+  let delivery: Delivery | undefined;
+  let previewToken: string | undefined;
+  {
+    const reqDelivery = body.delivery;
+    const wantScheduled =
+      typeof reqDelivery === "object" && reqDelivery !== null && reqDelivery.mode === "scheduled";
+    const tz =
+      typeof reqDelivery === "object" && reqDelivery !== null && isValidTimezone(reqDelivery.timezone)
+        ? reqDelivery.timezone
+        : undefined;
+    if (wantScheduled && birthdayDate && tz) {
+      const deliverAt = computeDeliverAt(birthdayDate, tz, Date.now());
+      if (deliverAt) {
+        delivery = { mode: "scheduled", deliverAt, timezone: tz };
+        previewToken = randomBytes(16).toString("hex");
+      }
+    }
+  }
+
   // Optional photo URLs for the paid slideshow. Best-effort — invalid entries
   // are dropped, the field is omitted when nothing valid was supplied.
   const photoUrls = sanitizePhotoUrls(body.photoUrls);
@@ -508,6 +535,8 @@ export async function POST(request: Request): Promise<Response> {
     ...(pronunciationHint ? { pronunciationHint } : {}),
     ...(waitCapture ? { waitCapture } : {}),
     ...(birthdayDate ? { birthdayDate } : {}),
+    ...(delivery ? { delivery } : {}),
+    ...(previewToken ? { previewToken } : {}),
     ...(cakeStyle ? { cakeStyle } : {}),
     ...(candleColor ? { candleColor } : {}),
     ...(personalNote ? { personalNote } : {}),
@@ -597,6 +626,8 @@ export async function POST(request: Request): Promise<Response> {
     shareUrl: `/share/${id}`,
     videoUrl,
     tier: resolveTier(request),
+    ...(delivery?.deliverAt ? { deliverAt: delivery.deliverAt } : {}),
+    ...(previewToken ? { previewUrl: `/share/${id}?preview=${previewToken}` } : {}),
   };
   return Response.json(response);
 }

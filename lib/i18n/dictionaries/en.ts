@@ -166,6 +166,12 @@ export const en = {
     noteErrNoMic: "Your browser can’t record audio — write the note instead.",
     noteErrNoAudio: "No audio captured. Try again.",
     noteErrUpload: "Couldn’t save that voice note — try again.",
+    // Countdown delivery choice (shown once a birthday is set).
+    deliveryHeading: "When should they see it?",
+    deliveryOnBirthday: "🎬 Open on their birthday",
+    deliveryNow: "Available now",
+    deliveryHint: "We’ll hold the premiere behind a countdown until 9am their time on the day. You can always preview it yourself first.",
+    deliveryPreviewLink: "Preview your premiere (only you can see it early) →",
   },
   paywall: {
     // Preview label — the 15s cap framed as the trailer/opening of the show
@@ -234,6 +240,19 @@ export const en = {
     starringLabel: "Starring",
     producedByLabel: "Produced & directed by",
     withLoveLabel: "With love from",
+  },
+  // The locked premiere ticket + countdown (giver-sends scheduled delivery).
+  countdown: {
+    admission: "Now casting · one night only",
+    title: "{name}’s premiere",
+    theStar: "the star",
+    premieresOn: "Premieres {date}",
+    opensIn: "The curtain rises in",
+    days: "days",
+    hrs: "hrs",
+    mins: "min",
+    secs: "sec",
+    footer: "Made only for them — check back when the curtain rises.",
   },
   // Crowd-magic — invite the recipient's circle to co-write one song.
   crowd: {
