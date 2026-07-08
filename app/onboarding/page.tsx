@@ -47,8 +47,8 @@ export default async function OnboardingPage({ searchParams }: PageProps) {
   if (!customerId) {
     return (
       <Shell>
-        <h1 className="font-display text-2xl font-bold text-ink">Hmm, something's missing.</h1>
-        <p className="mt-2 text-sm text-ink-soft">Your session is paid but we couldn't find the customer record. Email us and we'll fix it.</p>
+        <h1 className="font-display text-2xl font-bold text-ink">Hmm, something&apos;s missing.</h1>
+        <p className="mt-2 text-sm text-ink-soft">Your session is paid but we couldn&apos;t find the customer record. Email us and we&apos;ll fix it.</p>
       </Shell>
     );
   }
@@ -63,7 +63,7 @@ export default async function OnboardingPage({ searchParams }: PageProps) {
   if (venue?.share_slug) {
     return (
       <Shell>
-        <h1 className="font-display text-3xl font-extrabold text-ink">You're all set 🎉</h1>
+        <h1 className="font-display text-3xl font-extrabold text-ink">You&apos;re all set 🎉</h1>
         <p className="mt-3 text-sm text-ink-soft">
           Your branded venue page lives at{" "}
           <code className="rounded bg-sand px-1.5 py-0.5">/v/{venue.share_slug}</code>.

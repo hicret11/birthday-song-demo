@@ -478,6 +478,7 @@ function WaitGame() {
 
   useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-time sync from a client-only matchMedia value; a render-time read would break hydration
     setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   }, []);
 
@@ -485,6 +486,7 @@ function WaitGame() {
   useEffect(() => {
     if (reduced || typeof window === "undefined") return;
     if (countdown <= 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- terminal step of a timer-driven countdown state machine; restructuring would change the reveal timing
       setStarted(true);
       startedAtRef.current = Date.now();
       return;
@@ -789,6 +791,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
   useEffect(() => {
     try {
       const stored = sessionStorage.getItem(CAPTURE_AGE_KEY);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-time hydration from client-only sessionStorage; unavailable during SSR/render
       if (stored && parseRecipientAge(stored) !== null) setAgeInput(stored);
     } catch {
       // sessionStorage may be unavailable; carry on.
@@ -896,6 +899,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
   const [loadingMsgIdx, setLoadingMsgIdx] = useState(0);
   useEffect(() => {
     if (!loadingMusic) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- resets the rotating message to the first before the interval takes over; part of the loading subscription
     setLoadingMsgIdx(0);
     let i = 0;
     const interval = setInterval(() => {
@@ -908,6 +912,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
   const [showConfetti, setShowConfetti] = useState(false);
   useEffect(() => {
     if (!audioUrl) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fires a one-shot celebration animation triggered by the song's audio becoming ready
     setShowConfetti(true);
     const t = setTimeout(() => setShowConfetti(false), 3500);
     return () => clearTimeout(t);
@@ -936,6 +941,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
   // "Open share page" button its own reveal moment after the audio reveal.
   useEffect(() => {
     if (!shareUrl) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fires a one-shot celebration animation triggered by the share artifact landing
     setShowConfetti(true);
     const t = setTimeout(() => setShowConfetti(false), 2500);
     return () => clearTimeout(t);
@@ -963,6 +969,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
   // once the audio is ready, so the user isn't waiting for the animation.
   useEffect(() => {
     if (!lyrics) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- resets the typewriter reveal when lyrics are cleared (regenerate); driven by the lyrics dependency
       setLyricRevealChars(0);
       return;
     }
@@ -992,6 +999,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
     if (!audioUrl || !lyrics) return;
     if (shareUrl || creatingShare || autoShareTriggeredRef.current) return;
     autoShareTriggeredRef.current = true;
+    // eslint-disable-next-line react-hooks/immutability -- createShareLink is a hoisted function declaration; calling it before its lexical position is safe at runtime
     void createShareLink();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- createShareLink is stable enough; intentional run-once
   }, [audioUrl, lyrics, shareUrl, creatingShare]);
@@ -1003,6 +1011,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
 
   // Force explicit re-affirmation when the path-dependent statement changes.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentionally clears the attestation when the minor/adult statement changes so it must be re-affirmed
     setAttested(false);
   }, [recipientIsMinor]);
 
@@ -1161,8 +1170,13 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
 
     if (cleanupRef.current) cleanupRef.current();
 
+    // runConfetti/runBalloons/runBubbles are hoisted function declarations; using
+    // them before their lexical position is safe at runtime.
+    // eslint-disable-next-line react-hooks/immutability -- hoisted function declaration, safe to reference before its lexical position
     if (theme.effect === "confetti") cleanupRef.current = runConfetti(canvas);
+    // eslint-disable-next-line react-hooks/immutability -- hoisted function declaration, safe to reference before its lexical position
     else if (theme.effect === "balloons") cleanupRef.current = runBalloons(canvas);
+    // eslint-disable-next-line react-hooks/immutability -- hoisted function declaration, safe to reference before its lexical position
     else if (theme.effect === "bubbles") cleanupRef.current = runBubbles(canvas);
     else cleanupRef.current = null;
 
@@ -1255,6 +1269,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
   useEffect(() => {
     if (!loadingLyrics && !loadingMusic) return;
     const startedAt = Date.now();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- resets the elapsed timer to zero before the 1s interval takes over; part of the loading subscription
     setElapsedMs(0);
     const tick = () => setElapsedMs(Date.now() - startedAt);
     const interval = setInterval(tick, 1000);

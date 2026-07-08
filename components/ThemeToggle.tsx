@@ -13,6 +13,10 @@ export default function ThemeToggle() {
   const [dark, setDark] = useState(false);
 
   useEffect(() => {
+    // Read the real theme from the DOM after mount. It's set client-side by the
+    // no-flash script, so reading it during render would desync hydration — the
+    // effect deliberately renders the default first, then reconciles once.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-time sync from a client-only DOM value; render-time read would break hydration
     setDark(document.documentElement.classList.contains("dark"));
   }, []);
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import type { ShareTemplate, SharedSong } from "@/lib/api-types";
 import { toAudioProxyUrl } from "@/lib/audio-proxy";
 import { logClientEvent } from "@/lib/client-events";
@@ -188,8 +189,11 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
     if ((song.photoUrls?.length ?? 0) === 0) return;
     if (slideshowUrl) return; // already rendered (persisted or from a prior run)
     slideshowTriggeredRef.current = true;
-    setSlideshowStatus("rendering");
     void (async () => {
+      // setState lives in the async callback (not the effect body) so it reads as
+      // "syncing from an external system" rather than a synchronous cascade. Runs
+      // before the first await, so ordering is identical to the prior placement.
+      setSlideshowStatus("rendering");
       try {
         const res = await fetch("/api/slideshow/render", {
           method: "POST",
@@ -470,9 +474,9 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
       </div>
 
       <footer className="mt-8 text-center text-xs text-ink-soft">
-        <a href="/" className="underline-offset-2 hover:underline">
+        <Link href="/" className="underline-offset-2 hover:underline">
           Made with Birthday Song Generator
-        </a>
+        </Link>
       </footer>
 
       {toast && (

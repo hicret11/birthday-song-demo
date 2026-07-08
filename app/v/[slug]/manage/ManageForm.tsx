@@ -46,7 +46,7 @@ export default function ManageForm({ slug, brand }: Props) {
       <div className="rounded-2xl border border-sand bg-cream-soft p-4 text-sm">
         <p className="font-semibold text-jade">Check your email.</p>
         <p className="mt-1 text-ink-soft">
-          If the address matches the one on file, we'll send a one-time link in a minute. It expires in 30 minutes.
+          If the address matches the one on file, we&apos;ll send a one-time link in a minute. It expires in 30 minutes.
         </p>
       </div>
     );

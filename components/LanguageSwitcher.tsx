@@ -13,6 +13,7 @@ export default function LanguageSwitcher({ locale }: { locale: Locale }) {
   function setLocale(next: Locale) {
     if (next === locale) return;
     // 1 year, site-wide. Read server-side by resolveLocale().
+    // eslint-disable-next-line react-hooks/immutability -- runs in a click handler, not render; writing document.cookie is a legitimate browser side effect
     document.cookie = `lang=${next}; path=/; max-age=31536000; samesite=lax`;
     location.reload();
   }

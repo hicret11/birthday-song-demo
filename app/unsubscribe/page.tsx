@@ -28,12 +28,12 @@ export default async function UnsubscribePage({ searchParams }: PageProps) {
           {displayEmail ? (
             <>
               We received your unsubscribe request for{" "}
-              <code className="rounded bg-sand px-1.5 py-0.5">{displayEmail}</code>. We'll
+              <code className="rounded bg-sand px-1.5 py-0.5">{displayEmail}</code>. We&apos;ll
               honor it manually. Sorry for the friction — a self-serve flow is coming.
             </>
           ) : (
             <>
-              We received your unsubscribe request. We'll honor it manually. Sorry for the
+              We received your unsubscribe request. We&apos;ll honor it manually. Sorry for the
               friction — a self-serve flow is coming.
             </>
           )}
