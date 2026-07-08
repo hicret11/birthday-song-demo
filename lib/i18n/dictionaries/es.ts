@@ -111,6 +111,27 @@ export const es: Dict = {
     relationshipFamily: "Su familia",
     relationshipColleague: "Su colega",
     relationshipOther: "Alguien que le quiere",
+    studioBadge: "🎬 No es un generador de canciones",
+    studioHook: "Hagamos de {name} el personaje principal de su cumpleaños.",
+    studioHookThem: "esa persona",
+    studioHookSub:
+      "No estás rellenando un formulario: eres quien dirige y elige a la estrella. Vamos a montar el espectáculo.",
+    producerName: "Milo",
+    producerIntro:
+      "Hola, soy {producer}, tu productor. No soy un formulario: cuéntame la historia y la escribiré en la canción.",
+    actCasting: "Acto 1 · Reparto",
+    personHeading: "¿A quién convertimos en la estrella esta noche?",
+    actFeeling: "Acto 1 · La emoción",
+    vibeHeading: "¿Qué sensación debe dejar la canción?",
+    producerVibe: "Antes de grabar: ¿qué debería hacerle sentir esta canción?",
+    producerWait:
+      "Dame como un minuto para mezclar el tema. Mientras tanto, haz el regalo aún más suyo.",
+    coauthorTag: "coautoría",
+    coauthorPhotoLabel:
+      "Añade algunas fotos de vuestros momentos: serán escenas del estreno.",
+    coauthorPhotoCta: "📷 Añadir fotos",
+    coauthorPhotoAdding: "Añadiendo fotos…",
+    coauthorPhotoDone: "{count} añadidas — aparecerán en el show.",
   },
   paywall: {
     previewLabelPrefix: "🎬 La apertura de su estreno — ",

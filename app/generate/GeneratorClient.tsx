@@ -429,6 +429,49 @@ function SubStepDots({
   );
 }
 
+/**
+ * Producer persona — a small avatar + speech bubble that turns the intake into a
+ * guided conversation with "the producer" (matches the concept prototype's
+ * Milo). Purely presentational; all copy comes from the dictionary. No essential
+ * animation, so it is reduced-motion-safe by construction. The avatar carries the
+ * prototype's cinematic gold→pink accent; the bubble sits on the warm palette so
+ * it fits the surrounding flow.
+ */
+function ProducerBubble({
+  emoji,
+  children,
+}: {
+  emoji: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="mb-5 flex items-start gap-3">
+      <div
+        aria-hidden
+        className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-xl shadow-[0_8px_22px_-8px_rgba(255,120,180,0.7)]"
+        style={{ background: "radial-gradient(circle at 30% 30%, #ffe6b0, #ff8ac0)" }}
+      >
+        {emoji}
+      </div>
+      <div className="rounded-[6px_18px_18px_18px] border border-sand bg-cream-soft px-4 py-3 text-sm leading-relaxed text-ink">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Small cinematic "Act N ·" kicker label above a step — gold, uppercase, tracked.
+ * Presentational only.
+ */
+function StudioKicker({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="mb-2 text-[11px] font-extrabold uppercase tracking-[0.16em] text-gold">
+      {children}
+    </p>
+  );
+}
+
 // A floating target in the wait-time game.
 type GameKind = "note" | "cake" | "gift" | "star" | "bomb";
 type GameItem = { id: number; left: number; dur: number; kind: GameKind };
@@ -2208,19 +2251,22 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
           className="mx-auto mb-4 h-[104px] w-[104px] drop-shadow-sm"
         />
         <div className="mb-3 flex items-center justify-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-sand bg-cream-soft px-4 py-2 text-xs font-semibold text-jade shadow-sm sm:text-sm">
-            ✨ AI-Powered
+          <div className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-warm-soft px-4 py-2 text-xs font-bold uppercase tracking-[0.14em] text-gold shadow-sm sm:text-sm">
+            {t.generate.studioBadge}
           </div>
         </div>
 
         <h1
-          className={`bg-gradient-to-r ${theme.title} bg-clip-text pb-3 font-display text-4xl font-extrabold leading-[1.05] tracking-tight text-transparent sm:text-5xl lg:text-6xl`}
+          className={`bg-gradient-to-r ${theme.title} bg-clip-text pb-3 font-display text-3xl font-extrabold leading-[1.08] tracking-tight text-transparent sm:text-4xl lg:text-5xl`}
         >
-          Birthday Song Generator
+          {t.generate.studioHook.replace(
+            "{name}",
+            name.trim() || t.generate.studioHookThem,
+          )}
         </h1>
 
         <p className={`text-base sm:text-lg ${theme.sub}`}>
-          Create a personalized birthday song in seconds
+          {t.generate.studioHookSub}
         </p>
       </header>
 
@@ -2291,12 +2337,18 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
         <>
         {inputStep === 0 ? (
           <>
-            <div className="mb-5 flex items-center justify-between gap-3">
-              <p className="text-sm font-bold uppercase tracking-[0.15em] text-jade">
-                The person
-              </p>
-              <SubStepDots active={0} onJump={(i) => i === 0 && setInputStep(0)} />
+            <div className="mb-4">
+              <div className="flex items-center justify-between gap-3">
+                <StudioKicker>{t.generate.actCasting}</StudioKicker>
+                <SubStepDots active={0} onJump={(i) => i === 0 && setInputStep(0)} />
+              </div>
+              <h2 className="font-display text-xl font-black text-ink sm:text-2xl">
+                {t.generate.personHeading}
+              </h2>
             </div>
+            <ProducerBubble emoji="🎩">
+              {t.generate.producerIntro.replace("{producer}", t.generate.producerName)}
+            </ProducerBubble>
             {personFields}
             <button
               type="button"
@@ -2312,12 +2364,16 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
           </>
         ) : (
           <>
-            <div className="mb-5 flex items-center justify-between gap-3">
-              <p className="text-sm font-bold uppercase tracking-[0.15em] text-jade">
-                The vibe
-              </p>
-              <SubStepDots active={1} onJump={(i) => i === 0 && setInputStep(0)} />
+            <div className="mb-4">
+              <div className="flex items-center justify-between gap-3">
+                <StudioKicker>{t.generate.actFeeling}</StudioKicker>
+                <SubStepDots active={1} onJump={(i) => i === 0 && setInputStep(0)} />
+              </div>
+              <h2 className="font-display text-xl font-black text-ink sm:text-2xl">
+                {t.generate.vibeHeading}
+              </h2>
             </div>
+            <ProducerBubble emoji="🎛️">{t.generate.producerVibe}</ProducerBubble>
             {vibeFields}
 
             {/* Progressive disclosure: secondary personalization behind one tap. */}
@@ -2542,6 +2598,49 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                   ? t.generate.waitAboutAMinute
                   : t.generate.waitAlmostThere}
             </p>
+
+            {/* Co-authorship — while the track mixes, invite the director to make
+                the gift more theirs by adding photos that become premiere scenes.
+                Optional + non-blocking; reuses the existing photoUrls state and
+                upload handler. The reveal's photo input isn't mounted during the
+                wait (opposite audioUrl guards), so sharing photoInputRef is safe. */}
+            {!audioUrl && (
+              <div className="mt-6 rounded-2xl border border-blush/40 bg-warm-soft p-4">
+                <span className="inline-block rounded-full bg-jade/10 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.12em] text-jade">
+                  {t.generate.coauthorTag}
+                </span>
+                <div className="mt-3">
+                  <ProducerBubble emoji="🎛️">{t.generate.producerWait}</ProducerBubble>
+                </div>
+                <p className="mb-3 text-sm text-ink-soft">{t.generate.coauthorPhotoLabel}</p>
+                <input
+                  ref={photoInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => void handlePhotoSelect(e.target.files)}
+                />
+                <button
+                  type="button"
+                  onClick={() => photoInputRef.current?.click()}
+                  disabled={uploadingPhotos || photoUrls.length >= MAX_SLIDESHOW_PHOTOS}
+                  className="w-full min-h-[44px] rounded-full border border-blush/50 bg-cream-soft px-5 py-3 text-sm font-extrabold text-ink transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] hover:border-blush disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {uploadingPhotos ? t.generate.coauthorPhotoAdding : t.generate.coauthorPhotoCta}
+                </button>
+                {photoUrls.length > 0 && (
+                  <p className="mt-2 text-center text-xs font-semibold text-jade">
+                    {t.generate.coauthorPhotoDone.replace("{count}", String(photoUrls.length))}
+                  </p>
+                )}
+                {photoError && (
+                  <p role="alert" className="mt-2 text-center text-xs text-blush">
+                    {photoError}
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Optional wait-time game — pure fun, never blocks the render. */}
             {!audioUrl && <WaitGame />}

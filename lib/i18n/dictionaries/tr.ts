@@ -111,6 +111,27 @@ export const tr: Dict = {
     relationshipFamily: "Ailesinden biri",
     relationshipColleague: "İş arkadaşı",
     relationshipOther: "Onu seven biri",
+    studioBadge: "🎬 Şarkı üreticisi değil",
+    studioHook: "{name} doğum gününün baş kahramanı olsun.",
+    studioHookThem: "onu",
+    studioHookSub:
+      "Form doldurmuyorsun — yönetmen sensin, yıldızı sen seçiyorsun. Hadi şovu kuralım.",
+    producerName: "Milo",
+    producerIntro:
+      "Merhaba, ben yapımcın {producer}. Form değilim — bana hikâyeyi anlat, onu şarkıya işleyeyim.",
+    actCasting: "1. Perde · Kadro",
+    personHeading: "Bu gece yıldız kim olacak?",
+    actFeeling: "1. Perde · Duygu",
+    vibeHeading: "Şarkı geriye nasıl bir duygu bıraksın?",
+    producerVibe: "Kaydı başlatmadan önce — bu şarkı ona ne hissettirsin?",
+    producerWait:
+      "Parçayı mikslemem için bir dakika ver. Bu arada hediyeyi daha da ona ait yap.",
+    coauthorTag: "ortak yazarlık",
+    coauthorPhotoLabel:
+      "Anlarınızdan birkaç fotoğraf ekle — prömiyerin sahneleri olacaklar.",
+    coauthorPhotoCta: "📷 Fotoğraf ekle",
+    coauthorPhotoAdding: "Fotoğraflar ekleniyor…",
+    coauthorPhotoDone: "{count} eklendi — şovda görünecekler.",
   },
   paywall: {
     previewLabelPrefix: "🎬 Prömiyerinin açılışı — ",

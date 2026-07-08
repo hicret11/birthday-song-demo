@@ -116,6 +116,27 @@ export const ar: Dict = {
     relationshipFamily: "من عائلته",
     relationshipColleague: "زميله",
     relationshipOther: "شخص يحبّه",
+    studioBadge: "🎬 ليس مولّد أغاني",
+    studioHook: "لنجعل {name} بطل يوم ميلاده.",
+    studioHookThem: "هذا الشخص",
+    studioHookSub:
+      "أنت لا تملأ نموذجًا — أنت المخرج الذي يختار النجم. لنُعِدّ العرض.",
+    producerName: "ميلو",
+    producerIntro:
+      "مرحبًا، أنا {producer}، منتجك. لست نموذجًا — احكِ لي القصة وسأكتبها في الأغنية.",
+    actCasting: "الفصل 1 · اختيار البطل",
+    personHeading: "من سنجعله النجم الليلة؟",
+    actFeeling: "الفصل 1 · الإحساس",
+    vibeHeading: "أي إحساس يجب أن تتركه الأغنية؟",
+    producerVibe: "قبل أن أبدأ التسجيل — بماذا يجب أن تُشعره هذه الأغنية؟",
+    producerWait:
+      "امنحني نحو دقيقة لمزج المقطوعة. وأثناء ذلك — اجعل الهدية أكثر خصوصية له.",
+    coauthorTag: "تأليف مشترك",
+    coauthorPhotoLabel:
+      "أضِف بعض الصور من لحظاتكم — ستصبح مشاهد في العرض الأول.",
+    coauthorPhotoCta: "📷 أضِف صورًا",
+    coauthorPhotoAdding: "جارٍ إضافة الصور…",
+    coauthorPhotoDone: "{count} مضافة — ستظهر في العرض.",
   },
   paywall: {
     // Preview label — the 15s cap framed as the opening/trailer of the show.

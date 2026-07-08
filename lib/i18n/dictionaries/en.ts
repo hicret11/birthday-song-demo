@@ -118,6 +118,30 @@ export const en = {
     relationshipFamily: "Their family",
     relationshipColleague: "Their colleague",
     relationshipOther: "Someone who loves them",
+    // Reimagined intake — "production studio" framing. Presentation only: these
+    // strings restyle the same fields as a guided conversation with a producer
+    // persona. {name}/{producer} are interpolated by the component.
+    studioBadge: "🎬 Not a song generator",
+    studioHook: "Let’s make {name} the main character of their birthday.",
+    studioHookThem: "them",
+    studioHookSub:
+      "You’re not filling out a form — you’re the director casting the star. Let’s build the show.",
+    producerName: "Milo",
+    producerIntro:
+      "Hi, I’m {producer}, your producer. I’m not a form — tell me the story and I’ll write it into the song.",
+    actCasting: "Act 1 · Casting",
+    personHeading: "Who are we making the star tonight?",
+    actFeeling: "Act 1 · The feeling",
+    vibeHeading: "What feeling should the song leave?",
+    producerVibe: "Before I roll tape — what should this song make them feel?",
+    producerWait:
+      "Give me about a minute to mix the track. While I do — make the gift even more theirs.",
+    coauthorTag: "co-authorship",
+    coauthorPhotoLabel:
+      "Add a few photos of your moments — they become scenes in the premiere.",
+    coauthorPhotoCta: "📷 Add photos",
+    coauthorPhotoAdding: "Adding photos…",
+    coauthorPhotoDone: "{count} added — they’ll appear in the show.",
   },
   paywall: {
     // Preview label — the 15s cap framed as the trailer/opening of the show
