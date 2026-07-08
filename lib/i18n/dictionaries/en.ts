@@ -215,6 +215,8 @@ export const en = {
     callPhoneLabel: "{name}’s phone number",
     callPhonePlaceholder: "+1 555 123 4567",
     callPhoneHint: "International format, starting with +",
+    callCountryUnavailable:
+      "The birthday call isn't available for that country's number yet — the rest of the gift still works.",
     callDateLabel: "When should we call? (optional)",
     callDateHint: "Leave blank to call as soon as it’s ready. We only ever call between 8am–9pm their local time.",
     callConsentLabel: "I have {name}’s permission for them to receive this call.",
@@ -384,7 +386,8 @@ export const en = {
     errNetwork: "Network hiccup — try again.",
     characters: {
       zoltar: {
-        tagline: "A warm, whimsical wizard who calls to cast a birthday spell of good fortune.",
+        tagline:
+          "A smooth FM radio host who sends a live on-air birthday dedication out just for them.",
       },
       pearl: {
         tagline: "A kind, sparkly fairy godmother who rings to grant a birthday wish.",

@@ -196,6 +196,8 @@ export const es: Dict = {
     callPhoneLabel: "Número de teléfono de {name}",
     callPhonePlaceholder: "+34 612 34 56 78",
     callPhoneHint: "Formato internacional, empezando por +",
+    callCountryUnavailable:
+      "La llamada de cumpleaños aún no está disponible para números de ese país; el resto del regalo sigue funcionando.",
     callDateLabel: "¿Cuándo llamamos? (opcional)",
     callDateHint: "Déjalo en blanco para llamar en cuanto esté listo. Solo llamamos entre las 8:00 y las 21:00 hora local.",
     callConsentLabel: "Tengo el permiso de {name} para que reciba esta llamada.",
@@ -358,7 +360,8 @@ export const es: Dict = {
     errNetwork: "Fallo de red. Inténtalo de nuevo.",
     characters: {
       zoltar: {
-        tagline: "Un mago cálido y fantasioso que llama para lanzar un hechizo de buena fortuna.",
+        tagline:
+          "Un locutor de radio FM con onda que dedica al aire un saludo de cumpleaños solo para ellos.",
       },
       pearl: {
         tagline: "Una hada madrina amable y brillante que llama para conceder un deseo de cumpleaños.",

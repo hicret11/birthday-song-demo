@@ -13,7 +13,7 @@
 // both here and server-side.
 
 import { useMemo, useState } from "react";
-import { CAST_CHARACTERS } from "@/lib/cast/characters";
+import { ACTIVE_CAST_CHARACTERS } from "@/lib/cast/characters";
 import type { Dict } from "@/lib/i18n";
 
 type CastDict = Dict["cast"];
@@ -39,7 +39,7 @@ export default function CastAddOn({
   dir: "ltr" | "rtl";
 }) {
   const [open, setOpen] = useState(false);
-  const [characterId, setCharacterId] = useState<string>(CAST_CHARACTERS[0]?.id ?? "");
+  const [characterId, setCharacterId] = useState<string>(ACTIVE_CAST_CHARACTERS[0]?.id ?? "");
   const [name, setName] = useState(recipientName ?? "");
   const [phone, setPhone] = useState("");
   const [note, setNote] = useState("");
@@ -49,14 +49,14 @@ export default function CastAddOn({
   const [error, setError] = useState<string | null>(null);
 
   const character = useMemo(
-    () => CAST_CHARACTERS.find((c) => c.id === characterId),
+    () => ACTIVE_CAST_CHARACTERS.find((c) => c.id === characterId),
     [characterId],
   );
   // Per-character tagline is localized in the dict, with a fallback to the
   // data-file copy for any character not yet translated.
   const taglineFor = (id: string): string => {
     const map = t.characters as Record<string, { tagline: string } | undefined>;
-    return map[id]?.tagline ?? CAST_CHARACTERS.find((c) => c.id === id)?.tagline ?? "";
+    return map[id]?.tagline ?? ACTIVE_CAST_CHARACTERS.find((c) => c.id === id)?.tagline ?? "";
   };
 
   const displayName = name.trim() || recipientName || "";
@@ -175,7 +175,7 @@ export default function CastAddOn({
           {t.pickCharacter}
         </p>
         <div className="mt-2 grid gap-2">
-          {CAST_CHARACTERS.map((c) => {
+          {ACTIVE_CAST_CHARACTERS.map((c) => {
             const sel = c.id === characterId;
             return (
               <button

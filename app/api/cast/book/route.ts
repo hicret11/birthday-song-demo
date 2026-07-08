@@ -19,6 +19,7 @@ import { moderateShareInput } from "@/lib/moderation";
 import { createBooking } from "@/lib/cast";
 import { getCharacter } from "@/lib/cast/characters";
 import { timezoneForPhone } from "@/lib/cast/quiet-hours";
+import { isCallAllowedForPhone } from "@/lib/cast/call-countries";
 import {
   isLiveKind,
   isLiveCastEnabled,
@@ -176,7 +177,9 @@ export async function POST(request: Request): Promise<Response> {
 
   // ── AI character phone call (default) ────────────────────────────────────
   const character = getCharacter(typeof body.characterId === "string" ? body.characterId : "");
-  if (!character) return jsonError("INVALID_INPUT", "Pick a character for the call.", 400);
+  // Only characters currently offered to bookers can be booked (launch gate); the
+  // full library still resolves for already-scheduled bookings elsewhere.
+  if (!character || !character.active) return jsonError("INVALID_INPUT", "Pick a character for the call.", 400);
 
   const recipientName = str(body.recipientName, 80);
   if (!recipientName) return jsonError("INVALID_INPUT", "Who is the call for?", 400);
@@ -184,6 +187,11 @@ export async function POST(request: Request): Promise<Response> {
   const recipientPhone = typeof body.recipientPhone === "string" ? body.recipientPhone.trim() : "";
   if (!PHONE_RE.test(recipientPhone)) {
     return jsonError("INVALID_INPUT", "Enter a valid phone number in international format (e.g. +15551234567).", 400);
+  }
+  // Country allowlist — the AI call is only placed to recipients in supported
+  // countries (the rest of the product stays global).
+  if (!isCallAllowedForPhone(recipientPhone)) {
+    return jsonError("INVALID_INPUT", "The birthday call isn't available for that country's number yet.", 400);
   }
 
   const language =

@@ -196,6 +196,8 @@ export const tr: Dict = {
     callPhoneLabel: "{name} kişisinin telefon numarası",
     callPhonePlaceholder: "+90 532 123 45 67",
     callPhoneHint: "+ ile başlayan uluslararası biçim",
+    callCountryUnavailable:
+      "Doğum günü araması o ülkenin numaraları için henüz kullanılamıyor — hediyenin geri kalanı yine de çalışır.",
     callDateLabel: "Ne zaman arayalım? (isteğe bağlı)",
     callDateHint: "Hazır olur olmaz aramak için boş bırakın. Yalnızca yerel saatle 08:00–21:00 arasında ararız.",
     callConsentLabel: "{name} kişisinin bu aramayı almasına iznim var.",
@@ -358,7 +360,8 @@ export const tr: Dict = {
     errNetwork: "Bağlantı sorunu — tekrar dene.",
     characters: {
       zoltar: {
-        tagline: "İyi talih dilemek için arayan sıcak, hayalperest bir doğum günü büyücüsü.",
+        tagline:
+          "Onlara özel, canlı yayında doğum günü ithafı gönderen sıcak bir FM radyo sunucusu.",
       },
       pearl: {
         tagline: "Bir doğum günü dileğini gerçekleştirmek için arayan nazik, ışıltılı bir peri anne.",

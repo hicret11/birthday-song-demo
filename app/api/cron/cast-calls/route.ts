@@ -25,6 +25,7 @@ import {
 } from "@/lib/cast";
 import { placeCall, isTelephonyConfigured } from "@/lib/cast/place-call";
 import { isWithinCallingWindow, timezoneForPhone } from "@/lib/cast/quiet-hours";
+import { isCallAllowedForPhone } from "@/lib/cast/call-countries";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -57,6 +58,16 @@ export async function GET(request: Request): Promise<Response> {
     // elsewhere — leave them scheduled rather than failing them.
     if (booking.kind !== "ai_call") {
       skipped += 1;
+      continue;
+    }
+
+    // Country allowlist backstop. All booking paths gate on this at creation, so
+    // this only catches legacy/pre-gate bookings. Unlike quiet-hours (temporary),
+    // a disallowed country never becomes allowed — fail it permanently rather than
+    // deferring forever.
+    if (!isCallAllowedForPhone(booking.recipientPhone)) {
+      failed += 1;
+      await updateBookingStatus(booking.id, "failed", "recipient country not supported for calls");
       continue;
     }
 

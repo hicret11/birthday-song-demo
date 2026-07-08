@@ -10,6 +10,7 @@
 
 import { getDictionary, type Locale } from "@/lib/i18n";
 import { CAST_CHARACTER_CHOICES } from "@/lib/cast/characters";
+import { isCallAllowedForPhone } from "@/lib/cast/call-countries";
 
 /** Loose E.164 mirror of the server check — leading +, 7–15 digits, first non-zero. */
 export const CALL_PHONE_RE = /^\+[1-9]\d{6,14}$/;
@@ -27,6 +28,8 @@ export function isProductionCallReady(v: ProductionCallValue): boolean {
   return (
     CAST_CHARACTER_CHOICES.some((c) => c.id === v.characterId) &&
     CALL_PHONE_RE.test(v.phone.trim()) &&
+    // The call is only offered to recipients in the allowlisted countries.
+    isCallAllowedForPhone(v.phone.trim()) &&
     v.consent
   );
 }
@@ -54,6 +57,11 @@ export default function ProductionCallFields({
   const t = getDictionary(locale).paywall;
   const who = recipientName.trim() || "them";
   const fill = (s: string) => s.replace("{name}", who);
+  // Show a notice when the entered number looks valid but its country isn't in
+  // the call allowlist (the rest of the product stays available — only the call).
+  const trimmedPhone = value.phone.trim();
+  const countryBlocked =
+    CALL_PHONE_RE.test(trimmedPhone) && !isCallAllowedForPhone(trimmedPhone);
 
   return (
     <div className="mt-3 rounded-2xl border border-blush/40 bg-cream p-4 text-left">
@@ -95,6 +103,9 @@ export default function ProductionCallFields({
         className="mt-1 w-full rounded-xl border border-sand bg-cream-soft px-3 py-2.5 text-sm text-ink outline-none transition focus:border-blush focus:ring-1 focus:ring-blush"
       />
       <p className="mt-1 text-[11px] text-ink-soft">{t.callPhoneHint}</p>
+      {countryBlocked && (
+        <p className="mt-1 text-[11px] font-semibold text-brand-pink">{t.callCountryUnavailable}</p>
+      )}
 
       {/* Optional date */}
       <label htmlFor="prod-call-date" className="mt-3 block text-xs font-bold text-ink">

@@ -1,7 +1,8 @@
 import { getStripe } from "@/lib/stripe";
 import { resolveTier, priceIdForPlanTier, type Plan } from "@/lib/pricing-tiers";
 import { loadSharedSong } from "@/lib/share";
-import { isCastCharacterId } from "@/lib/cast/characters";
+import { isActiveCastCharacterId } from "@/lib/cast/characters";
+import { isCallAllowedForPhone } from "@/lib/cast/call-countries";
 import { timezoneForPhone } from "@/lib/cast/quiet-hours";
 import { getClientIp } from "@/lib/rate-limit";
 import {
@@ -64,12 +65,20 @@ export async function POST(request: Request): Promise<Response> {
   if (plan === "production") {
     const rawChar = typeof body.call?.characterId === "string" ? body.call.characterId : "";
     const rawPhone = typeof body.call?.phone === "string" ? body.call.phone.trim() : "";
-    if (!isCastCharacterId(rawChar)) {
+    if (!isActiveCastCharacterId(rawChar)) {
       return Response.json({ error: { message: "Pick a character for the birthday call." } }, { status: 400 });
     }
     if (!PHONE_RE.test(rawPhone)) {
       return Response.json(
         { error: { message: "Enter the recipient's phone in international format (e.g. +15551234567)." } },
+        { status: 400 },
+      );
+    }
+    // The AI call is only offered to recipients in the allowlisted countries
+    // (the rest of the product stays global). Gate the call, not the purchase.
+    if (!isCallAllowedForPhone(rawPhone)) {
+      return Response.json(
+        { error: { message: "The birthday call isn't available for that country's number yet." } },
         { status: 400 },
       );
     }
