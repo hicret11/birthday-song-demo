@@ -77,6 +77,12 @@ export function SharePremiere({
           pause: t.premiere.pause,
           replay: t.premiere.replay,
           director: t.premiere.director,
+          noteLabel: t.premiere.noteLabel,
+          notePlay: t.premiere.notePlay,
+          notePause: t.premiere.notePause,
+          starringLabel: t.premiere.starringLabel,
+          producedByLabel: t.premiere.producedByLabel,
+          withLoveLabel: t.premiere.withLoveLabel,
         }}
       />
     </div>

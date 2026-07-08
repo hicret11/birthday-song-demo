@@ -176,6 +176,12 @@ export const ar: Dict = {
     replay: "▶ تشغيل مرة أخرى",
     director: "من إنتاج",
     continueLabel: "أرسِلها إليه 💌",
+    noteLabel: "رسالة من المخرج",
+    notePlay: "▶ شغّل رسالته",
+    notePause: "⏸ إيقاف مؤقت",
+    starringLabel: "بطولة",
+    producedByLabel: "إنتاج وإخراج",
+    withLoveLabel: "بكل حب من",
   },
   // سحر المجموعة — ادعُ دائرة المحتفى به لكتابة أغنية واحدة معًا.
   crowd: {

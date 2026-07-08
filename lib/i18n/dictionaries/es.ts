@@ -167,6 +167,12 @@ export const es: Dict = {
     replay: "▶ Reproducir de nuevo",
     director: "Producido por",
     continueLabel: "Envíasela 💌",
+    noteLabel: "Un mensaje del director",
+    notePlay: "▶ Reproducir su mensaje",
+    notePause: "⏸ Pausa",
+    starringLabel: "Protagonista",
+    producedByLabel: "Producido y dirigido por",
+    withLoveLabel: "Con cariño de",
   },
   // Magia de grupo — invita al círculo del homenajeado a co-escribir una canción.
   crowd: {

@@ -167,6 +167,12 @@ export const tr: Dict = {
     replay: "▶ Tekrar çal",
     director: "Yapımcı",
     continueLabel: "Ona gönder 💌",
+    noteLabel: "Yönetmenden bir mesaj",
+    notePlay: "▶ Mesajını oynat",
+    notePause: "⏸ Duraklat",
+    starringLabel: "Başrol",
+    producedByLabel: "Yapımcı ve yönetmen",
+    withLoveLabel: "Sevgiyle",
   },
   // Grup büyüsü — doğum günü sahibinin çevresini tek bir şarkıyı birlikte yazmaya davet et.
   crowd: {

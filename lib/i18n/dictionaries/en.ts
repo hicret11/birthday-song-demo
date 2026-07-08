@@ -184,6 +184,13 @@ export const en = {
     replay: "▶ Play again",
     director: "Produced by",
     continueLabel: "Send it to them 💌",
+    // Closing beat — the director's private note + the credits roll.
+    noteLabel: "A message from the director",
+    notePlay: "▶ Play their message",
+    notePause: "⏸ Pause",
+    starringLabel: "Starring",
+    producedByLabel: "Produced & directed by",
+    withLoveLabel: "With love from",
   },
   // Crowd-magic — invite the recipient's circle to co-write one song.
   crowd: {
