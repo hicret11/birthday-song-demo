@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sing My Birthday — Reimagined (prototype)</title>
+<style>
+  :root{
+    --noir:#120a1e; --noir2:#1c1030; --plum:#2a1745;
+    --gold:#ffcf6b; --gold2:#ffb03a; --pink:#ff6fae; --pink2:#ff3d90;
+    --jade:#4be3b0; --cream:#fff7ec; --ink:#f4e9ff; --soft:#c9b8e6;
+    --line:rgba(255,255,255,.12);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    font-family:"Segoe UI",-apple-system,Roboto,Helvetica,Arial,sans-serif;
+    background:radial-gradient(1200px 700px at 50% -10%,#3a1f5e 0%,var(--noir2) 45%,var(--noir) 100%);
+    color:var(--ink); min-height:100%; overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  .stage{max-width:520px;margin:0 auto;padding:22px 18px 60px;position:relative}
+  .brandbar{display:flex;align-items:center;gap:9px;justify-content:center;margin:6px 0 20px;opacity:.9}
+  .brandbar .dot{width:9px;height:9px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--pink))}
+  .brandbar b{font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--soft);font-weight:700}
+  .screen{display:none;animation:rise .55s cubic-bezier(.2,.8,.2,1) both}
+  .screen.active{display:block}
+  @keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+  h1{font-size:30px;line-height:1.12;margin:.2em 0 .35em;font-weight:800;letter-spacing:-.01em}
+  h1 .accent{background:linear-gradient(120deg,var(--gold),var(--pink));-webkit-background-clip:text;background-clip:text;color:transparent}
+  p.lead{font-size:16px;line-height:1.55;color:var(--soft);margin:0 0 22px}
+  .card{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));
+    border:1px solid var(--line);border-radius:22px;padding:20px;margin:14px 0;backdrop-filter:blur(6px)}
+  label{display:block;font-size:13px;color:var(--soft);margin:0 0 7px;font-weight:600}
+  input,textarea{width:100%;background:rgba(0,0,0,.28);border:1px solid var(--line);border-radius:14px;
+    color:var(--cream);font-size:16px;padding:13px 14px;outline:none;font-family:inherit}
+  input:focus,textarea:focus{border-color:var(--pink)}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;width:100%;
+    border:none;border-radius:16px;padding:16px 20px;font-size:16px;font-weight:800;cursor:pointer;
+    background:linear-gradient(120deg,var(--gold2),var(--pink2));color:#2a0f22;
+    box-shadow:0 14px 34px -12px rgba(255,80,150,.6);transition:transform .12s ease,box-shadow .12s ease}
+  .btn:hover{transform:translateY(-2px);box-shadow:0 20px 44px -14px rgba(255,80,150,.7)}
+  .btn.ghost{background:transparent;color:var(--soft);border:1px solid var(--line);box-shadow:none;font-weight:700}
+  .btn.gold{background:linear-gradient(120deg,var(--gold),var(--gold2));color:#3a2400}
+  .row{display:flex;gap:10px;margin-top:10px}
+  .chips{display:flex;flex-wrap:wrap;gap:9px;margin:4px 0 2px}
+  .chip{border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--ink);
+    border-radius:999px;padding:10px 15px;font-size:14px;cursor:pointer;font-weight:600;transition:.15s}
+  .chip:hover{border-color:var(--pink)}
+  .chip.sel{background:linear-gradient(120deg,var(--gold),var(--pink));color:#2a0f22;border-color:transparent}
+  .steps{display:flex;gap:6px;justify-content:center;margin:2px 0 18px}
+  .steps i{height:4px;width:26px;border-radius:3px;background:rgba(255,255,255,.14)}
+  .steps i.on{background:linear-gradient(120deg,var(--gold),var(--pink))}
+  .kicker{display:inline-block;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);
+    font-weight:800;margin-bottom:8px}
+  .producer{display:flex;gap:13px;align-items:flex-start;margin:2px 0 16px}
+  .avatar{flex:0 0 auto;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;font-size:24px;
+    background:radial-gradient(circle at 30% 30%,#ffe6b0,#ff8ac0);box-shadow:0 8px 22px -8px rgba(255,120,180,.7)}
+  .bubble{background:rgba(255,255,255,.07);border:1px solid var(--line);border-radius:6px 18px 18px 18px;
+    padding:13px 15px;font-size:15.5px;line-height:1.5;color:var(--ink)}
+  .bubble b{color:var(--gold)}
+  .note{font-size:13px;color:var(--soft);line-height:1.5}
+  .tag{display:inline-block;font-size:11.5px;font-weight:800;letter-spacing:.06em;padding:4px 9px;border-radius:8px;
+    background:rgba(75,227,176,.14);color:var(--jade);border:1px solid rgba(75,227,176,.3);margin-bottom:10px}
+
+  /* PREMIERE */
+  .theatre{position:relative;border-radius:24px;overflow:hidden;min-height:430px;
+    background:radial-gradient(600px 300px at 50% 0%,#3d2160,#160b26 70%);border:1px solid var(--line);
+    display:grid;place-items:center;text-align:center}
+  .curtain{position:absolute;top:0;bottom:0;width:52%;background:
+    repeating-linear-gradient(90deg,#7a1533,#7a1533 14px,#5e0f27 14px,#5e0f27 28px);
+    z-index:5;transition:transform 1.5s cubic-bezier(.7,0,.3,1);box-shadow:inset -20px 0 40px rgba(0,0,0,.4)}
+  .curtain.l{left:0}.curtain.r{right:0;transform:scaleX(-1)}
+  .theatre.open .curtain.l{transform:translateX(-102%)}
+  .theatre.open .curtain.r{transform:translateX(102%) scaleX(-1)}
+  .spot{position:absolute;top:-40px;left:50%;transform:translateX(-50%);width:300px;height:300px;
+    background:radial-gradient(circle,rgba(255,207,107,.28),transparent 62%);pointer-events:none}
+  .marquee{padding:26px 20px;z-index:2}
+  .marquee .small{font-size:13px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);font-weight:800}
+  .marquee .star{font-size:40px;font-weight:900;margin:8px 0 2px;line-height:1.05;
+    background:linear-gradient(120deg,#fff,#ffd98a 40%,var(--pink));-webkit-background-clip:text;background-clip:text;color:transparent;
+    text-shadow:0 0 30px rgba(255,150,190,.25)}
+  .marquee .by{font-size:13px;color:var(--soft);margin-top:14px}
+  .marquee .by b{color:var(--cream)}
+  .eq{display:flex;gap:5px;justify-content:center;align-items:flex-end;height:52px;margin:16px 0 6px}
+  .eq span{width:6px;border-radius:3px;background:linear-gradient(var(--gold),var(--pink));animation:bounce 1s infinite ease-in-out}
+  @keyframes bounce{0%,100%{height:10px}50%{height:46px}}
+  .confetti{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:8}
+  .confetti i{position:absolute;top:-12px;width:9px;height:14px;opacity:.9;animation:fall linear forwards}
+  @keyframes fall{to{transform:translateY(520px) rotate(540deg);opacity:0}}
+
+  .castitem{display:flex;gap:13px;align-items:center;padding:14px;border:1px solid var(--line);
+    border-radius:18px;margin:11px 0;background:rgba(255,255,255,.04)}
+  .castitem .em{font-size:30px;flex:0 0 auto;width:52px;height:52px;display:grid;place-items:center;
+    border-radius:14px;background:rgba(255,255,255,.06)}
+  .castitem h3{margin:0 0 3px;font-size:16px}
+  .castitem .price{margin-left:auto;font-weight:800;color:var(--gold);white-space:nowrap;font-size:15px}
+  .castitem .sub{font-size:12.5px;color:var(--soft);line-height:1.45}
+  .legal{font-size:11px;color:#8f7fb0;margin-top:6px;line-height:1.5}
+  .pill{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.05em;padding:3px 8px;border-radius:7px;
+    background:rgba(255,207,107,.14);color:var(--gold);border:1px solid rgba(255,207,107,.3);margin-left:6px}
+  .finale{text-align:center}
+  .finale .halo{width:96px;height:96px;margin:6px auto 14px;border-radius:50%;display:grid;place-items:center;font-size:46px;
+    background:radial-gradient(circle at 40% 35%,#ffe6b0,#ff7ab6);box-shadow:0 0 60px -6px rgba(255,140,190,.7)}
+  .whisper{font-size:13px;color:var(--soft);margin-top:18px;text-align:center}
+  .footlabel{text-align:center;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#6f5f92;margin-top:26px}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="brandbar"><span class="dot"></span><b>Sing My Birthday · reimagined</b></div>
+
+  <!-- 0 — HOOK -->
+  <section class="screen active" id="s0">
+    <span class="kicker">Не генератор песен</span>
+    <h1>Сделай их <span class="accent">главным героем</span> дня рождения.</h1>
+    <p class="lead">Ты не заполняешь форму. Ты становишься режиссёром одного вечера, где твой человек — звезда. Мы соберём постановку: песню, премьеру, а если захочешь — и живой каст.</p>
+    <div class="card">
+      <label>Для кого мы устраиваем шоу?</label>
+      <input id="name" placeholder="Например, Майя" />
+      <div style="height:14px"></div>
+      <label>А кто ты для них?</label>
+      <div class="chips" id="rel">
+        <span class="chip">мама</span><span class="chip">лучший друг</span>
+        <span class="chip">партнёр</span><span class="chip">сестра</span>
+        <span class="chip">коллега</span><span class="chip">сын / дочь</span>
+      </div>
+    </div>
+    <button class="btn" onclick="go(1)">Начать постановку →</button>
+    <div class="footlabel">прототип концепции — кликай насквозь</div>
+  </section>
+
+  <!-- 1 — CO-WRITING CONVERSATION -->
+  <section class="screen" id="s1">
+    <div class="steps"><i class="on"></i><i></i><i></i><i></i></div>
+    <span class="kicker">Акт 1 · Соавторство</span>
+    <h1>Расскажи мне о <span class="accent" id="n1">них</span>.</h1>
+    <div class="producer">
+      <div class="avatar">🎩</div>
+      <div class="bubble">Привет, я <b>Майло</b>, твой продюсер. Я не робот-анкета — я хочу услышать <b>историю</b>. Дай мне один момент с <span id="n2">ними</span>, от которого ты улыбаешься. Я впишу его в песню.</div>
+    </div>
+    <div class="card">
+      <label>Момент, который делает их — ими</label>
+      <textarea id="memory" rows="3" placeholder="Как она поёт в машине не в такт… как он всегда звонит первым…"></textarea>
+      <div style="height:14px"></div>
+      <label>Какое чувство должно остаться после песни?</label>
+      <div class="chips" id="vibe">
+        <span class="chip">до мурашек</span><span class="chip">хохот до слёз</span>
+        <span class="chip">тепло и нежно</span><span class="chip">эпично, как в кино</span>
+      </div>
+    </div>
+    <button class="btn" onclick="go(2)">Майло, за работу →</button>
+    <div style="height:10px"></div>
+    <button class="btn ghost" onclick="go(0)">← назад</button>
+  </section>
+
+  <!-- 2 — THE MAGIC WAIT: co-create + group -->
+  <section class="screen" id="s2">
+    <div class="steps"><i class="on"></i><i class="on"></i><i></i><i></i></div>
+    <span class="kicker">Акт 2 · Пока звучит студия</span>
+    <h1>Майло пишет припев с именем <span class="accent" id="n3">…</span></h1>
+    <div class="producer">
+      <div class="avatar">🎛️</div>
+      <div class="bubble">Дай мне ~минуту свести трек. А ты пока <b>сделай подарок ещё живее</b> — это не обязательно, но именно это превращает песню в <b>их вечер</b>.</div>
+    </div>
+
+    <div class="card">
+      <span class="tag">со-авторство</span>
+      <label>Добавь 3–5 фото ваших моментов — станут кадрами премьеры</label>
+      <div class="row">
+        <button class="btn gold" style="flex:1" onclick="fakePhotos(this)">📷 Добавить фото</button>
+      </div>
+      <div class="note" id="photoNote" style="margin-top:10px;display:none">✓ 4 фото добавлено — они появятся в шоу.</div>
+    </div>
+
+    <div class="card">
+      <span class="tag" style="background:rgba(255,111,174,.14);color:var(--pink);border-color:rgba(255,111,174,.3)">магия толпы</span>
+      <label>Тайно позови их людей в каст</label>
+      <p class="note" style="margin:0 0 12px">Отправь секретную ссылку друзьям и родным — каждый добавит строчку, голосовое или фото. Майло вплетёт всех в <b>одну</b> песню. Именинник почувствует, что его любит целый круг.</p>
+      <button class="btn ghost" onclick="fakeInvite(this)">🔗 Скопировать секретную ссылку</button>
+      <div class="note" id="inviteNote" style="margin-top:10px;display:none">✓ Ссылка скопирована · 3 человека уже добавили свои строки 💫</div>
+    </div>
+
+    <button class="btn" onclick="premiere()">✨ Песня готова — открыть премьеру</button>
+  </section>
+
+  <!-- 3 — THE PREMIERE (the peak) -->
+  <section class="screen" id="s3">
+    <div class="steps"><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div>
+    <span class="kicker" style="text-align:center;display:block">Акт 3 · Премьера</span>
+    <div class="theatre" id="theatre">
+      <div class="confetti" id="confetti"></div>
+      <div class="spot"></div>
+      <div class="curtain l"></div>
+      <div class="curtain r"></div>
+      <div class="marquee">
+        <div class="small">Только один вечер · только для них</div>
+        <div class="star" id="starName">МАЙЯ</div>
+        <div class="small" style="color:var(--soft);letter-spacing:.14em">…и песня, которой ни у кого больше нет</div>
+        <div class="eq" id="eq"></div>
+        <div class="by">Продюсер вечера — <b id="byName">ты</b> 🎬</div>
+      </div>
+    </div>
+    <p class="note" style="text-align:center;margin:16px 6px 0">Вот он — единственный намеренно построенный <b>пик</b>. Занавес, имя в свете софитов, твоё имя в титрах. Не «плеер появился» — а <b>момент</b>.</p>
+    <div style="height:16px"></div>
+    <button class="btn" onclick="go(4)">Добавить живой каст в шоу →</button>
+    <div style="height:10px"></div>
+    <button class="btn ghost" onclick="go(5)">Просто подарить песню</button>
+  </section>
+
+  <!-- 4 — THE CAST (beyond digital) -->
+  <section class="screen" id="s4">
+    <div class="steps"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div>
+    <span class="kicker">Акт 4 · Каст</span>
+    <h1>Собери <span class="accent">full house</span> для их вечера.</h1>
+    <p class="lead">Выведи чудо за экран. Забронируй «актёров» шоу — как режиссёр собирает съёмочную группу.</p>
+
+    <div class="castitem">
+      <div class="em">🧙</div>
+      <div>
+        <h3>Звонок волшебника Золтара <span class="pill">AI-голос</span></h3>
+        <div class="sub">Наш оригинальный персонаж лично позвонит и поздравит по имени, зная детали из твоей истории.</div>
+      </div>
+      <div class="price">$19</div>
+    </div>
+    <div class="castitem">
+      <div class="em">🎸</div>
+      <div>
+        <h3>Живой музыкант у двери</h3>
+        <div class="sub">Артист приходит и поёт их песню вживую. Пилот — вручную, по одному городу.</div>
+      </div>
+      <div class="price">от $120</div>
+    </div>
+    <div class="castitem">
+      <div class="em">🦸</div>
+      <div>
+        <h3>Костюмированный герой на праздник <span class="pill">каст</span></h3>
+        <div class="sub">Наш архетип-герой (не чужой бренд) устраивает выход на вечеринке.</div>
+      </div>
+      <div class="price">от $90</div>
+    </div>
+    <p class="legal">⚖️ Только оригинальные персонажи и архетипы, AI-звонок честно помечен как AI. Мы не клонируем голоса звёзд и не выдаём себя за чужих защищённых персонажей — это и уважение к праву, и к получателю.</p>
+    <div style="height:14px"></div>
+    <button class="btn" onclick="go(5)">Готово — к финалу шоу →</button>
+  </section>
+
+  <!-- 5 — FINALE: giver pride (peak-end) -->
+  <section class="screen" id="s5">
+    <div class="finale">
+      <div class="halo">🌟</div>
+      <span class="kicker">Финал · и это про тебя тоже</span>
+      <h1 style="text-align:center">Ты подарил(а) им то, чего<br/>не было ни у кого.</h1>
+      <p class="lead" style="text-align:center">Не «спасибо за покупку». А правда: только тот, кто по-настоящему знает <b id="n5">их</b>, мог собрать такой вечер. Сегодня особенными стали <b>оба</b> — и звезда, и режиссёр.</p>
+      <div class="card" style="text-align:left">
+        <label>Твой авторский титр — им и на память</label>
+        <div style="font-size:17px;font-weight:800;color:var(--cream)">«Шоу для <span id="n6">Майи</span> — поставил(а) <span id="by2">ты</span>» 🎬</div>
+      </div>
+      <button class="btn" onclick="go(0)">↺ Пройти прототип заново</button>
+      <p class="whisper">Так работает эмоция обоих: звезда чувствует любовь круга, режиссёр — гордость автора. Конверсия здесь — следствие, а не цель.</p>
+    </div>
+    <div class="footlabel">конец прототипа</div>
+  </section>
+</div>
+
+<script>
+  const S=(id)=>document.getElementById(id);
+  const state={name:"",rel:"",vibe:""};
+
+  function selChips(wrapId,key){
+    document.querySelectorAll('#'+wrapId+' .chip').forEach(c=>{
+      c.onclick=()=>{
+        document.querySelectorAll('#'+wrapId+' .chip').forEach(x=>x.classList.remove('sel'));
+        c.classList.add('sel'); state[key]=c.textContent;
+      };
+    });
+  }
+  selChips('rel','rel'); selChips('vibe','vibe');
+
+  function nameOrThem(){ return state.name.trim() || "них"; }
+  function starOrThem(){ return (state.name.trim() || "звезда").toUpperCase(); }
+
+  function syncNames(){
+    state.name = S('name').value || state.name;
+    const n = state.name.trim();
+    S('n1').textContent = n || "них";
+    S('n2').textContent = n ? n : "ними";
+    S('n3').textContent = n || "…";
+    S('n5').textContent = n || "их";
+    S('n6').textContent = n || "них";
+    S('starName').textContent = starOrThem();
+    S('byName').textContent = state.rel ? ("«"+state.rel+"»") : "ты";
+    S('by2').textContent = state.rel ? ("«"+state.rel+"»") : "ты";
+  }
+
+  function go(i){
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    S('s'+i).classList.add('active');
+    syncNames();
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  function fakePhotos(b){ b.textContent="✓ 4 фото добавлено"; S('photoNote').style.display='block'; }
+  function fakeInvite(b){ b.textContent="✓ Ссылка скопирована"; S('inviteNote').style.display='block'; }
+
+  // build equalizer bars once
+  (function(){ const eq=S('eq'); for(let i=0;i<9;i++){const s=document.createElement('span');
+    s.style.animationDelay=(i*0.09)+'s'; eq.appendChild(s);} })();
+
+  function burstConfetti(){
+    const box=S('confetti'); box.innerHTML='';
+    const colors=['#ffcf6b','#ff6fae','#4be3b0','#fff','#ffb03a'];
+    for(let i=0;i<70;i++){
+      const c=document.createElement('i');
+      c.style.left=Math.random()*100+'%';
+      c.style.background=colors[i%colors.length];
+      c.style.animationDuration=(1.8+Math.random()*1.8)+'s';
+      c.style.animationDelay=(Math.random()*.6)+'s';
+      c.style.transform='rotate('+(Math.random()*360)+'deg)';
+      box.appendChild(c);
+    }
+  }
+
+  function premiere(){
+    go(3);
+    const t=S('theatre');
+    t.classList.remove('open');
+    setTimeout(()=>{ t.classList.add('open'); burstConfetti(); }, 400);
+  }
+</script>
+</body>
+</html>

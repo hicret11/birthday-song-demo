@@ -5,11 +5,23 @@ import { ShareTemplateView } from "@/components/share/templates";
 import { requestPremiumRender } from "@/lib/render-video";
 import { loadSharedSong, markSharedSongUnlocked } from "@/lib/share";
 import { toPublicSong } from "@/lib/public-song";
+import { listApprovedContributions } from "@/lib/crowd";
 import { getStripe } from "@/lib/stripe";
 import JsonLd from "@/components/JsonLd";
 import TrackShareView from "./TrackShareView";
+import { CrowdCreditProvider, type CrowdCredit } from "@/components/share/CrowdCreditContext";
+import CastAddOn from "@/components/cast/CastAddOn";
+import { getDictionary, isRtl, type Locale } from "@/lib/i18n";
 
 const SITE_URL = "https://singmybirthday.com";
+
+// Song language (full name) → dictionary locale, mirroring CrowdPremiere / join.
+const LANGUAGE_TO_LOCALE: Record<string, Locale> = {
+  English: "en",
+  Spanish: "es",
+  Turkish: "tr",
+  Arabic: "ar",
+};
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -93,6 +105,27 @@ export default async function SharePage({
 
   const justUnlocked = !!song.unlocked && unlockedParam === "1";
 
+  // Crowd-song credit: for a merged group song, fetch the approved contributions
+  // (Postgres) so the template's Premiere can frame it as "a song from N people"
+  // and credit the contributors by name. Best-effort — a failure just renders
+  // the reveal without the credit. Non-crowd shares skip this entirely.
+  let crowdCredit: CrowdCredit | null = null;
+  if (song.crowd?.status === "merged") {
+    const contributions = await listApprovedContributions(id).catch(() => []);
+    const names = Array.from(
+      new Set(
+        contributions
+          .map((c) => c.authorName?.trim())
+          .filter((n): n is string => !!n),
+      ),
+    );
+    crowdCredit = { count: contributions.length, contributors: names };
+  }
+
+  const castLocale = LANGUAGE_TO_LOCALE[song.language] ?? "en";
+  const castDict = getDictionary(castLocale).cast;
+  const castDir = isRtl(castLocale) ? "rtl" : "ltr";
+
   const musicRecording = {
     "@context": "https://schema.org",
     "@type": "MusicRecording",
@@ -124,7 +157,22 @@ export default async function SharePage({
       {/* Paywall enforcement: a locked song's client payload is stripped of all
           full-media URLs. A non-paying visitor only ever receives lyrics +
           metadata; audio comes solely from the gated 15s preview route. */}
-      <ShareTemplateView song={toPublicSong(song)} />
+      {crowdCredit ? (
+        <CrowdCreditProvider value={crowdCredit}>
+          <ShareTemplateView song={toPublicSong(song)} />
+        </CrowdCreditProvider>
+      ) : (
+        <ShareTemplateView song={toPublicSong(song)} />
+      )}
+      {/* Add-on entry point — an independent upsell that never touches the song,
+          the paywall, or unlock state. */}
+      <CastAddOn
+        giftId={song.id}
+        recipientName={song.name}
+        language={song.language}
+        t={castDict}
+        dir={castDir}
+      />
     </>
   );
 }

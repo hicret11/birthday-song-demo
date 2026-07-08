@@ -290,6 +290,19 @@ export type SharedSong = {
    * Absent when no premium render was ever requested.
    */
   videoStatus?: "pending" | "ready" | "failed";
+  /**
+   * Crowd-magic state. Present only on gifts minted for collaborative songs
+   * (POST /api/crowd/create), where the id exists BEFORE any song so the
+   * recipient's circle can contribute lines/memories via /join/[id] first.
+   * "collecting" → open for contributions; "closed" → collection ended;
+   * "merged" → contributions woven into the generated song. Additive and
+   * optional — solo songs never carry it, and existing readers ignore it.
+   */
+  crowd?: {
+    status: "collecting" | "closed" | "merged";
+    directorName?: string;
+    closesAt?: number;
+  };
 };
 
 export type ShareCreateRequest = {

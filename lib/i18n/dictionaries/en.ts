@@ -107,33 +107,188 @@ export const en = {
     trustSecureStripe: "🔒 secure checkout by Stripe",
     trustRewriteFree:
       "A real, full song in about a minute — don’t love the words? Rewrite them free, as many times as you want.",
+    // Sender recognition — the warm "who are you to them?" step. Its answer
+    // becomes the producer credit on the premiere. Chip values stay canonical
+    // in state (unchanged lyric-prompt context); only the labels are localized.
+    relationshipLabel: "And who are you to them?",
+    relationshipOptional: "(optional)",
+    relationshipHint: "This becomes your producer credit on the premiere.",
+    relationshipFriend: "Their friend",
+    relationshipPartner: "Their partner",
+    relationshipFamily: "Their family",
+    relationshipColleague: "Their colleague",
+    relationshipOther: "Someone who loves them",
   },
   paywall: {
-    // Preview label ({seconds} interpolated by caller)
-    previewLabelPrefix: "🎁 Free preview · first ",
-    previewLabelSuffix: " seconds",
+    // Preview label — the 15s cap framed as the trailer/opening of the show
+    // (prefix + suffix rendered together; the second is the invitation).
+    previewLabelPrefix: "🎬 The opening of their premiere — ",
+    previewLabelSuffix: "unlock to raise the curtain",
     // Unlock headline ({name} interpolated by caller)
-    unlockHeadlinePrefix: "Unlock ",
-    unlockHeadlineSuffix: "’s full song 🎶",
-    unlockHeadlineLovedPrefix: "Loved it? Unlock ",
+    unlockHeadlinePrefix: "Raise the curtain on ",
+    unlockHeadlineSuffix: "’s full premiere 🎬",
+    unlockHeadlineLovedPrefix: "That was just the opening. ",
     // Plan names
     standard: "Standard",
     deluxe: "Deluxe",
     bestValue: "Best value",
     // Value-stack bullets
-    bulletCompleteSong: "The complete song (full version)",
+    bulletCompleteSong: "The full premiere — the complete song",
     bulletMp3: "MP3 download — keep it forever",
     bulletShareVideo: "A shareable video for WhatsApp & Telegram",
     bulletReplay: "Replay & re-send to family anytime",
     bulletEverythingStandard: "Everything in Standard",
     bulletSlideshow: "A photo slideshow video — their favorite moments set to the song",
     // CTAs ({price} interpolated by caller)
-    unlockDeluxePrefix: "Unlock Deluxe",
-    unlockStandardPrefix: "Unlock Standard",
+    unlockDeluxePrefix: "Raise the curtain · Deluxe",
+    unlockStandardPrefix: "Raise the curtain · Standard",
     openingCheckout: "Opening secure checkout…",
-    preparingSong: "Preparing your song…",
+    preparingSong: "Preparing the premiere…",
     moneyBack: "Love it or your money back",
     secureCheckout: "One-time payment · instant unlock · secure checkout by Stripe",
+  },
+  // The Premiere — the theatrical reveal of the finished song.
+  premiere: {
+    overline: "Premiere · opening night",
+    // Teaser line, split around the star's name: `{introPrefix}{name}{introSuffix}`.
+    introPrefix: "The premiere for ",
+    introSuffix:
+      " is ready. Dim the lights, turn up the sound — and open on the first scene.",
+    openCta: "🎬 Start the premiere",
+    marqueeOverline: "Tonight’s star",
+    pause: "⏸ Pause",
+    replay: "▶ Play again",
+    director: "Produced by",
+    continueLabel: "Send it to them 💌",
+  },
+  // Crowd-magic — invite the recipient's circle to co-write one song.
+  crowd: {
+    cta: "Make it a group song 💛",
+    ctaHint: "Invite their circle to add lines & memories — we’ll weave them into one song.",
+    creating: "Starting…",
+    linkHeading: "Your group-song link is ready 🎉",
+    linkSubtitle: "Share it with their circle — everyone can add a line, a memory, or a wish.",
+    copy: "Copy link",
+    copied: "Copied ✓",
+    share: "Share the link",
+    error: "Couldn’t start the group song. Please try again.",
+    // Crowd Premiere on the share page. Overline: `{prefix}{N}{suffix}` for the
+    // group case (N ≥ 2), or `overlineSolo` otherwise. Credit lists the names.
+    premiereOverlinePrefix: "A song from ",
+    premiereOverlineSuffix: " people who love you",
+    premiereOverlineSolo: "A song made with love",
+    withLove: "With love from",
+  },
+  // The contributor page (/join) — where the recipient's circle adds their bit.
+  // Name-bearing lines are split prefix/name/suffix so each language can place
+  // the name naturally; {n}/{name} placeholders are filled at render time.
+  crowdContributor: {
+    metaTitle: "Add your bit to {name}’s birthday song",
+    metaDescription:
+      "Help make {name}’s birthday song — add a line, a memory, or a wish. It all becomes one song.",
+    overline: "A group birthday song",
+    headingPrefix: "Help make ",
+    headingSuffix: "’s birthday song magical",
+    introLead: "Someone who loves ",
+    introAfterName: " is making them a song — and wants a piece of ",
+    you: "you",
+    introTail:
+      " in it. Add a line, a memory, or a wish. It all becomes one song they’ll hear on their birthday.",
+    liveAdding: "people are adding right now",
+    countOne: "💛 {n} person has added their bit",
+    countMany: "💛 {n} people have added their bit",
+    kinds: {
+      line: {
+        label: "A lyric line",
+        placeholder: "A line for the song — inside joke, nickname, something only you’d say…",
+      },
+      memory: {
+        label: "A memory",
+        placeholder: "A moment with them you’ll never forget…",
+      },
+      wish: {
+        label: "A wish",
+        placeholder: "What do you wish for them this year?",
+      },
+    },
+    photoTab: "Add a photo",
+    voiceTab: "Voice note · soon",
+    voiceTitle: "Voice notes are coming soon",
+    photoPickPrompt: "Tap to choose a photo of you two",
+    photoHint: "JPG, PNG, WebP · up to 6MB",
+    photoPreviewAlt: "Your photo preview",
+    photoChange: "Change",
+    namePlaceholder: "Your name (optional — so they know it’s from you)",
+    uploading: "Uploading…",
+    sending: "Sending…",
+    addAnother: "Add another 💛",
+    submitPhoto: "Add my photo →",
+    submitText: "Add it to the song →",
+    donePrefix: "✓ Added! You’re part of ",
+    doneSuffix: "’s song now.",
+    circlePrefix: "What ",
+    circleSuffix: "’s people are saying",
+    photoFromAlt: "Photo from {name}",
+    photoAlt: "A photo for the song",
+    photoCaption: "A photo",
+    footer: "Sing My Birthday · your words become part of the song",
+    fallbackName: "them",
+    errNeedText: "Add a few words first.",
+    errNeedPhoto: "Pick a photo first.",
+    errNotImage: "That doesn’t look like an image — pick a photo (JPG, PNG, WebP…).",
+    errTooBig: "That photo is over 6MB — try a smaller one.",
+    errSend: "Couldn’t send that — try again.",
+    errUpload: "Couldn’t upload that photo — try again.",
+    errAddPhoto: "Couldn’t add that photo — try again.",
+    errNetwork: "Network hiccup — try again.",
+  },
+  // The Cast — book an original character to phone the birthday person (AI voice
+  // call). {name}/{price} placeholders are filled at render time.
+  cast: {
+    ctaTitle: "Send them a magical birthday call 📞",
+    ctaSubtitle:
+      "Book an original character to phone {name} and wish them a happy birthday — in their own voice.",
+    open: "Book a character call",
+    close: "Maybe later",
+    pickCharacter: "Choose your character",
+    from: "from",
+    recipientNameLabel: "Who's the call for?",
+    recipientNamePlaceholder: "Birthday person's name",
+    phoneLabel: "Their phone number",
+    phonePlaceholder: "+1 555 123 4567",
+    phoneHint: "International format, starting with + and country code.",
+    noteLabel: "A personal note (optional)",
+    notePlaceholder: "Something for the character to mention — an inside joke, a wish…",
+    scheduleLabel: "When should we call? (optional)",
+    scheduleHint: "Leave empty to call as soon as it's booked.",
+    consentLabel:
+      "I confirm {name} is happy to receive a fun AI birthday call at this number.",
+    disclosureTitle: "How it works",
+    disclosure:
+      "Our characters are original creations, and every call opens by saying it's an AI. We never impersonate real people or trademarked characters.",
+    submit: "Continue to payment →",
+    submitting: "Setting up…",
+    redirecting: "Taking you to checkout…",
+    bookedTitle: "Booked! 🎉",
+    bookedBody: "Payment confirmed — {name} will get their birthday call.",
+    bookedHome: "Back to the song",
+    errName: "Add the birthday person's name.",
+    errPhone: "Enter a valid phone number in international format (e.g. +15551234567).",
+    errConsent: "Please confirm they're happy to receive the call.",
+    errPickCharacter: "Pick a character first.",
+    errGeneric: "Couldn't set that up — please try again.",
+    errNetwork: "Network hiccup — try again.",
+    characters: {
+      zoltar: {
+        tagline: "A warm, whimsical wizard who calls to cast a birthday spell of good fortune.",
+      },
+      pearl: {
+        tagline: "A kind, sparkly fairy godmother who rings to grant a birthday wish.",
+      },
+      "captain-vero": {
+        tagline: "A playful, big-hearted pirate captain calling to celebrate their special day.",
+      },
+    },
   },
 };
 

@@ -42,7 +42,7 @@ Test products exist under GMT LLC sandbox (product `prod_Uohf…`, 6 prices). Fo
 ### B3. Confirm required env is present in **Production** scope
 Already present in Vercel (Sensitive) for the generation stack — just verify:
 - [ ] `ANTHROPIC_API_KEY`, `SUNO_API_KEY` (paid Suno plan), `OPENAI_API_KEY` (**re-issued this session — confirm the new key is valid; the old one 401'd, which silently disabled moderation + Whisper captions**).
-- [ ] `R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY / R2_BUCKET / R2_PUBLIC_URL`, KV, Supabase.
+- [ ] `BLOB_READ_WRITE_TOKEN` (media storage is **Vercel Blob** — the old `R2_*` vars are no longer used; `lib/r2.ts` is a thin alias over `@vercel/blob`), KV, Supabase.
 - [ ] `CRON_SECRET`, `USER_SESSION_SECRET`, Sentry DSN/`SENTRY_AUTH_TOKEN`.
 
 ### B4. Merge & deploy

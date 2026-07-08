@@ -7,6 +7,7 @@ import { sendDunningEmail } from "@/lib/resend";
 import { getStripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { loadSharedSong, markSharedSongUnlocked } from "@/lib/share";
+import { markBookingPaid } from "@/lib/cast";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://singmybirthday.com";
 const DUNNING_TOKEN_TTL_SECONDS = 24 * 60 * 60;
@@ -145,6 +146,28 @@ async function handleEvent(event: Stripe.Event, stripe: Stripe): Promise<void> {
       } else {
         console.error("[stripe-webhook] song_unlock: missing share_id in metadata");
       }
+      return;
+    }
+
+    // Cast booking (AI character call) — a separate one-time payment. Advance
+    // the booking to "scheduled" and store the payment id; the scheduler then
+    // places the call. Idempotent: markBookingPaid only advances a still-pending
+    // booking, so a re-delivered event is a harmless no-op. The song_unlock path
+    // above is untouched.
+    if (session.mode === "payment" && session.metadata?.kind === "cast_booking") {
+      const bookingId = session.metadata.booking_id || session.client_reference_id || "";
+      if (bookingId) {
+        const paymentId =
+          typeof session.payment_intent === "string"
+            ? session.payment_intent
+            : session.payment_intent?.id || session.id;
+        const updated = await markBookingPaid(bookingId, paymentId);
+        if (updated) console.log(`[stripe-webhook] cast_booking: ${bookingId} scheduled`);
+        else console.log(`[stripe-webhook] cast_booking: ${bookingId} not pending (already handled?)`);
+      } else {
+        console.error("[stripe-webhook] cast_booking: missing booking_id in metadata");
+      }
+      return;
     }
     return;
   }

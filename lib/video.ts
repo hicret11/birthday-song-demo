@@ -155,6 +155,41 @@ async function probeDuration(filePath: string): Promise<number> {
   return durationViaFfmpeg(filePath);
 }
 
+// The premium 9:16 audiogram needs the `showwaves` filter, which the minimal
+// static ffmpeg build bundled by @ffmpeg-installer on Vercel does NOT include
+// ("Option not found"). Without this guard every share-create on Vercel wastes
+// a full premium attempt (audio download + ffmpeg spin-up) that is guaranteed
+// to throw, THEN re-runs the simple renderer — doubling render time and risking
+// the 60s function timeout. Probe `ffmpeg -filters` once per process and cache
+// the answer so we skip straight to the renderer that actually works.
+let premiumFiltersSupported: boolean | null = null;
+function detectPremiumFilterSupport(): Promise<boolean> {
+  if (premiumFiltersSupported !== null) return Promise.resolve(premiumFiltersSupported);
+  return new Promise<boolean>((resolve) => {
+    execFile(
+      ffmpegInstaller.path,
+      ["-hide_banner", "-filters"],
+      (err, stdout) => {
+        // On any failure, assume supported and let renderShareVideo's try/catch
+        // fall back — we never want the probe itself to block rendering.
+        if (err) {
+          premiumFiltersSupported = true;
+          resolve(true);
+          return;
+        }
+        const list = stdout || "";
+        // Every filter the premium graph depends on beyond the simple renderer.
+        const supported =
+          /\bshowwaves\b/.test(list) &&
+          /\bboxblur\b/.test(list) &&
+          /\bcolorchannelmixer\b/.test(list);
+        premiumFiltersSupported = supported;
+        resolve(supported);
+      },
+    );
+  });
+}
+
 // ffmpeg drawtext escapes (same shape the discovery batch uses).
 // We wrap the result in single quotes at the call site.
 function escapeDrawtext(value: string): string {
@@ -841,6 +876,14 @@ async function renderShareVideoPremium(input: RenderVideoInput): Promise<RenderV
  */
 export async function renderShareVideo(input: RenderVideoInput): Promise<RenderVideoResult> {
   const logId = input.logId ?? randomUUID().slice(0, 8);
+  // Skip the doomed premium attempt when this ffmpeg build can't run its
+  // filtergraph (e.g. Vercel's minimal static build lacks `showwaves`). Going
+  // straight to the simple renderer avoids a wasted render + timeout risk.
+  const canPremium = await detectPremiumFilterSupport();
+  if (!canPremium) {
+    console.warn(`[share-create:audiogram-skip] id=${logId} ffmpeg build lacks premium filters — using simple renderer`);
+    return renderShareVideoSimple(input);
+  }
   try {
     return await renderShareVideoPremium(input);
   } catch (err) {

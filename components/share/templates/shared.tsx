@@ -6,6 +6,7 @@ import { toAudioProxyUrl } from "@/lib/audio-proxy";
 import { logClientEvent } from "@/lib/client-events";
 import { greetingFor } from "@/lib/greetings";
 import UnlockableAudio from "@/components/share/UnlockableAudio";
+import { CrowdPremiere } from "@/components/share/CrowdPremiere";
 
 const MAX_RETRIES = 2;
 
@@ -66,7 +67,7 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
   // `slideshowUrl` is seeded from the persisted URL so a return visit shows it
   // straight away; a fresh render updates it in place (no manual refresh).
   const [slideshowUrl, setSlideshowUrl] = useState<string | undefined>(song.slideshowVideoUrl);
-  const [slideshowStatus, setSlideshowStatus] = useState<"idle" | "rendering" | "error">("idle");
+  const [slideshowStatus, setSlideshowStatus] = useState<"idle" | "rendering" | "error" | "unavailable">("idle");
   const slideshowTriggeredRef = useRef(false);
 
   const [toast, setToast] = useState<string | null>(null);
@@ -195,10 +196,16 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ shareId: song.id }),
         });
-        const data = (await res.json().catch(() => ({}))) as { url?: unknown };
+        const data = (await res.json().catch(() => ({}))) as {
+          url?: unknown;
+          error?: { code?: unknown };
+        };
         if (res.ok && typeof data.url === "string") {
           setSlideshowUrl(data.url);
           setSlideshowStatus("idle");
+        } else if (data.error?.code === "UNSUPPORTED") {
+          // Permanent for this deploy — don't invite a retry that can't succeed.
+          setSlideshowStatus("unavailable");
         } else {
           setSlideshowStatus("error");
         }
@@ -239,17 +246,45 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
         </div>
       )}
 
-      {/* Audio: full playback + MP3 download when unlocked, 20s preview +
-          unlock CTA when locked. */}
-      <UnlockableAudio
-        shareId={song.id}
-        audioSrc={
-          unlocked ? toAudioProxyUrl(currentAudio) : `/api/share/${song.id}/preview`
-        }
-        unlocked={unlocked}
-        recipientName={song.name}
-        tier={song.tier}
-      />
+      {/* Audio: full playback + MP3 download when unlocked, 15s preview + unlock
+          CTA when locked. A merged crowd song gets the theatrical Premiere reveal
+          instead of the flat player — same locked/unlocked audioSrc, so the
+          paywall behaves identically (locked → gated preview clip). */}
+      {song.crowd?.status === "merged" ? (
+        <>
+          <CrowdPremiere
+            recipientName={song.name}
+            directorName={song.crowd.directorName}
+            songTitle={song.lyrics.title}
+            audioSrc={
+              unlocked ? toAudioProxyUrl(currentAudio) : `/api/share/${song.id}/preview`
+            }
+            language={song.language}
+          />
+          {/* Premiere is the player; UnlockableAudio still owns the paywall CTA
+              (locked) / MP3 download (unlocked) — same gate, no second player. */}
+          <UnlockableAudio
+            shareId={song.id}
+            audioSrc={
+              unlocked ? toAudioProxyUrl(currentAudio) : `/api/share/${song.id}/preview`
+            }
+            unlocked={unlocked}
+            recipientName={song.name}
+            tier={song.tier}
+            hidePlayer
+          />
+        </>
+      ) : (
+        <UnlockableAudio
+          shareId={song.id}
+          audioSrc={
+            unlocked ? toAudioProxyUrl(currentAudio) : `/api/share/${song.id}/preview`
+          }
+          unlocked={unlocked}
+          recipientName={song.name}
+          tier={song.tier}
+        />
+      )}
 
       {/* Unlocked-only downloads: branded video + photo slideshow. */}
       {unlocked && currentVideo && (
@@ -281,6 +316,15 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
                 <span aria-hidden>⬇</span> Download slideshow
               </a>
             </>
+          ) : slideshowStatus === "unavailable" ? (
+            <p
+              role="status"
+              className="rounded-2xl border border-sand bg-cream-soft px-5 py-4 text-center text-sm text-ink-soft"
+            >
+              🎬 The photo slideshow isn&apos;t available right now — your song
+              and video above are ready. Email info@singmybirthday.com and
+              we&apos;ll get your slideshow sorted.
+            </p>
           ) : slideshowStatus === "error" ? (
             <p
               role="status"

@@ -17,6 +17,13 @@ type Props = {
   tier?: "A" | "B" | "C";
   /** Display locale for paywall copy; defaults to English. */
   locale?: Locale;
+  /**
+   * Suppress this component's own <audio> element(s) while keeping everything
+   * else (preview label, unlock CTA + checkout, Download MP3 link). Used by the
+   * crowd Premiere, which is the audio source itself — so the paywall gate/CTA
+   * stay identical, just without a second player. The gate is unchanged.
+   */
+  hidePlayer?: boolean;
 };
 
 /**
@@ -35,6 +42,7 @@ export default function UnlockableAudio({
   recipientName,
   tier,
   locale = "en",
+  hidePlayer = false,
 }: Props) {
   const tr = getDictionary(locale);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -93,12 +101,14 @@ export default function UnlockableAudio({
   if (unlocked) {
     return (
       <div className="mt-6">
-        <audio
-          ref={audioRef}
-          controls
-          src={audioSrc}
-          className="w-full"
-        />
+        {!hidePlayer && (
+          <audio
+            ref={audioRef}
+            controls
+            src={audioSrc}
+            className="w-full"
+          />
+        )}
         <a
           href={audioSrc}
           download
@@ -115,14 +125,16 @@ export default function UnlockableAudio({
       <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wide text-jade">
         {tr.paywall.previewLabelPrefix}{PREVIEW_SECONDS}{tr.paywall.previewLabelSuffix}
       </p>
-      <audio
-        ref={audioRef}
-        controls
-        src={audioSrc}
-        onTimeUpdate={handleTimeUpdate}
-        onSeeking={handleSeeking}
-        className="w-full"
-      />
+      {!hidePlayer && (
+        <audio
+          ref={audioRef}
+          controls
+          src={audioSrc}
+          onTimeUpdate={handleTimeUpdate}
+          onSeeking={handleSeeking}
+          className="w-full"
+        />
+      )}
 
       <div className="mt-5 rounded-2xl border border-sand bg-cream-soft p-5 text-center shadow-sm">
         <p className="font-display text-lg font-extrabold tracking-tight text-ink">

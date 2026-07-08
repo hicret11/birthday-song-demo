@@ -30,6 +30,25 @@ export async function loadSharedSong(id: string): Promise<SharedSong | null> {
   return value ?? null;
 }
 
+// ── Crowd-magic director token ────────────────────────────────────────────
+// Only the giver who minted a crowd gift may close it. We record their stable
+// (per-browser) director token under a SEPARATE KV key — NOT on the SharedSong
+// — because toPublicSong spreads the song to clients, so a token stored there
+// would leak to anyone who opened /share/[id]. Kept out of the served payload,
+// it can only be checked server-side against the caller's cookie.
+function directorKey(id: string): string {
+  return `crowd:director:${id}`;
+}
+
+export async function saveCrowdDirectorToken(id: string, token: string): Promise<void> {
+  await kv.set(directorKey(id), token, { ex: SHARE_TTL_SECONDS });
+}
+
+export async function loadCrowdDirectorToken(id: string): Promise<string | null> {
+  if (!/^[a-zA-Z0-9]{1,32}$/.test(id)) return null;
+  return (await kv.get<string>(directorKey(id))) ?? null;
+}
+
 /**
  * Flip a song to unlocked after a successful one-time payment. Called from the
  * Stripe webhook (checkout.session.completed). Idempotent — repeat webhook

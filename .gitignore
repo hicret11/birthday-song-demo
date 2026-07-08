@@ -52,6 +52,12 @@ next-env.d.ts
 # Discovery batch outputs (mass-generation videos)
 out/
 
+# Local dev-only assets — never ship to production
+# public/_test holds sample mp3s that would otherwise be publicly served at /_test/*
+public/_test/
+# One-off local seed/debug scripts
+scripts/dev/
+
 # Privacy exports — contain PII; never commit
 privacy-exports/
 

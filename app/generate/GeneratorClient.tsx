@@ -30,6 +30,7 @@ import {
 } from "@/lib/api-types";
 import { toAudioProxyUrl } from "@/lib/audio-proxy";
 import Confetti from "@/components/Confetti";
+import PremiereReveal from "@/components/premiere/PremiereReveal";
 import ThemeToggle from "@/components/ThemeToggle";
 import {
   FULL_PRICE_LABEL as TIER_PRICE_LABEL,
@@ -254,11 +255,10 @@ const PREVIEW_TEXT_STYLE: Record<ShareTemplate, React.CSSProperties> = {
 
 type ThemeKey = "dark" | "light" | "party" | "pastel" | "luxury" | "confetti" | "balloons" | "bubbles";
 
-// Relationship quick-pick chips. Each writes its own label into the existing
-// free-text `relationship` state; "Other" reveals a text field so the state can
-// still hold an arbitrary description (the data contract is unchanged — the
-// backend still receives a single `relationship` string).
-const RELATIONSHIP_PRESETS = ["Friend", "Partner", "Family", "Colleague"] as const;
+// Relationship quick-pick chips are built from the i18n dictionary at render
+// time (see `relationshipOptions` in the component). Each chip stores its own
+// canonical label into the free-text `relationship` state; the data contract is
+// unchanged — the backend still receives a single `relationship` string.
 
 const POLL_INTERVAL_MS = 2_000;
 const LONG_WAIT_HINT_MS = 90_000;
@@ -856,6 +856,14 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
   const [shareError, setShareError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // ── Crowd-magic: mint a group-song gift BEFORE the song exists, so the
+  // recipient's circle can add lines/memories via /join/[id] first. Entirely
+  // optional — the solo flow never touches this.
+  const [crowdJoinUrl, setCrowdJoinUrl] = useState<string | null>(null);
+  const [crowdCreating, setCrowdCreating] = useState(false);
+  const [crowdError, setCrowdError] = useState<string | null>(null);
+  const [crowdCopied, setCrowdCopied] = useState(false);
+
   // ── Optional photo slideshow ────────────────────────────────────────────
   // Users may add up to 6 photos before unlocking; the URLs persist on the
   // share and the slideshow video is rendered after unlock. Entirely optional
@@ -876,7 +884,6 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
   const [unlocking, setUnlocking] = useState(false);
   const [previewEnded, setPreviewEnded] = useState(false);
   const [unlockPlan, setUnlockPlan] = useState<"full" | "deluxe">("full");
-  const songAudioRef = useRef<HTMLAudioElement | null>(null);
   const PREVIEW_SECONDS = 15;
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -1093,6 +1100,27 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
   const canGenerateMusic = missingForMusic === null;
   const musicLocked = loadingMusic || jobId !== null || audioUrl !== null;
   const audioProxyUrl = audioUrl ? toAudioProxyUrl(audioUrl) : null;
+
+  // Sender recognition (Phase 1): the relationship answer is localized for
+  // display and for the premiere's producer credit, but the value stored in
+  // `relationship` state stays canonical so the lyric prompt sees the same
+  // context it always has.
+  const relationshipOptions = [
+    { value: "Friend", label: t.generate.relationshipFriend },
+    { value: "Partner", label: t.generate.relationshipPartner },
+    { value: "Family", label: t.generate.relationshipFamily },
+    { value: "Colleague", label: t.generate.relationshipColleague },
+    { value: "Other", label: t.generate.relationshipOther },
+  ] as const;
+  const relationshipRole =
+    relationshipOptions.find((o) => o.value === relationship)?.label ??
+    relationship.trim();
+  // Producer credit on the premiere — the sender's name and/or how they relate
+  // to the star. Undefined when we have neither, so the credit line hides.
+  const directorName =
+    [senderName.trim(), relationship.trim() ? relationshipRole : ""]
+      .filter(Boolean)
+      .join(" · ") || undefined;
 
   // Guided 3-step flow — derived purely from existing state so it can never
   // desync from the actual render conditions (no parallel state machine):
@@ -1611,6 +1639,77 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
     }
   }
 
+  // ── Crowd-magic handlers ────────────────────────────────────────────────
+  // Mint a group-song gift from the recipient name already in state, then show
+  // the /join link. Optional and non-blocking: it never gates the solo flow.
+  async function createGroupSong() {
+    if (crowdCreating || crowdJoinUrl) return;
+    const recipientName = name.trim();
+    if (!recipientName) return;
+    setCrowdError(null);
+    setCrowdCreating(true);
+    try {
+      const res = await fetch("/api/crowd/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipientName,
+          language,
+          genre: (resolvedGenre ?? genre).trim() || undefined,
+          directorName: senderName.trim() || undefined,
+        }),
+      });
+      const data = (await res.json().catch(() => null)) as
+        | { joinUrl?: string; error?: { message?: string } }
+        | null;
+      if (!res.ok || !data?.joinUrl) {
+        setCrowdError(data?.error?.message ?? t.crowd.error);
+        return;
+      }
+      const absolute =
+        typeof window !== "undefined"
+          ? new URL(data.joinUrl, window.location.origin).toString()
+          : data.joinUrl;
+      setCrowdJoinUrl(absolute);
+      try {
+        track("crowd_create", { venue_slug: venue?.slug ?? "none" });
+      } catch {
+        // Analytics is non-critical; swallow.
+      }
+    } catch {
+      setCrowdError(t.crowd.error);
+    } finally {
+      setCrowdCreating(false);
+    }
+  }
+
+  async function copyCrowdLink() {
+    if (!crowdJoinUrl) return;
+    try {
+      await navigator.clipboard.writeText(crowdJoinUrl);
+      setCrowdCopied(true);
+      setTimeout(() => setCrowdCopied(false), 1500);
+    } catch {
+      // Non-critical — the link sits in a selectable read-only field beside it.
+    }
+  }
+
+  async function shareCrowdLink() {
+    if (!crowdJoinUrl) return;
+    if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+      try {
+        await navigator.share({
+          title: `Happy Birthday, ${name.trim()}!`,
+          url: crowdJoinUrl,
+        });
+        return;
+      } catch {
+        // User dismissed or sharing failed; fall through to copy.
+      }
+    }
+    await copyCrowdLink();
+  }
+
   // Optional promo-use permission. Fire-and-forget — failure must never affect
   // the share UI. The server also forces granted=false for minor recipients.
   function submitPromoPermission(granted: boolean) {
@@ -1807,27 +1906,31 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
         />
       </div>
 
-      {/* Relationship — quick chips (sets the same free-text relationship state). */}
+      {/* Sender recognition — the warm "who are you to them?" step. The stored
+          value stays canonical (unchanged lyric-prompt context); the label is
+          localized and the answer becomes the producer credit on the premiere. */}
       <div>
         <label className="mb-2 block text-sm font-bold text-ink">
-          Who are they to you? <span className="opacity-60">(optional)</span>
+          {t.generate.relationshipLabel}{" "}
+          <span className="opacity-60">{t.generate.relationshipOptional}</span>
         </label>
         <div className="flex flex-wrap gap-2">
-          {["Friend", "Partner", "Family", "Coworker", "Other"].map((rel) => (
+          {relationshipOptions.map(({ value, label }) => (
             <button
-              key={rel}
+              key={value}
               type="button"
-              onClick={() => setRelationship(relationship === rel ? "" : rel)}
+              onClick={() => setRelationship(relationship === value ? "" : value)}
               className={`rounded-full border px-4 py-2 text-sm font-bold transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] ${
-                relationship === rel
+                relationship === value
                   ? "border-transparent bg-warm-gradient text-white shadow-md"
                   : "border-sand bg-cream text-ink hover:border-jade"
               }`}
             >
-              {rel}
+              {label}
             </button>
           ))}
         </div>
+        <p className="mt-1.5 text-xs text-ink-soft">{t.generate.relationshipHint}</p>
       </div>
 
       <div>
@@ -2288,6 +2391,61 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
 
             {!canGenerateLyrics && !loadingLyrics && !loadingMusic && missingForLyrics && (
               <p className="mt-2 text-center text-xs text-ink-soft">{missingForLyrics}</p>
+            )}
+
+            {/* Crowd-magic entry point — optional fork off the solo flow. Mints
+                a group-song gift so the recipient's circle can add lines before
+                the song is made. Shown once we have a name to mint against. */}
+            {name.trim() && (
+              <div className="mt-4 rounded-2xl border border-blush/40 bg-warm-soft p-4">
+                {!crowdJoinUrl ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={createGroupSong}
+                      disabled={crowdCreating}
+                      className="w-full min-h-[44px] rounded-full border border-blush/50 bg-cream-soft px-5 py-3 text-sm font-extrabold text-ink transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] hover:border-blush disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {crowdCreating ? t.crowd.creating : t.crowd.cta}
+                    </button>
+                    <p className="mt-2 text-center text-[11px] text-ink-soft">{t.crowd.ctaHint}</p>
+                    {crowdError && (
+                      <p role="alert" className="mt-2 text-center text-xs text-blush">
+                        {crowdError}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm font-extrabold text-ink">{t.crowd.linkHeading}</p>
+                      <p className="mt-1 text-xs text-ink-soft">{t.crowd.linkSubtitle}</p>
+                    </div>
+                    <div className="flex items-stretch gap-2">
+                      <input
+                        readOnly
+                        value={crowdJoinUrl}
+                        onFocus={(e) => e.currentTarget.select()}
+                        className={`flex-1 rounded-xl border px-4 py-3 text-sm text-ink outline-none ${theme.input}`}
+                      />
+                      <button
+                        type="button"
+                        onClick={copyCrowdLink}
+                        className="shrink-0 rounded-full bg-warm-gradient px-4 py-3 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99]"
+                      >
+                        {crowdCopied ? t.crowd.copied : t.crowd.copy}
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={shareCrowdLink}
+                      className="w-full min-h-[44px] rounded-full border border-sand bg-cream-soft py-2.5 text-sm font-bold text-ink transition hover:border-jade"
+                    >
+                      {t.crowd.share}
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
           </>
         )}
@@ -2792,37 +2950,36 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
 
           {audioUrl ? (
             <div className="mt-4 space-y-3">
-              <audio
-                ref={songAudioRef}
-                controls
-                src={audioProxyUrl ?? audioUrl}
-                className="w-full"
-                onPlay={() => {
-                  // User hit play on the real song — pause any genre sample
-                  // that's still going from the wait panel.
-                  try {
-                    sampleAudioRef.current?.pause();
-                  } catch {
-                    // Ignore — pausing a paused element throws on some browsers.
-                  }
+              {/* The Premiere — the deliberately built peak. Replaces the flat
+                  player as the reveal. The full-song source is proxied
+                  same-origin so the visualizer reacts to real sound; the
+                  paywall's free-preview gate is preserved via previewSeconds
+                  (playback pauses/clamps at PREVIEW_SECONDS just like the old
+                  player), and onPreviewLimit drives the same unlock CTA. */}
+              <PremiereReveal
+                recipientName={name.trim()}
+                directorName={directorName}
+                audioSrc={audioProxyUrl ?? audioUrl}
+                songTitle={lyrics.title}
+                previewSeconds={PREVIEW_SECONDS}
+                onPreviewLimit={() => {
+                  if (!previewEnded) setPreviewEnded(true);
                 }}
-                onTimeUpdate={(e) => {
-                  // Free-preview gate: hold playback at PREVIEW_SECONDS and
-                  // surface the unlock CTA. Client-side only for v1.
-                  const el = e.currentTarget;
-                  if (el.currentTime >= PREVIEW_SECONDS) {
-                    el.pause();
-                    el.currentTime = PREVIEW_SECONDS;
-                    if (!previewEnded) setPreviewEnded(true);
-                  }
-                }}
-                onSeeking={(e) => {
-                  const el = e.currentTarget;
-                  if (el.currentTime > PREVIEW_SECONDS) el.currentTime = PREVIEW_SECONDS;
+                onContinue={openShareUi}
+                continueLabel={t.premiere.continueLabel}
+                labels={{
+                  overline: t.premiere.overline,
+                  introPrefix: t.premiere.introPrefix,
+                  introSuffix: t.premiere.introSuffix,
+                  openCta: t.premiere.openCta,
+                  marqueeOverline: t.premiere.marqueeOverline,
+                  pause: t.premiere.pause,
+                  replay: t.premiere.replay,
+                  director: t.premiere.director,
                 }}
               />
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-jade">
-                {t.paywall.previewLabelPrefix}{PREVIEW_SECONDS}{t.paywall.previewLabelSuffix}
+              <p className="text-center text-[11px] font-semibold uppercase tracking-wide text-jade">
+                {t.paywall.previewLabelPrefix}{t.paywall.previewLabelSuffix}
               </p>
 
               {/* Video teaser — the shareable video is part of the unlock, so

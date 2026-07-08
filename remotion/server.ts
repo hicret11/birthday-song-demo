@@ -2,7 +2,7 @@
 //
 // Exposes POST /render. Authenticates a bearer RENDER_WORKER_SECRET, accepts
 // { song, captions }, bundles the Remotion project, renders the BirthdaySong
-// composition to a temp MP4, uploads it to Cloudflare R2, and returns { url }.
+// composition to a temp MP4, uploads it to Vercel Blob, and returns { url }.
 //
 // This process is what makes the "separate worker" architecture work: the Next
 // app (on Vercel) never imports remotion; it just POSTs here. Deploy this as a
@@ -19,47 +19,30 @@ import { randomUUID } from "node:crypto";
 import express, { type Request, type Response } from "express";
 import { bundle } from "@remotion/bundler";
 import { renderMedia, selectComposition } from "@remotion/renderer";
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { put } from "@vercel/blob";
 import { birthdaySongSchema, type BirthdaySongProps } from "./src/schema";
 
 const PORT = Number(process.env.PORT ?? 8080);
 const COMPOSITION_ID = "BirthdaySong";
 
-// --- R2 upload (mirrors the Next app's lib/r2.ts minimal S3 usage) ----------
-type R2 = { client: S3Client; bucket: string; publicUrl: string };
-let cachedR2: R2 | null = null;
-
-function getR2(): R2 {
-  if (cachedR2) return cachedR2;
-  const accountId = process.env.R2_ACCOUNT_ID;
-  const accessKeyId = process.env.R2_ACCESS_KEY_ID;
-  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
-  const bucket = process.env.R2_BUCKET;
-  const publicUrl = process.env.R2_PUBLIC_URL;
-  if (!accountId || !accessKeyId || !secretAccessKey || !bucket || !publicUrl) {
-    throw new Error(
-      "R2 env vars not configured: need R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, R2_PUBLIC_URL",
-    );
+// --- Vercel Blob upload -----------------------------------------------------
+// Storage matches the Next app (lib/r2.ts is itself a thin alias over
+// @vercel/blob). The worker MUST share the same BLOB_READ_WRITE_TOKEN so the
+// premium MP4 lands in the same store the app reads from — otherwise the app
+// persists a premiumVideoUrl the visitor can't load. The historical R2/S3 path
+// was removed because R2 was never provisioned (upload would always throw).
+async function uploadToBlob(key: string, body: Buffer, contentType: string): Promise<string> {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    throw new Error("BLOB_READ_WRITE_TOKEN not set — worker cannot upload the render");
   }
-  cachedR2 = {
-    client: new S3Client({
-      region: "auto",
-      endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
-      credentials: { accessKeyId, secretAccessKey },
-    }),
-    bucket,
-    publicUrl,
-  };
-  return cachedR2;
-}
-
-async function uploadToR2(key: string, body: Buffer, contentType: string): Promise<string> {
-  const { client, bucket, publicUrl } = getR2();
-  await client.send(
-    new PutObjectCommand({ Bucket: bucket, Key: key, Body: body, ContentType: contentType }),
-  );
-  const base = publicUrl.endsWith("/") ? publicUrl : `${publicUrl}/`;
-  return `${base}${key}`;
+  const { url } = await put(key, body, {
+    access: "public",
+    contentType,
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    // token is read from BLOB_READ_WRITE_TOKEN in the environment.
+  });
+  return url;
 }
 
 // --- Remotion bundle cache --------------------------------------------------
@@ -140,7 +123,7 @@ async function handleRender(req: Request, res: Response): Promise<void> {
       `[worker] rendered ${shareId} in ${Date.now() - started}ms bytes=${info.size}`,
     );
 
-    const url = await uploadToR2(`premium/${shareId}.mp4`, buffer, "video/mp4");
+    const url = await uploadToBlob(`premium/${shareId}.mp4`, buffer, "video/mp4");
     console.log(`[worker] uploaded ${shareId} → ${url}`);
     res.json({ url });
   } catch (err) {

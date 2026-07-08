@@ -2,7 +2,7 @@
 
 A **self-contained package**, separate from the Next app, that renders the
 premium 9:16 karaoke birthday video (`BirthdaySong`) and uploads the MP4 to
-Cloudflare R2.
+Vercel Blob (the same store the Next app uses).
 
 ## Why it's separate
 
@@ -59,15 +59,13 @@ curl -X POST http://localhost:8080/render \
 | Var | Purpose |
 | --- | --- |
 | `RENDER_WORKER_SECRET` | Bearer token the worker checks on `POST /render` (must match the app's value). |
-| `R2_ACCOUNT_ID` | Cloudflare R2 account id. |
-| `R2_ACCESS_KEY_ID` | R2 access key. |
-| `R2_SECRET_ACCESS_KEY` | R2 secret. |
-| `R2_BUCKET` | R2 bucket name. |
-| `R2_PUBLIC_URL` | Public base URL for the bucket (e.g. `https://pub-xxxx.r2.dev`). |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob read/write token — **must be the same store the Next app uses** so the app can serve the uploaded MP4. |
 | `PORT` | HTTP port (default 8080). |
 
-Mirror the same R2 creds the Next app uses (see the app's `lib/r2.ts`). No
-secrets are committed — set these in the worker host's environment.
+Storage is **Vercel Blob**, identical to the Next app (the app's `lib/r2.ts` is
+a thin alias over `@vercel/blob`). Copy `BLOB_READ_WRITE_TOKEN` from the Vercel
+project's Storage → Blob settings so the worker writes into the very store the
+app reads from. No secrets are committed — set these in the worker host's env.
 
 ## Deploy the worker
 
@@ -77,7 +75,7 @@ A minimal `Dockerfile` is included. It installs Chromium's shared libs and runs
 `npm run server`. Deploy examples:
 
 - **Fly.io**: `fly launch` (uses the Dockerfile), set secrets with
-  `fly secrets set RENDER_WORKER_SECRET=... R2_ACCOUNT_ID=... ...`, then
+  `fly secrets set RENDER_WORKER_SECRET=... BLOB_READ_WRITE_TOKEN=...`, then
   `fly deploy`. Point the Next app's `RENDER_WORKER_URL` at
   `https://<app>.fly.dev`.
 - **Railway / Render**: create a new service from this `remotion/` directory,
@@ -99,11 +97,12 @@ npx remotion lambda sites create src/index.ts --site-name birthday-song
 
 Then replace `server.ts`'s `renderMedia` path with `renderMediaOnLambda(...)`
 and keep the same `POST /render` → `{ url }` contract (Lambda uploads to S3;
-copy or serve that URL, or swap the R2 upload for the S3 output). The Next app
-side is unchanged — it only cares about `RENDER_WORKER_URL` returning `{ url }`.
+copy or serve that URL, or re-upload it to Vercel Blob via `uploadToBlob`). The
+Next app side is unchanged — it only cares about `RENDER_WORKER_URL` returning
+`{ url }`.
 
 ## Contract
 
 `POST /render` — headers: `Authorization: Bearer <RENDER_WORKER_SECRET>`; body:
 `{ song: SharedSong, captions: {text,startMs,endMs}[] }`. Response: `{ url }`
-(the uploaded MP4's public R2 URL) or `{ error }` with a non-200 status.
+(the uploaded MP4's public Vercel Blob URL) or `{ error }` with a non-200 status.

@@ -1,36 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Sing My Birthday
 
-## Getting Started
+Personalized AI birthday songs. A visitor describes the recipient, we generate
+lyrics (OpenAI) and a full track (Suno), and produce a shareable page with a
+karaoke video. The song is gated behind a one-time Stripe payment: a locked
+share exposes only a 15-second preview; unlocking delivers the full track,
+downloadable MP3/MP4, and (Deluxe) a photo slideshow. There is also a B2B
+"venues" subscription track.
 
-First, run the development server:
+## Stack
+
+- **Next.js 16** (App Router, `nodejs` runtime for media routes) + React 19, Tailwind 4
+- **OpenAI** — lyric/style/name generation (Responses API) + Whisper captions + moderation
+- **Suno** — music generation
+- **Stripe** — one-time song unlocks + venue subscriptions (webhook-driven)
+- **Supabase** — venues, legal acceptance, durable events
+- **Vercel KV (Upstash)** — share storage, rate limiting, spend caps
+- **Vercel Blob** — media (audio/video/photos); `lib/r2.ts` is a thin alias
+- **Remotion** (`remotion/`) — premium karaoke video worker (deployed separately)
+- **Resend** — transactional email · **Sentry** — error tracking
+
+## Getting started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.local.example .env.local   # fill in keys
+npm run dev                        # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Scripts
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run build        # production build (runs migrations via buildCommand on Vercel)
+npm test             # vitest suite
+npm run lint         # eslint
+npm run db:migrate   # apply Supabase migrations
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Key paths
 
-## Learn More
+- `app/api/generate-lyrics`, `app/api/generate-music` — generation pipeline
+- `app/api/share/*` — share create, gated `preview` (≤15s), paywalled `download` (402 when locked)
+- `app/api/stripe/webhook` — signature-verified; `song_unlock` → unlock, subscription events → venues
+- `lib/public-song.ts` — **paywall gate**: strips all media URLs from a locked song's client payload
+- `proxy.ts` — Next 16 proxy (optimistic `/admin/*` presence gate; real auth in `lib/admin-auth.ts`)
 
-To learn more about Next.js, take a look at the following resources:
+## Launch
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See `GO-LIVE-CHECKLIST.md` for the ordered path to production (secret rotation,
+Vercel Pro, Stripe live products, deploy, smoke test) and `DEPLOY-COMPLIANCE.md`
+for the legal/compliance track.
