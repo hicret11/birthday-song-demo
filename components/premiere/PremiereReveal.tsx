@@ -38,6 +38,15 @@ export type PremiereLabels = {
   replay?: string;
   /** Producer-credit prefix, rendered before the bold director name. */
   director?: string;
+  /** Overline on the director's closing note card. */
+  noteLabel?: string;
+  /** Play/pause labels for the recorded voice note. */
+  notePlay?: string;
+  notePause?: string;
+  /** Credits-roll row labels. */
+  starringLabel?: string;
+  producedByLabel?: string;
+  withLoveLabel?: string;
 };
 
 export type PremiereRevealProps = {
@@ -49,6 +58,18 @@ export type PremiereRevealProps = {
   audioSrc?: string;
   /** Optional song title shown under the name. */
   songTitle?: string;
+  /**
+   * The director's private message, revealed as the CLOSING beat once the
+   * curtains are open. `text` shows on-screen; `voiceUrl` adds a play button
+   * for the recorded spoken message (played on demand, after the song). Either
+   * or both may be present; omit to hide the note entirely.
+   */
+  directorNote?: { text?: string; voiceUrl?: string; voiceDurationSec?: number };
+  /**
+   * Names credited in the closing "credits roll" (e.g. crowd contributors).
+   * Shown under a "With love from" row. Omit/empty to hide that row.
+   */
+  contributors?: string[];
   /** Continue CTA label + handler (e.g. "Send it to them"). */
   continueLabel?: string;
   onContinue?: () => void;
@@ -75,6 +96,8 @@ export default function PremiereReveal({
   directorName,
   audioSrc,
   songTitle,
+  directorNote,
+  contributors,
   continueLabel = "Отправить им",
   onContinue,
   labels,
@@ -83,6 +106,7 @@ export default function PremiereReveal({
 }: PremiereRevealProps) {
   const [phase, setPhase] = useState<Phase>("closed");
   const [playing, setPlaying] = useState(false);
+  const [playingNote, setPlayingNote] = useState(false);
 
   // Resolve copy once, falling back to the Russian defaults for the /premiere
   // preview (the real flow always passes localized `labels`).
@@ -97,9 +121,20 @@ export default function PremiereReveal({
     pause: labels?.pause ?? "⏸ Пауза",
     replay: labels?.replay ?? "▶ Играть снова",
     director: labels?.director ?? "Продюсер вечера —",
+    noteLabel: labels?.noteLabel ?? "A message from the director",
+    notePlay: labels?.notePlay ?? "▶ Play their message",
+    notePause: labels?.notePause ?? "⏸ Pause",
+    starringLabel: labels?.starringLabel ?? "Starring",
+    producedByLabel: labels?.producedByLabel ?? "Produced & directed by",
+    withLoveLabel: labels?.withLoveLabel ?? "With love from",
   };
 
+  const noteText = directorNote?.text?.trim();
+  const noteVoiceUrl = directorNote?.voiceUrl?.trim();
+  const contributorNames = (contributors ?? []).map((n) => n.trim()).filter(Boolean);
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const noteAudioRef = useRef<HTMLAudioElement | null>(null);
   const previewFiredRef = useRef(false); // one-shot guard for onPreviewLimit
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const confettiRef = useRef<HTMLCanvasElement | null>(null);
@@ -280,6 +315,30 @@ export default function PremiereReveal({
     }
   }, [previewSeconds]);
 
+  // The director's recorded closing message — a plain, separate <audio>, played
+  // on demand (kept out of the Web Audio graph so it never affects the song's
+  // visualizer). Pauses the song first so they don't overlap.
+  const toggleNote = useCallback(async () => {
+    const note = noteAudioRef.current;
+    if (!note) return;
+    if (note.paused) {
+      const song = audioRef.current;
+      if (song && !song.paused) {
+        song.pause();
+        setPlaying(false);
+      }
+      try {
+        await note.play();
+        setPlayingNote(true);
+      } catch {
+        // playback blocked — no-op
+      }
+    } else {
+      note.pause();
+      setPlayingNote(false);
+    }
+  }, []);
+
   useEffect(() => {
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -397,6 +456,45 @@ export default function PremiereReveal({
                 {L.director} <b className="text-amber-100">{director}</b> 🎬
               </p>
             )}
+
+            {/* The director's private note — the closing beat. Text and/or a
+                recorded voice message played on demand. */}
+            {(noteText || noteVoiceUrl) && (
+              <div className="mx-auto mt-6 max-w-[380px] rounded-2xl border border-amber-300/30 bg-amber-300/[0.06] px-4 py-3 text-left">
+                <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-amber-300">
+                  {L.noteLabel}
+                </p>
+                {noteText && (
+                  <p className="mt-1.5 text-[15px] italic leading-relaxed text-purple-50">
+                    “{noteText}”
+                  </p>
+                )}
+                {noteVoiceUrl && (
+                  <button
+                    type="button"
+                    onClick={toggleNote}
+                    className="mt-2 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-bold text-purple-50 transition hover:border-pink-400"
+                  >
+                    {playingNote ? L.notePause : L.notePlay}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Credits roll — starring, produced by, and the cast. */}
+            <div className="mx-auto mt-6 max-w-[380px] border-t border-white/10 pt-4">
+              <CreditRow label={L.starringLabel} value={star} />
+              {director && <CreditRow label={L.producedByLabel} value={director} />}
+              {contributorNames.length > 0 && (
+                <CreditRow
+                  label={L.withLoveLabel}
+                  value={
+                    contributorNames.slice(0, 8).join(" · ") +
+                    (contributorNames.length > 8 ? " …" : "")
+                  }
+                />
+              )}
+            </div>
           </div>
         </div>
 
@@ -435,6 +533,17 @@ export default function PremiereReveal({
             }}
           />
         )}
+
+        {/* hidden director-note audio (played on demand, not visualized) */}
+        {noteVoiceUrl && (
+          <audio
+            ref={noteAudioRef}
+            src={noteVoiceUrl}
+            preload="none"
+            onEnded={() => setPlayingNote(false)}
+            onPause={() => setPlayingNote(false)}
+          />
+        )}
       </div>
 
       {/* Continue */}
@@ -448,6 +557,17 @@ export default function PremiereReveal({
           {continueLabel}
         </button>
       )}
+    </div>
+  );
+}
+
+function CreditRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="mt-2 first:mt-0 text-center">
+      <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-purple-200/50">
+        {label}
+      </p>
+      <p className="mt-0.5 text-[15px] font-extrabold text-purple-50">{value}</p>
     </div>
   );
 }

@@ -1,0 +1,914 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sing My Birthday — The Production Studio (flow v4)</title>
+<style>
+  :root{
+    --noir:#0d0717; --noir2:#180d29; --plum:#2a1745;
+    --gold:#ffcf6b; --gold2:#ffb03a; --pink:#ff6fae; --pink2:#ff3d90;
+    --jade:#4be3b0; --cream:#fff7ec; --ink:#f4e9ff; --soft:#c9b8e6; --faint:#8f7fb0;
+    --line:rgba(255,255,255,.12); --glass:rgba(255,255,255,.055);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    font-family:"Segoe UI",-apple-system,Roboto,Helvetica,Arial,sans-serif;
+    background:radial-gradient(900px 520px at 50% -8%, #3a1f5e 0%, var(--noir2) 46%, var(--noir) 100%) fixed;
+    color:var(--ink); min-height:100%; overflow-x:hidden; -webkit-font-smoothing:antialiased;
+  }
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background:
+      radial-gradient(360px 360px at 50% -6%, rgba(255,207,107,.16), transparent 62%),
+      radial-gradient(340px 340px at 88% 14%, rgba(255,111,174,.14), transparent 66%),
+      radial-gradient(340px 340px at 10% 30%, rgba(123,63,158,.20), transparent 66%);}
+  .stage{max-width:500px;margin:0 auto;padding:20px 18px 72px;position:relative;z-index:1}
+  .brandbar{display:flex;align-items:center;gap:9px;justify-content:center;margin:4px 0 16px;opacity:.92}
+  .brandbar .dot{width:9px;height:9px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--pink))}
+  .brandbar b{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--soft);font-weight:800}
+
+  .screen{display:none;animation:rise .5s cubic-bezier(.2,.8,.2,1) both}
+  .screen.active{display:block}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+  h1{font-size:28px;line-height:1.14;margin:.15em 0 .3em;font-weight:800;letter-spacing:-.01em}
+  h1 .accent{background:linear-gradient(120deg,var(--gold),var(--pink) 55%,var(--pink2));
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  p.lead{font-size:15px;line-height:1.55;color:var(--soft);margin:0 0 18px}
+
+  .kicker{display:inline-block;font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);font-weight:800;margin-bottom:8px}
+  .badge{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(255,207,107,.4);
+    background:linear-gradient(120deg,rgba(255,207,107,.16),rgba(255,111,174,.16));color:var(--gold);
+    padding:8px 15px;border-radius:999px;font-size:11.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin-bottom:14px}
+
+  .card{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));
+    border:1px solid var(--line);border-radius:22px;padding:20px;margin:14px 0;backdrop-filter:blur(8px)}
+  label{display:block;font-size:13px;color:var(--soft);margin:0 0 7px;font-weight:600}
+  .opt{color:var(--faint);font-weight:500}
+  input,textarea,select{width:100%;background:rgba(0,0,0,.26);border:1px solid var(--line);border-radius:14px;
+    color:var(--cream);font-size:16px;padding:13px 14px;outline:none;font-family:inherit;transition:border-color .15s;-webkit-appearance:none;appearance:none}
+  select{background-image:linear-gradient(45deg,transparent 50%,var(--soft) 50%),linear-gradient(135deg,var(--soft) 50%,transparent 50%);
+    background-position:calc(100% - 18px) 20px,calc(100% - 12px) 20px;background-size:6px 6px,6px 6px;background-repeat:no-repeat;cursor:pointer}
+  select option{background:#1a0f2c;color:var(--cream)}
+  input:focus,textarea:focus,select:focus{border-color:var(--pink)}
+  ::placeholder{color:#a596c4;opacity:1}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;width:100%;
+    border:none;border-radius:16px;padding:15px 20px;font-size:16px;font-weight:800;cursor:pointer;
+    background:linear-gradient(120deg,var(--gold2),var(--pink2));color:#2a0f22;
+    box-shadow:0 14px 34px -12px rgba(255,80,150,.6);transition:transform .12s ease,box-shadow .12s ease}
+  .btn:hover{transform:translateY(-2px);box-shadow:0 20px 44px -14px rgba(255,80,150,.7)}
+  .btn:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+  .btn.ghost{background:transparent;color:var(--soft);border:1px solid var(--line);box-shadow:none;font-weight:700}
+  .btn.ghost:hover{border-color:var(--pink);transform:none}
+  .btn.gold{background:linear-gradient(120deg,var(--gold),var(--gold2));color:#3a2400}
+  .row{display:flex;gap:10px;margin-top:10px}
+
+  .chips{display:flex;flex-wrap:wrap;gap:9px;margin:4px 0 2px}
+  .chip{border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--ink);
+    border-radius:999px;padding:10px 15px;font-size:14px;cursor:pointer;font-weight:600;transition:.15s}
+  .chip:hover{border-color:var(--pink);transform:translateY(-1px)}
+  .chip.sel{background:linear-gradient(120deg,var(--gold),var(--pink));color:#2a0f22;border-color:transparent}
+
+  /* MARQUEE — name in lights */
+  .marquee-sign{position:relative;border-radius:16px;padding:20px 18px;text-align:center;margin:6px 0 4px;
+    background:rgba(0,0,0,.30);border:2px solid rgba(255,207,107,.45);
+    box-shadow:0 0 46px -10px rgba(255,180,90,.45), inset 0 0 34px rgba(255,180,90,.09)}
+  .marquee-sign::before,.marquee-sign::after{content:"";position:absolute;left:10px;right:10px;height:7px;
+    background-image:radial-gradient(circle,#ffde8f 0 2.6px,transparent 3px);background-size:16px 7px;
+    background-repeat:repeat-x;opacity:.9;filter:drop-shadow(0 0 3px rgba(255,207,107,.9))}
+  .marquee-sign::before{top:6px}.marquee-sign::after{bottom:6px}
+  .m-top{font-size:10.5px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);font-weight:800;margin:2px 0 8px}
+  .m-name{font-weight:900;letter-spacing:.06em;font-size:32px;line-height:1.05;text-transform:uppercase;color:#fff;
+    text-shadow:0 0 12px rgba(255,207,107,.85),0 0 30px rgba(255,111,174,.55);min-height:34px;word-break:break-word}
+  .m-name.empty{color:#5a4a78;text-shadow:none}
+  .m-bot{font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--soft);font-weight:700;margin-top:8px}
+
+  /* producer */
+  .producer{display:flex;gap:13px;align-items:flex-start;margin:2px 0 14px}
+  .avatar{flex:0 0 auto;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-size:23px;
+    background:radial-gradient(circle at 30% 30%,#ffe6b0,#ff8ac0);box-shadow:0 8px 22px -8px rgba(255,120,180,.7)}
+  .bubble{background:rgba(255,255,255,.07);border:1px solid var(--line);border-radius:6px 18px 18px 18px;
+    padding:12px 15px;font-size:15px;line-height:1.5;color:var(--ink);min-height:22px}
+  .bubble b{color:var(--gold)}.bubble i{color:var(--pink);font-style:normal}
+  .cursor{display:inline-block;width:8px;height:16px;background:var(--gold);margin-left:1px;vertical-align:-2px;animation:blink .9s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+
+  .reel{display:flex;gap:6px;justify-content:center;margin:0 0 16px}
+  .reel i{height:4px;width:20px;border-radius:3px;background:rgba(255,255,255,.14);transition:.3s}
+  .reel i.on{background:linear-gradient(120deg,var(--gold),var(--pink))}
+
+  /* dossier / call sheet */
+  .dossier{border:1px dashed var(--line);border-radius:16px;padding:12px 14px;margin:14px 0 0;background:rgba(255,255,255,.02)}
+  .dossier .dh{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:800;margin-bottom:8px}
+  .dossier ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+  .dossier li{font-size:13.5px;color:var(--soft);display:flex;gap:8px;opacity:.32;transition:.35s}
+  .dossier li.on{opacity:1;color:var(--ink)}
+  .dossier li b{color:var(--gold);font-weight:700}
+  .dossier li .k{color:var(--faint);min-width:86px;display:inline-block;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em}
+
+  .tag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.06em;padding:4px 9px;border-radius:8px;
+    background:rgba(75,227,176,.14);color:var(--jade);border:1px solid rgba(75,227,176,.3);margin-bottom:10px}
+  .tag.pink{background:rgba(255,111,174,.14);color:var(--pink);border-color:rgba(255,111,174,.3)}
+  .tag.gold{background:rgba(255,207,107,.14);color:var(--gold);border-color:rgba(255,207,107,.3)}
+  .note{font-size:13px;color:var(--soft);line-height:1.5}
+  .ok{font-size:13px;color:var(--jade);font-weight:700}
+  .spark{font-size:12px;color:var(--faint);margin-top:9px;cursor:pointer}
+  .spark span{color:var(--pink);text-decoration:underline}
+
+  .lyric{font-size:15px;line-height:1.7;color:var(--cream);white-space:pre-wrap;min-height:92px;border-left:2px solid var(--gold);padding-left:14px;margin:2px 0 4px}
+  .lyric .dim{color:var(--faint)}
+  .avatars{display:flex;gap:-8px;margin-top:12px}
+  .av2{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:800;color:#2a0f22;
+    margin-left:-8px;border:2px solid var(--noir2);background:linear-gradient(135deg,#ffd98a,#ff8ac0)}
+  .av2:first-child{margin-left:0}
+
+  /* countdown */
+  .count{display:flex;gap:8px;justify-content:center;margin:10px 0 2px}
+  .count div{background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:12px;padding:8px 12px;min-width:56px;text-align:center}
+  .count b{display:block;font-size:22px;font-weight:900;color:var(--gold);line-height:1}
+  .count span{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--faint)}
+
+  /* THEATRE */
+  .theatre{position:relative;border-radius:24px;overflow:hidden;min-height:460px;
+    background:radial-gradient(600px 300px at 50% 0%,#3d2160,#160b26 70%);border:1px solid var(--line);display:grid;place-items:center;text-align:center}
+  .curtain{position:absolute;top:0;bottom:0;width:52%;z-index:6;transition:transform 1.6s cubic-bezier(.7,0,.3,1);
+    background:repeating-linear-gradient(90deg,#7a1533,#7a1533 14px,#5e0f27 14px,#5e0f27 28px);box-shadow:inset -20px 0 40px rgba(0,0,0,.4)}
+  .curtain.l{left:0}.curtain.r{right:0;transform:scaleX(-1)}
+  .theatre.open .curtain.l{transform:translateX(-102%)}
+  .theatre.open .curtain.r{transform:translateX(102%) scaleX(-1)}
+  .spot{position:absolute;top:-40px;left:50%;transform:translateX(-50%);width:300px;height:300px;background:radial-gradient(circle,rgba(255,207,107,.28),transparent 62%);pointer-events:none}
+  .stagewrap{padding:24px 20px;z-index:2;width:100%}
+  .m-small{font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);font-weight:800}
+  .m-star{font-size:38px;font-weight:900;margin:10px 0 2px;line-height:1.05;background:linear-gradient(120deg,#fff,#ffd98a 40%,var(--pink));-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 30px rgba(255,150,190,.25)}
+  .m-sub{font-size:12px;color:var(--soft);letter-spacing:.14em}
+  .eq{display:flex;gap:5px;justify-content:center;align-items:flex-end;height:48px;margin:16px 0 6px}
+  .eq span{width:6px;border-radius:3px;background:linear-gradient(var(--gold),var(--pink));animation:bounce 1s infinite ease-in-out}
+  @keyframes bounce{0%,100%{height:9px}50%{height:42px}}
+  .by{font-size:13px;color:var(--soft);margin-top:12px}.by b{color:var(--cream)}
+  .trailer{display:inline-flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;color:var(--gold);border:1px solid rgba(255,207,107,.3);border-radius:999px;padding:6px 13px;background:rgba(255,207,107,.08)}
+  .confetti{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:8}
+  .confetti i{position:absolute;top:-12px;width:9px;height:14px;opacity:.9;animation:fall linear forwards}
+  @keyframes fall{to{transform:translateY(560px) rotate(540deg);opacity:0}}
+
+  /* credits roll + private note */
+  .reveal{margin-top:16px}
+  .dnote{border:1px solid rgba(255,207,107,.32);background:rgba(255,207,107,.06);border-radius:18px;padding:16px 18px;text-align:left}
+  .dnote .lbl{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);font-weight:800;margin-bottom:6px}
+  .dnote .msg{font-size:15.5px;line-height:1.55;color:var(--cream);font-style:italic}
+  .credits{margin-top:14px;border-top:1px solid var(--line);padding-top:14px;text-align:center}
+  .credits .crow{margin:9px 0}
+  .credits .lab{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);font-weight:800}
+  .credits .val{font-size:16px;color:var(--cream);font-weight:800;margin-top:2px}
+  .credits .cast{font-size:14px;color:var(--soft);margin-top:2px;line-height:1.5}
+
+  /* cast items */
+  .castitem{display:flex;gap:13px;align-items:center;padding:14px;border:1px solid var(--line);border-radius:18px;margin:11px 0;background:rgba(255,255,255,.04)}
+  .castitem .em{font-size:28px;flex:0 0 auto;width:50px;height:50px;display:grid;place-items:center;border-radius:14px;background:rgba(255,255,255,.06)}
+  .castitem h3{margin:0 0 3px;font-size:15.5px}
+  .castitem .price{margin-left:auto;font-weight:800;color:var(--gold);white-space:nowrap;font-size:15px}
+  .castitem .sub{font-size:12.5px;color:var(--soft);line-height:1.45}
+  .pill{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.05em;padding:3px 8px;border-radius:7px;background:rgba(255,207,107,.14);color:var(--gold);border:1px solid rgba(255,207,107,.3);margin-left:6px}
+  .legal{font-size:11px;color:var(--faint);margin-top:8px;line-height:1.5}
+
+  /* poster keepsake */
+  .poster{border-radius:18px;overflow:hidden;border:1px solid rgba(255,207,107,.3);
+    background:linear-gradient(180deg,#241238,#160b26);padding:22px 18px;text-align:center;position:relative}
+  .poster::before{content:"";position:absolute;inset:0;background:radial-gradient(240px 160px at 50% 0%,rgba(255,207,107,.22),transparent 65%);pointer-events:none}
+  .poster .pk{font-size:10.5px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);font-weight:800}
+  .poster .pt{font-size:26px;font-weight:900;margin:8px 0 4px;text-transform:uppercase;letter-spacing:.04em;
+    background:linear-gradient(120deg,#fff,#ffd98a 45%,var(--pink));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .poster .pmeta{font-size:12.5px;color:var(--soft);line-height:1.6;letter-spacing:.03em}
+  .poster .pdir{font-size:13px;color:var(--cream);font-weight:800;margin-top:8px}
+
+  /* recipient phone + ticket */
+  .phone{max-width:300px;margin:8px auto;border-radius:36px;border:8px solid #251838;background:#0b0614;overflow:hidden;
+    box-shadow:0 24px 60px -22px rgba(0,0,0,.85);position:relative}
+  .phone .notch{height:24px;display:flex;justify-content:center;align-items:flex-start}
+  .phone .notch::after{content:"";width:96px;height:16px;background:#251838;border-radius:0 0 12px 12px}
+  .phone .scr{padding:14px 14px 20px;min-height:452px;position:relative;display:flex;flex-direction:column}
+  .lock{flex:1;display:flex;flex-direction:column;text-align:center}
+  .lock .time{font-size:46px;font-weight:800;color:#fff;margin:18px 0 2px;letter-spacing:.02em}
+  .lock .date{font-size:12.5px;color:var(--soft);margin-bottom:auto}
+  .notif{background:rgba(255,255,255,.09);border:1px solid var(--line);border-radius:16px;padding:12px 13px;text-align:left;cursor:pointer;transition:.15s;
+    animation:notifIn .6s ease both}
+  .notif:hover{background:rgba(255,255,255,.14);transform:translateY(-1px)}
+  @keyframes notifIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+  .notif .app{font-size:10.5px;color:var(--gold);font-weight:800;text-transform:uppercase;letter-spacing:.07em;display:flex;gap:6px;align-items:center}
+  .notif .txt{font-size:13px;color:var(--cream);margin-top:5px;line-height:1.42}
+  .swipe{font-size:11px;color:var(--faint);text-align:center;margin-top:12px;letter-spacing:.04em}
+  .ticket{position:relative;background:linear-gradient(135deg,#2a1745,#160b26);border:1px solid rgba(255,207,107,.4);border-radius:16px;padding:22px 18px;text-align:center;margin:6px 0}
+  .ticket .adm{font-size:10.5px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);font-weight:800}
+  .ticket .tt{font-size:22px;font-weight:900;margin:9px 0 6px;text-transform:uppercase;line-height:1.05;background:linear-gradient(120deg,#fff,#ffd98a 45%,var(--pink));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .ticket .divider{border-top:1.5px dashed rgba(255,207,107,.35);margin:12px -18px;position:relative}
+  .ticket .tm{font-size:12px;color:var(--soft);letter-spacing:.05em;line-height:1.7}
+  .ticket .tm b{color:var(--cream)}
+  .cam{margin:6px auto;width:100%;max-width:260px;aspect-ratio:3/4;border-radius:18px;border:1px solid var(--line);
+    background:radial-gradient(200px 160px at 50% 40%,rgba(255,207,107,.14),rgba(255,111,174,.08) 70%,transparent),#160b26;
+    display:grid;place-items:center;position:relative;overflow:hidden}
+  .cam .face{font-size:64px;filter:drop-shadow(0 0 20px rgba(255,180,90,.4))}
+  .cam .rec{position:absolute;top:10px;left:10px;font-size:10.5px;color:#ff6fae;font-weight:800;display:flex;gap:5px;align-items:center}
+  .cam .rec::before{content:"";width:8px;height:8px;border-radius:50%;background:#ff3d90;animation:pulse 1.1s infinite}
+  /* pricing tiers */
+  .tier{position:relative;cursor:pointer;border:1px solid var(--line);border-radius:20px;padding:16px 18px;margin:14px 0;background:rgba(255,255,255,.03);transition:.15s}
+  .tier:hover{border-color:var(--pink)}
+  .tier.sel{border-color:var(--gold);background:rgba(255,207,107,.07);box-shadow:0 0 30px -12px rgba(255,180,90,.5)}
+  .tier .th{display:flex;align-items:baseline;gap:8px}
+  .tier .tn{font-size:16px;font-weight:800;color:var(--cream)}
+  .tier .tp{margin-left:auto;font-size:17px;font-weight:900;color:var(--gold);white-space:nowrap}
+  .tier .td{font-size:12.5px;color:var(--soft);line-height:1.5;margin-top:6px}
+  .ribbon{position:absolute;top:-10px;left:18px;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;background:linear-gradient(120deg,var(--gold),var(--pink));color:#2a0f22;padding:3px 10px;border-radius:8px}
+  .tick{position:absolute;top:14px;right:16px;width:20px;height:20px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-size:12px;color:transparent}
+  .tier.sel .tick{background:linear-gradient(120deg,var(--gold),var(--pink));border-color:transparent;color:#2a0f22}
+  .anchor{display:flex;align-items:center;gap:12px;border:1px dashed var(--line);border-radius:16px;padding:12px 14px;margin-top:4px;background:rgba(255,255,255,.02)}
+  .anchor .em{font-size:22px}.anchor .price{margin-left:auto;color:var(--gold);font-weight:800;font-size:14px;white-space:nowrap}
+  .anchor .sub{font-size:12.5px;color:var(--soft);line-height:1.4}
+  .finale{text-align:center}
+  .whisper{font-size:12.5px;color:var(--soft);margin-top:16px;line-height:1.55}
+  .foot{text-align:center;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:#6f5f92;margin-top:22px}
+
+  /* voice record */
+  .recbox{display:flex;align-items:center;gap:12px;background:rgba(0,0,0,.26);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+  .recbox.live{border-color:rgba(255,61,144,.5)}
+  .recbtn{flex:0 0 auto;width:42px;height:42px;border-radius:50%;border:none;cursor:pointer;font-size:16px;color:#2a0f22;
+    background:linear-gradient(120deg,var(--gold),var(--pink));display:grid;place-items:center}
+  .recbtn.stop{background:linear-gradient(120deg,#ff6fae,#ff3d90);color:#fff;animation:pulse 1.1s infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,61,144,.5)}50%{box-shadow:0 0 0 8px rgba(255,61,144,0)}}
+  .wave{display:flex;align-items:center;gap:3px;height:28px;flex:1}
+  .wave span{width:3px;border-radius:2px;background:linear-gradient(var(--gold),var(--pink));height:6px}
+  .wave.live span{animation:vb .7s infinite ease-in-out}
+  .wave.play span{animation:vb .5s ease-in-out}
+  @keyframes vb{0%,100%{height:5px}50%{height:24px}}
+  .rectime{font-size:13px;color:var(--soft);font-variant-numeric:tabular-nums;font-weight:700}
+  @media (prefers-reduced-motion: reduce){
+    .wave span{animation:none!important}
+    .eq span{animation:none;height:20px}
+    .confetti{display:none}
+    .cursor{animation:none}
+    .screen{animation:none}
+    .curtain{transition:none}
+  }
+  #wipe{position:fixed;inset:0;z-index:60;pointer-events:none;display:flex}
+  #wipe .half{width:50%;height:100%;background:linear-gradient(180deg,#2a1745,#0d0717);transform:scaleX(0);transition:transform .34s ease}
+  #wipe .half.l{transform-origin:left}#wipe .half.r{transform-origin:right}
+  #wipe.play .half{transform:scaleX(1)}
+</style>
+</head>
+<body>
+<div id="wipe"><div class="half l"></div><div class="half r"></div></div>
+
+<div class="stage">
+  <div class="brandbar"><span class="dot"></span><b>Sing My Birthday · The Production Studio</b></div>
+
+  <!-- 0 — OPENING -->
+  <section class="screen active" id="s0">
+    <span class="badge">🎬 You're the director tonight</span>
+    <h1>Let's make someone the <span class="accent">main character</span> of their birthday.</h1>
+    <p class="lead">Not a form. Not a song generator. Step into the director's chair — we build the whole show together and end on a premiere made only for them.</p>
+
+    <div class="marquee-sign">
+      <div class="m-top">Now casting · one night only</div>
+      <div class="m-name empty" id="marqueeName">your star</div>
+      <div class="m-bot">★ the birthday premiere ★</div>
+    </div>
+
+    <div class="producer">
+      <div class="avatar">🎩</div>
+      <div class="bubble" id="b0">Hi, I'm <b>Milo</b>, your producer. Every show needs a star. Type their name — watch it hit the marquee.</div>
+    </div>
+    <div class="card">
+      <label>🌟 Who's the birthday star?</label>
+      <input id="name" placeholder="Their name…" oninput="nm()" />
+      <div style="height:12px"></div>
+      <label>How do we say it? <span class="opt">(optional — so the song nails it)</span></label>
+      <input id="pron" placeholder="e.g. 'sha-VON' for Siobhan" />
+    </div>
+    <button class="btn" id="go0" onclick="wipeTo(1)" disabled>Start the production →</button>
+    <div class="foot">concept prototype · click through the whole flow</div>
+  </section>
+
+  <!-- 1 — CASTING & DIRECTION (beat engine) -->
+  <section class="screen" id="s1">
+    <div class="reel" id="reel"></div>
+    <span class="kicker" id="actlabel">—</span>
+    <div class="producer">
+      <div class="avatar" id="av1">🎩</div>
+      <div class="bubble" id="b1">—</div>
+    </div>
+    <div class="card" id="beatCard"></div>
+    <div class="row">
+      <button class="btn ghost" style="flex:0 0 32%" id="back1" onclick="prevBeat()">← Back</button>
+      <button class="btn" style="flex:1" id="next1" onclick="nextBeat()">Next →</button>
+    </div>
+    <div class="dossier">
+      <div class="dh">🎬 The call sheet</div>
+      <ul>
+        <li id="d-star"><span class="k">Star</span><b id="v-star">—</b></li>
+        <li id="d-cred"><span class="k">Directed by</span><span id="v-cred">—</span></li>
+        <li id="d-moment"><span class="k">Opening scene</span><span id="v-moment">—</span></li>
+        <li id="d-note"><span class="k">Director's note</span><span id="v-note">—</span></li>
+        <li id="d-feel"><span class="k">The feeling</span><span id="v-feel">—</span></li>
+        <li id="d-score"><span class="k">The score</span><span id="v-score">—</span></li>
+        <li id="d-lang"><span class="k">Language</span><span id="v-lang">—</span></li>
+        <li id="d-date"><span class="k">Curtain rises</span><span id="v-date">—</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 2 — THE STUDIO / WAIT -->
+  <section class="screen" id="s2">
+    <div class="reel full"></div>
+    <span class="kicker">Act 3 · In the studio</span>
+    <h1>Milo is recording <span class="accent" id="n2">their</span> song…</h1>
+    <div class="producer">
+      <div class="avatar">🎛️</div>
+      <div class="bubble">Give me ~a minute to mix. While I do — <b>don't just wait</b>. This is where a song becomes their <b>whole night</b>:</div>
+    </div>
+    <div class="card">
+      <span class="tag gold">writing now</span>
+      <label>The chorus, coming to life</label>
+      <div class="lyric" id="lyric"><span class="dim">…</span></div>
+    </div>
+    <div class="card">
+      <span class="tag">Scene reel · your footage</span>
+      <label>Add 3–5 photos of your moments — they become the scenes of the premiere</label>
+      <button class="btn gold" onclick="fakePhotos(this)">📷 Add photos</button>
+      <div class="ok" id="photoOk" style="margin-top:10px;display:none">✓ 4 photos added — they'll roll in the premiere.</div>
+    </div>
+    <div class="card">
+      <span class="tag pink">the crowd magic</span>
+      <label>Secretly cast their people</label>
+      <p class="note" style="margin:0 0 12px">Send one secret link to their friends and family. Each adds a line, a voice note, or a photo — Milo weaves <b>everyone</b> into the <b>one</b> song. They feel loved by their whole circle, all at once.</p>
+      <button class="btn ghost" onclick="fakeInvite(this)">🔗 Copy the secret cast link</button>
+      <div id="inviteOk" style="margin-top:12px;display:none">
+        <div class="ok">✓ Link copied · your cast is arriving…</div>
+        <div class="avatars"><span class="av2">G</span><span class="av2">A</span><span class="av2">S</span><span class="av2" style="background:rgba(255,255,255,.12);color:var(--soft)">+</span></div>
+        <p class="note" id="castNote" style="margin:8px 0 0">Grandma, Alex and Sam have added their lines 💫</p>
+      </div>
+    </div>
+    <button class="btn" onclick="premiere()">✨ The premiere is ready — open the curtain</button>
+  </section>
+
+  <!-- 3 — THE PREMIERE (peak) -->
+  <section class="screen" id="s3">
+    <div class="reel full"></div>
+    <span class="kicker" style="display:block;text-align:center">Act 4 · The Premiere</span>
+    <div class="theatre" id="theatre">
+      <div class="confetti" id="confetti"></div>
+      <div class="spot"></div>
+      <div class="curtain l"></div><div class="curtain r"></div>
+      <div class="stagewrap">
+        <div class="m-small">One night only · made only for them</div>
+        <div class="m-star" id="starName">THE STAR</div>
+        <div class="m-sub">…and a song no one else in the world has</div>
+        <div class="eq" id="eq"></div>
+        <div class="by">Produced by <b id="byName">you</b> 🎬</div>
+        <div class="trailer">▶ Playing the 15-second trailer…</div>
+      </div>
+    </div>
+
+    <div class="reveal" id="reveal" style="display:none">
+      <div class="dnote">
+        <div class="lbl" id="dnoteLbl">🎬 A message from the director — revealed at the end</div>
+        <div class="msg" id="dnoteMsg">—</div>
+      </div>
+      <div class="credits">
+        <div class="crow"><div class="lab">Starring</div><div class="val" id="cStar">THE STAR</div></div>
+        <div class="crow"><div class="lab">Produced &amp; directed by</div><div class="val" id="cDir">you</div></div>
+        <div class="crow" id="cCastRow"><div class="lab">With love from the cast</div><div class="cast" id="cCast">Grandma · Alex · Sam</div></div>
+      </div>
+    </div>
+
+    <p class="note" style="text-align:center;margin:16px 6px 0">The one moment we build the whole flow toward — their name in lights, your note as the closing line, the whole cast in the credits. Not "a player appeared." A <b>premiere</b>.</p>
+    <button class="btn" style="margin-top:16px" onclick="wipeTo(4)">🎭 Release the full premiere</button>
+    <div style="height:10px"></div>
+    <button class="btn ghost" onclick="wipeTo(5)">Add the live cast first →</button>
+  </section>
+
+  <!-- 4 — UNLOCK (3-tier ladder + anchor) -->
+  <section class="screen" id="s4">
+    <div class="reel full"></div>
+    <span class="kicker">Act 4 · Raise the full curtain</span>
+    <h1>That was the <span class="accent">trailer</span>. Release the whole show.</h1>
+    <p class="lead">Pick how big <b id="n4">their</b> premiere is. Every tier opens right on their birthday, with their name in lights and your director credit in the titles.</p>
+
+    <div class="tier" id="tier-Premiere" onclick="selectTier('Premiere')">
+      <div class="tick">✓</div>
+      <div class="th"><span class="tn">The Premiere</span><span class="tp">$14.99</span></div>
+      <div class="td">Full song · premiere reveal page · MP3 keepsake · your director credit · scheduled delivery.</div>
+    </div>
+
+    <div class="tier sel" id="tier-Deluxe" onclick="selectTier('Deluxe')">
+      <div class="ribbon">Most chosen</div>
+      <div class="tick">✓</div>
+      <div class="th"><span class="tn">The Deluxe Premiere</span><span class="tp">$24.99</span></div>
+      <div class="td">Everything in The Premiere <b>+ a photo-scene film</b> of the show, ready to project at the party.</div>
+    </div>
+
+    <div class="tier" id="tier-Production" onclick="selectTier('Production')">
+      <div class="tick">✓</div>
+      <div class="th"><span class="tn">The Full Production</span><span class="tp">$44.99</span></div>
+      <div class="td">Everything in Deluxe <b>+ a call from Zoltar</b> (AI character) <b>+ reaction-capture</b> — their face at the reveal, filmed and sent back to you — plus priority delivery.</div>
+    </div>
+
+    <div class="anchor">
+      <span class="em">🎸</span>
+      <div><b style="color:var(--cream);font-size:14px">Add a live musician at their door</b><div class="sub">A performer sings their song in person. Book from the cast.</div></div>
+      <span class="price">from $120</span>
+    </div>
+
+    <button class="btn" style="margin-top:16px" id="releaseBtn" onclick="wipeTo(5)">🎬 Release the Deluxe Premiere — $24.99 →</button>
+    <div style="height:10px"></div>
+    <button class="btn ghost" onclick="wipeTo(5)">Add the live cast →</button>
+  </section>
+
+  <!-- 5 — THE CAST -->
+  <section class="screen" id="s5">
+    <span class="kicker">Act 5 · The full house</span>
+    <h1>Bring the show <span class="accent">off the screen</span>.</h1>
+    <p class="lead">A director assembles a company. Book the cast and the wonder walks into their real day.</p>
+    <div class="castitem"><div class="em">🧙</div><div><h3>A call from Zoltar the wizard <span class="pill">AI voice</span></h3><div class="sub">Our own character phones them by name and wishes them happy birthday, knowing details from your story.</div></div><div class="price">$19</div></div>
+    <div class="castitem"><div class="em">🎸</div><div><h3>A live musician at the door</h3><div class="sub">A performer shows up and sings their song in person. Hand-arranged, one city at a time.</div></div><div class="price">from $120</div></div>
+    <div class="castitem"><div class="em">🦸</div><div><h3>A costumed character visit <span class="pill">cast</span></h3><div class="sub">Our original archetype hero makes an entrance at the party.</div></div><div class="price">from $90</div></div>
+    <p class="legal">⚖️ Original characters and archetypes only; every AI call is clearly disclosed as AI. We never clone celebrity voices or impersonate protected characters — out of respect for the law and for the person getting the surprise.</p>
+    <button class="btn" style="margin-top:14px" onclick="wipeTo(6)">Done — to the finale →</button>
+    <div style="height:10px"></div>
+    <button class="btn ghost" onclick="wipeTo(6)">Skip — just the premiere</button>
+  </section>
+
+  <!-- 6 — FINALE -->
+  <section class="screen" id="s6">
+    <div class="finale">
+      <span class="kicker">Finale · and this one's about you too</span>
+      <h1 style="text-align:center">You gave them something<br/>no one else could.</h1>
+      <p class="lead" style="text-align:center">Not "thanks for your order." Only someone who truly knows <b id="n6">them</b> could have produced this night. Today <b>two</b> people became the main character — the star, and the director.</p>
+
+      <div class="poster">
+        <div class="pk">Sing My Birthday presents</div>
+        <div class="pt" id="pTitle">THE STAR</div>
+        <div class="pmeta" id="pMeta">A cinematic pop production</div>
+        <div class="pdir" id="pDir">Directed by you 🎬</div>
+      </div>
+
+      <div class="card" style="margin-top:14px">
+        <label>Their curtain rises in</label>
+        <div class="count" id="count"><div><b id="cd-d">12</b><span>days</span></div><div><b id="cd-h">06</b><span>hrs</span></div><div><b id="cd-m">44</b><span>min</span></div></div>
+        <p class="note" style="text-align:center;margin:10px 0 0" id="deliverLine">We'll deliver the premiere link so it opens right on cue.</p>
+      </div>
+
+      <button class="btn" style="margin-top:14px" onclick="wipeTo(10)">👀 See how they'll receive it →</button>
+      <div style="height:10px"></div>
+      <button class="btn ghost" onclick="alert('(prototype) your director\\'s poster would download here')">⬇ Save your director's poster</button>
+      <div style="height:8px"></div>
+      <button class="btn ghost" onclick="restart()">↺ Run the prototype again</button>
+      <p class="whisper">The emotion runs both ways: the star feels a whole circle's love; the director feels the pride of an author. Conversion is a side effect of that — never the goal.</p>
+    </div>
+    <div class="foot">end of the director's flow · tap above to see the star's side</div>
+  </section>
+
+  <!-- 10 — RECIPIENT: birthday-morning notification -->
+  <section class="screen" id="s10">
+    <span class="kicker" style="display:block;text-align:center">The star's side · birthday morning</span>
+    <p class="lead" style="text-align:center">This is what <b id="r-name1">they</b> wake up to — on their birthday, right on cue.</p>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="scr">
+        <div class="lock">
+          <div class="time" id="r-time">9:00</div>
+          <div class="date" id="r-date">Happy birthday 🎉</div>
+          <div class="notif" onclick="wipeTo(11)">
+            <div class="app">🎬 Sing My Birthday</div>
+            <div class="txt" id="r-notif">Happy birthday! <b>Someone</b> produced a premiere just for you. Tap to raise the curtain.</div>
+          </div>
+          <div class="swipe">tap the notification ↑</div>
+        </div>
+      </div>
+    </div>
+    <button class="btn ghost" style="margin-top:14px" onclick="wipeTo(6)">← back to your finale</button>
+  </section>
+
+  <!-- 11 — RECIPIENT: premiere ticket -->
+  <section class="screen" id="s11">
+    <span class="kicker" style="display:block;text-align:center">The star's side · their ticket</span>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="scr">
+        <div class="ticket">
+          <div class="adm">Admit one</div>
+          <div class="tt" id="r-tt">THE STAR</div>
+          <div class="tm">One night only · made only for you</div>
+          <div class="divider"></div>
+          <div class="tm">Directed by <b id="r-dir">someone who loves you</b><br/><span id="r-when">tonight</span> · the birthday premiere</div>
+        </div>
+        <button class="btn" style="margin-top:auto" onclick="recPremiere()">🎭 Raise the curtain</button>
+      </div>
+    </div>
+    <button class="btn ghost" style="margin-top:14px" onclick="wipeTo(10)">← back</button>
+  </section>
+
+  <!-- 12 — RECIPIENT: their premiere -->
+  <section class="screen" id="s12">
+    <span class="kicker" style="display:block;text-align:center">The star's side · their premiere</span>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="scr" style="padding:0">
+        <div class="theatre" id="theatre2" style="min-height:452px;border-radius:0;border:none">
+          <div class="confetti" id="confetti2"></div>
+          <div class="spot"></div>
+          <div class="curtain l"></div><div class="curtain r"></div>
+          <div class="stagewrap">
+            <div class="m-small">Happy birthday</div>
+            <div class="m-star" id="r-star" style="font-size:32px">THE STAR</div>
+            <div class="m-sub">a song no one else in the world has</div>
+            <div class="eq" id="eq2"></div>
+            <div class="by">Produced for you by <b id="r-by">someone who loves you</b> 🎬</div>
+            <div id="r-reveal" style="display:none;margin-top:14px">
+              <div class="dnote" style="border-radius:14px">
+                <div class="lbl" id="r-noteLbl">🎬 A message, held for the end</div>
+                <div class="msg" id="r-noteMsg">—</div>
+              </div>
+              <div class="credits">
+                <div class="crow"><div class="lab">With love from</div><div class="cast" id="r-cast">Grandma · Alex · Sam</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button class="btn" style="margin-top:14px" onclick="wipeTo(13)">Then, a moment later… →</button>
+  </section>
+
+  <!-- 13 — RECIPIENT: reaction capture -->
+  <section class="screen" id="s13">
+    <span class="kicker" style="display:block;text-align:center">The star's side · the loop closes</span>
+    <p class="lead" style="text-align:center">On the Full Production, the front camera quietly catches <b id="r-name2">their</b> first reaction — and sends it back to you.</p>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="scr">
+        <div class="cam"><div class="rec">REC</div><div class="face">🥹</div></div>
+        <p class="note" style="text-align:center;margin:10px 0 0">"Wait — who made this?!"</p>
+        <button class="btn" style="margin-top:12px" onclick="this.textContent='💛 Sent to your director';this.disabled=true">💛 Send my reaction back</button>
+      </div>
+    </div>
+    <p class="whisper" style="text-align:center">Every other song app tells you to film their face yourself. Here, the show films it — and closes the circle back to the director.</p>
+    <button class="btn ghost" style="margin-top:6px" onclick="restart()">↺ Run the prototype again</button>
+  </section>
+</div>
+
+<script>
+  const S=(id)=>document.getElementById(id);
+  const state={name:"",pron:"",cred:"",moment:"",note:"",noteMode:"text",voiceRecorded:false,feel:"",score:"",lang:"",date:"",bmonth:"",bday:"",age:"",tier:"Deluxe"};
+
+  const starUpper=()=> (state.name.trim()||"the star").toUpperCase();
+  const nameOr=(w)=> state.name.trim()||w;
+  const credLabel=()=> state.cred? ("your "+state.cred.replace(/^their\s|^a\s/,"")) : "you";
+  const scoreWord=()=> (state.score||"pop").replace(/^[^\w]+/,"").toLowerCase();
+  const feelWord=()=> (state.feel||"heartfelt");
+
+  /* ---------- relationship-aware Milo ---------- */
+  const REL={
+    "their partner":   {tone:"romantic", feel:"goosebumps",        score:"🎻 Cinematic", heart:(n)=>`This one's a love story. Give me the moment you knew — the one you'd tell me about <i>${n}</i> at 2am.`},
+    "their best friend":{tone:"hype",    feel:"laughing till they cry", score:"🎤 Pop",  heart:(n)=>`Best-friend energy. Tell me the dumbest, most <i>${n}</i> thing they do that you'd never trade.`},
+    "their mom":       {tone:"tender",   feel:"nostalgic",         score:"🪕 Acoustic",  heart:(n)=>`For Mom. Give me a small thing <i>${n}</i> always does — the kind that means home.`},
+    "their dad":       {tone:"proud",    feel:"warm and held",     score:"🎸 Rock",      heart:(n)=>`For Dad. What's the <i>${n}</i> move — the phrase, the habit, the thing only he does?`},
+    "their sister":    {tone:"playful",  feel:"pure joy",          score:"🎤 Pop",       heart:(n)=>`Siblings. Give me the moment that's so <i>${n}</i> you're smiling already.`},
+    "their brother":   {tone:"playful",  feel:"pure joy",          score:"🎧 Hip-Hop",   heart:(n)=>`Siblings. What's the <i>${n}</i> thing you'd roast them for — with love?`},
+    "a friend who loves them":{tone:"warm",feel:"warm and held",   score:"🪕 Acoustic",  heart:(n)=>`Tell me one moment that's so <i>${n}</i> it could only be them.`}
+  };
+  const rel=()=> REL[state.cred]||null;
+
+  function nm(){
+    state.name=S('name').value;
+    S('go0').disabled=!state.name.trim();
+    const mn=S('marqueeName'); const v=state.name.trim();
+    mn.textContent = v? v : "your star"; mn.classList.toggle('empty',!v);
+    S('b0').innerHTML = v
+      ? `<b>${v}</b> — that belongs in lights. Let's build their show.`
+      : `Hi, I'm <b>Milo</b>, your producer. Every show needs a star. Type their name — watch it hit the marquee.`;
+  }
+
+  /* ---------- beat engine ---------- */
+  const beats=[
+    { label:"Act 1 · Casting — the credit", av:"🎬", auto:true,
+      milo:()=>`Every director gets a credit. When ${nameOr('they')} see the titles — who put on this show?`,
+      render:()=>`<label>And who are you to them?</label>
+        <div class="chips" id="c-cred">${["their partner","their best friend","their mom","their dad","their sister","their brother","a friend who loves them"].map(x=>`<span class="chip${state.cred===x?' sel':''}" onclick="pick('cred','${x}',this,true)">${x}</span>`).join("")}</div>
+        <p class="note" style="margin:10px 0 0">This becomes your credit in the premiere titles.</p>`,
+      valid:()=>!!state.cred },
+
+    { label:"Act 1 · Casting — the heart", av:"🎩",
+      milo:()=> rel()? rel().heart(nameOr('them')) : `Now the heart. Tell me <b>one</b> moment that's so <i>${nameOr('them')}</i> — I'll write it into the opening.`,
+      render:()=>`<label>A moment that makes them <i>them</i></label>
+        <textarea id="c-moment" rows="3" placeholder="the way she sings off-key in the car… how he always calls first…" oninput="typeMoment(this)">${state.moment}</textarea>
+        <div class="spark" onclick="spark()">need a spark? <span id="sparkTxt">tap for an example</span></div>`,
+      valid:()=>state.moment.trim().length>2,
+      react:()=>{ const m=state.moment.toLowerCase();
+        if(/laugh|funny|joke|sing|danc/.test(m)) return `Ha — that's the opening scene right there. 🎬`;
+        if(/kind|care|always|help|there/.test(m)) return `Oof. That's the kind of line that lands. Keeping it.`;
+        return `Perfect — one real detail beats ten adjectives. That's the soul of it.`; } },
+
+    { label:"Act 2 · Direction — your private note", av:"💌",
+      milo:()=>`One thing only you can give: a message just for ${nameOr('them')}. Write it, or say it in your own voice — I'll hold it back as the <b>closing moment</b> of the premiere.`,
+      render:()=>`<div class="chips" style="margin-bottom:12px">
+          <span class="chip ${state.noteMode==='text'?'sel':''}" onclick="setNoteMode('text')">✍️ Write it</span>
+          <span class="chip ${state.noteMode==='voice'?'sel':''}" onclick="setNoteMode('voice')">🎙️ Say it in your voice</span>
+        </div>
+        <div id="noteText" style="display:${state.noteMode==='voice'?'none':'block'}">
+          <label>A private note from you, the director <span class="opt">(they read it at the very end)</span></label>
+          <textarea id="c-note" rows="3" placeholder="I don't say it enough, but… / You've been my favorite person since…" oninput="typeNote(this)">${state.note}</textarea>
+        </div>
+        <div id="noteVoice" style="display:${state.noteMode==='voice'?'block':'none'}">
+          <label>Record a message — played aloud to close the premiere</label>
+          <div id="recWrap">${recUI()}</div>
+        </div>
+        <p class="note" style="margin:10px 0 0">This is the moment that makes <i>them</i> tear up — the reason it could only come from you.</p>`,
+      valid:()=> state.noteMode==='voice'? state.voiceRecorded : state.note.trim().length>2 },
+
+    { label:"Act 2 · Direction — the feeling", av:"🎭", auto:true,
+      milo:()=> rel()? `For ${state.cred}, I'd lean <b>${rel().feel}</b> — but you know them. When the song ends, how should ${nameOr('they')} feel?` : `Every great scene lands one feeling. When the song ends, how should ${nameOr('they')} feel?`,
+      render:()=>`<label>The feeling to leave them with ${rel()?`<span class="opt">· ✨ Milo suggests ${rel().feel}</span>`:''}</label>
+        <div class="chips" id="c-feel">${["goosebumps","laughing till they cry","warm and held","cinematic & epic","nostalgic","pure joy"].map(x=>`<span class="chip${state.feel===x?' sel':''}" onclick="pick('feel','${x}',this,true)">${x}</span>`).join("")}</div>`,
+      valid:()=>!!state.feel },
+
+    { label:"Act 2 · Direction — the score", av:"🎼", auto:true,
+      milo:()=> rel()? `${rel().score.replace(/^[^\w]+/,'')} tends to fit ${state.cred} — your call though. What's the score?` : `And the sound of their night — what's the score?`,
+      render:()=>`<label>Pick the soundtrack ${rel()?`<span class="opt">· ✨ Milo suggests ${rel().score}</span>`:''}</label>
+        <div class="chips" id="c-score">${["🎤 Pop","🎷 R&B","🎸 Rock","🎹 Jazz","🎧 Hip-Hop","🎛️ Electronic","🪕 Acoustic","🎻 Cinematic"].map(x=>`<span class="chip${state.score===x?' sel':''}" onclick="pick('score','${x}',this,true)">${x}</span>`).join("")}</div>`,
+      valid:()=>!!state.score },
+
+    { label:"Act 2 · Direction — the language", av:"🌍", auto:true,
+      milo:()=>`What language should ${nameOr('they')} hear their song in?`,
+      render:()=>`<label>Sing it in</label>
+        <div class="chips" id="c-lang">${["English","Spanish","Turkish","French","Arabic","Hindi","Russian"].map(x=>`<span class="chip${state.lang===x?' sel':''}" onclick="pick('lang','${x}',this,true)">${x}</span>`).join("")}</div>`,
+      valid:()=>!!state.lang },
+
+    { label:"Act 2 · Direction — the premiere date", av:"📅",
+      milo:()=>`Last call. When does ${nameOr('their')} birthday land? I'll hold the premiere and release it right on the day.`,
+      render:()=>{
+        const months=["January","February","March","April","May","June","July","August","September","October","November","December"];
+        const mopt=`<option value="" ${state.bmonth?'':'selected'} disabled>Month</option>`+months.map((m,i)=>`<option value="${i+1}" ${String(state.bmonth)===String(i+1)?'selected':''}>${m}</option>`).join("");
+        let dopt=`<option value="" ${state.bday?'':'selected'} disabled>Day</option>`; for(let d=1;d<=31;d++) dopt+=`<option value="${d}" ${String(state.bday)===String(d)?'selected':''}>${d}</option>`;
+        return `<label>Their birthday <span class="opt">(just the day — we find the next one)</span></label>
+        <div style="display:flex;gap:10px">
+          <select id="c-month" style="flex:1.4" onchange="setDatePart()">${mopt}</select>
+          <select id="c-day" style="flex:1" onchange="setDatePart()">${dopt}</select>
+        </div>
+        <div style="height:14px"></div>
+        <label>How old are they turning? <span class="opt">(optional — Milo can weave it in)</span></label>
+        <input id="c-age" type="number" inputmode="numeric" min="1" max="120" placeholder="e.g. 30" value="${state.age||''}" oninput="typeAge(this)" />
+        <p class="note" id="dateHint" style="margin:12px 0 0">${dateHintText()}</p>`;
+      },
+      valid:()=>!!state.bmonth && !!state.bday }
+  ];
+  let bi=0;
+
+  function buildReel(){ const r=S('reel'); r.innerHTML=beats.map((_,i)=>`<i class="${i<=bi?'on':''}"></i>`).join(""); }
+  function pick(key,val,el,auto){
+    state[key]=val;
+    if(key==='cred' && rel()){ state.feel=state.feel||rel().feel; state.score=state.score||rel().score; }
+    el.parentNode.querySelectorAll('.chip').forEach(c=>c.classList.remove('sel'));
+    el.classList.add('sel'); syncDossier(); refreshNav();
+    if(auto) setTimeout(()=>{ if(beats[bi].valid()) nextBeat(); }, 260);
+  }
+  function typeMoment(el){ state.moment=el.value; syncDossier(); refreshNav(); }
+  function typeNote(el){ state.note=el.value; syncDossier(); refreshNav(); }
+
+  /* ---------- voice note (prototype) ---------- */
+  let recording=false, recSecs=0, recTimer=null;
+  function bars(n){ let s=''; for(let i=0;i<n;i++) s+=`<span style="animation-delay:${(i*0.06).toFixed(2)}s"></span>`; return s; }
+  function recUI(){
+    if(state.voiceRecorded){
+      return `<div class="recbox done">
+        <button class="recbtn play" onclick="playVoice(this)" aria-label="Play">▶</button>
+        <div class="wave" id="playWave">${bars(20)}</div>
+        <span class="rectime">0:${String(state.voiceLen||8).padStart(2,'0')}</span>
+        <button class="btn ghost" style="width:auto;padding:9px 12px;margin:0" onclick="reRecord()" aria-label="Re-record">↺</button>
+      </div>`;
+    }
+    if(recording){
+      return `<div class="recbox live">
+        <button class="recbtn stop" onclick="stopRecord()" aria-label="Stop">■</button>
+        <div class="wave live">${bars(20)}</div>
+        <span class="rectime" id="recTime">0:${String(recSecs).padStart(2,'0')}</span>
+      </div>`;
+    }
+    return `<button class="btn gold" onclick="startRecord()">🎙️ Tap to record</button>`;
+  }
+  function paintRec(){ const w=S('recWrap'); if(w) w.innerHTML=recUI(); }
+  function setNoteMode(m){ state.noteMode=m; S('beatCard').innerHTML=beats[bi].render(); refreshNav(); }
+  function startRecord(){ recording=true; recSecs=0; paintRec();
+    recTimer=setInterval(()=>{ recSecs++; const t=S('recTime'); if(t) t.textContent='0:'+String(recSecs).padStart(2,'0'); if(recSecs>=15) stopRecord(); },1000); }
+  function stopRecord(){ recording=false; clearInterval(recTimer); state.voiceRecorded=true; state.voiceLen=recSecs||8; paintRec(); syncDossier(); refreshNav(); }
+  function reRecord(){ state.voiceRecorded=false; state.voiceLen=0; paintRec(); refreshNav(); }
+  function playVoice(btn){ const w=btn.parentNode.querySelector('.wave'); if(!w) return; w.classList.add('play'); btn.textContent='❚❚';
+    setTimeout(()=>{ w.classList.remove('play'); btn.textContent='▶'; }, 2000); }
+  function typeAge(el){ state.age=el.value.replace(/[^\d]/g,'').slice(0,3); syncDossier(); const h=S('dateHint'); if(h) h.textContent=dateHintText(); }
+
+  function nextBirthday(month,day){
+    if(!month||!day) return null;
+    const now=new Date(); const y=now.getFullYear();
+    let d=new Date(y,month-1,day,9,0,0);
+    const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+    if(d < today) d=new Date(y+1,month-1,day,9,0,0);
+    return d;
+  }
+  function setDatePart(){
+    const m=S('c-month').value, d=S('c-day').value;
+    state.bmonth=m; state.bday=d;
+    const nb=nextBirthday(+m,+d);
+    state.date = nb? nb.toISOString().slice(0,10) : "";
+    syncDossier(); refreshNav();
+    const h=S('dateHint'); if(h) h.textContent=dateHintText();
+  }
+  function dateHintText(){
+    const nb=nextBirthday(+state.bmonth,+state.bday);
+    if(!nb) return "We hold the premiere and release the link on the day — so the surprise lands on cue.";
+    const days=Math.max(0,Math.ceil((nb-new Date())/86400000));
+    const when=nb.toLocaleDateString(undefined,{month:'long',day:'numeric'});
+    const age=state.age? ` — turning ${state.age}`:"";
+    return `🎭 Their premiere opens ${when}${age} · in ${days} day${days===1?'':'s'}. We deliver the link right on cue.`;
+  }
+
+  const sparks=["the way she hums with headphones in, thinking no one hears","how he saves the last bite for someone else","she remembers everyone's coffee order but not her own","he texts 'drive safe' every single time"];
+  let sparkI=0;
+  function spark(){ const t=S('c-moment'); t.value=sparks[sparkI%sparks.length]; sparkI++; state.moment=t.value; syncDossier(); refreshNav(); t.focus(); }
+
+  function renderBeat(){
+    const b=beats[bi];
+    S('actlabel').textContent=b.label; S('av1').textContent=b.av;
+    buildReel(); typeInto('b1', b.milo());
+    S('beatCard').innerHTML=b.render();
+    S('back1').style.visibility = bi===0 ? 'hidden':'visible';
+    S('next1').textContent = bi===beats.length-1 ? 'To the studio →' : 'Next →';
+    refreshNav();
+  }
+  function refreshNav(){ S('next1').disabled=!beats[bi].valid(); }
+  function nextBeat(){
+    if(!beats[bi].valid()) return;
+    const b=beats[bi];
+    if(bi<beats.length-1){
+      bi++;
+      if(b.react){ // show Milo's reaction briefly, then advance the prompt
+        S('av1').textContent=b.av; typeInto('b1', b.react());
+        buildReel(); S('actlabel').textContent=beats[bi].label; S('av1').textContent=beats[bi].av;
+        S('beatCard').innerHTML=beats[bi].render();
+        S('back1').style.visibility='visible';
+        S('next1').textContent = bi===beats.length-1 ? 'To the studio →' : 'Next →';
+        refreshNav();
+        setTimeout(()=>typeInto('b1', beats[bi].milo()), 1400);
+      } else renderBeat();
+      window.scrollTo({top:0,behavior:'smooth'});
+    } else { startRecording(); wipeTo(2); }
+  }
+  function prevBeat(){ if(bi>0){ bi--; renderBeat(); window.scrollTo({top:0,behavior:'smooth'}); } }
+
+  function syncDossier(){
+    const set=(id,val,liId)=>{ S(id).textContent=val||"—"; S(liId).classList.toggle('on',!!val); };
+    S('v-star').textContent=state.name.trim()||"—"; S('d-star').classList.toggle('on',!!state.name.trim());
+    set('v-cred',state.cred,'d-cred');
+    set('v-moment', state.moment.trim()? '“'+state.moment.trim().slice(0,34)+(state.moment.trim().length>34?'…':'')+'”':'', 'd-moment');
+    set('v-note', (state.noteMode==='voice'&&state.voiceRecorded)? 'recorded 🎙️' : (state.note.trim()? 'written ✓':''), 'd-note');
+    set('v-feel',state.feel,'d-feel'); set('v-score',state.score,'d-score'); set('v-lang',state.lang,'d-lang');
+    set('v-date', fmtDate(state.date), 'd-date');
+  }
+  function fmtDate(d){ if(!d) return ""; try{ return new Date(d+'T00:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'});}catch(e){return d;} }
+
+  /* ---------- typewriter ---------- */
+  let typeTimer=null;
+  function typeInto(id,html){
+    const el=S(id); clearInterval(typeTimer);
+    const tmp=document.createElement('div'); tmp.innerHTML=html; const text=tmp.textContent;
+    el.innerHTML=''; let i=0; const cur=document.createElement('span'); cur.className='cursor'; el.appendChild(cur);
+    typeTimer=setInterval(()=>{ i++; el.textContent=text.slice(0,i); el.appendChild(cur);
+      if(i>=text.length){ clearInterval(typeTimer); el.innerHTML=html; } }, 15);
+  }
+
+  /* ---------- transitions ---------- */
+  function show(i){
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    S('s'+i).classList.add('active');
+    if(i===2) S('n2').textContent=nameOr('their');
+    if(i===3){ S('starName').textContent=starUpper(); S('byName').textContent=credLabel(); }
+    if(i===4) S('n4').textContent=nameOr('them');
+    if(i===6) fillFinale();
+    if(i===10) fillLock();
+    if(i===11) fillTicket();
+    if(i===13){ S('r-name2').textContent=nameOr('them'); }
+    window.scrollTo({top:0,behavior:'smooth'});
+    if(i===1 && S('b1').textContent==='—') renderBeat();
+  }
+  function wipeTo(i){ const w=S('wipe'); w.classList.add('play'); setTimeout(()=>show(i),300); setTimeout(()=>w.classList.remove('play'),620); }
+
+  /* ---------- Act 3 effects ---------- */
+  function fakePhotos(b){ b.textContent="✓ 4 photos added"; b.disabled=true; b.style.opacity=.6; S('photoOk').style.display='block'; }
+  function fakeInvite(b){ b.textContent="✓ Secret link copied"; S('inviteOk').style.display='block'; }
+  let lyricTimer=null;
+  function startRecording(){
+    const star=nameOr('you');
+    const line = state.moment.trim()? state.moment.trim().replace(/\.$/,'') : "the light that fills a room";
+    const full=`Here's to ${star},\nthe one the whole room turns to see —\n${line},\ntonight the spotlight's yours to keep.`;
+    const el=S('lyric'); el.innerHTML='<span class="dim">Milo is writing…</span>';
+    let i=0; clearInterval(lyricTimer);
+    setTimeout(()=>{ lyricTimer=setInterval(()=>{ i++; el.textContent=full.slice(0,i); if(i>=full.length) clearInterval(lyricTimer); },30); },500);
+  }
+
+  /* ---------- Premiere ---------- */
+  (function(){ ['eq','eq2'].forEach(id=>{ const eq=S(id); if(eq) for(let i=0;i<9;i++){const s=document.createElement('span'); s.style.animationDelay=(i*0.09)+'s'; eq.appendChild(s);} }); })();
+  function burstConfetti(){ const box=S('confetti'); box.innerHTML=''; const colors=['#ffcf6b','#ff6fae','#4be3b0','#fff','#ffb03a'];
+    for(let i=0;i<74;i++){ const c=document.createElement('i'); c.style.left=Math.random()*100+'%'; c.style.background=colors[i%colors.length];
+      c.style.animationDuration=(1.8+Math.random()*1.8)+'s'; c.style.animationDelay=(Math.random()*.6)+'s'; c.style.transform='rotate('+(Math.random()*360)+'deg)'; box.appendChild(c);} }
+  function premiere(){
+    wipeTo(3);
+    setTimeout(()=>{ const t=S('theatre'); t.classList.remove('open');
+      setTimeout(()=>{ t.classList.add('open'); burstConfetti(); revealCredits(); }, 500); }, 340);
+  }
+  function revealCredits(){
+    S('cStar').textContent=starUpper(); S('cDir').textContent=credLabel();
+    if(state.noteMode==='voice' && state.voiceRecorded){
+      S('dnoteLbl').textContent='🎙️ A message from the director — in their own voice';
+      S('dnoteMsg').innerHTML=`<span style="display:inline-flex;align-items:center;gap:10px">
+        <button class="recbtn play" onclick="playVoice(this)" aria-label="Play">▶</button>
+        <span class="wave" id="playWave" style="width:120px">${bars(16)}</span>
+        <span class="rectime">${credLabel()} · 0:${String(state.voiceLen||8).padStart(2,'0')}</span></span>`;
+    } else {
+      S('dnoteLbl').textContent='🎬 A message from the director — revealed at the end';
+      S('dnoteMsg').textContent = state.note.trim()? '“'+state.note.trim()+'”' : '“You have no idea how much you mean to me.”';
+    }
+    setTimeout(()=>{ const r=S('reveal'); r.style.display='block'; r.animate([{opacity:0,transform:'translateY(10px)'},{opacity:1,transform:'none'}],{duration:600,easing:'ease'}); }, 2600);
+  }
+
+  /* ---------- Recipient (star's side) ---------- */
+  function fillLock(){
+    S('r-name1').textContent=nameOr('they');
+    S('r-date').textContent = state.date? `Happy birthday · ${fmtDate(state.date)} 🎉` : 'Happy birthday 🎉';
+    S('r-notif').innerHTML = `Happy birthday${state.name.trim()? ', '+state.name.trim():''}! <b>${credLabel().replace(/^your /,'Your ')}</b> produced a premiere just for you. Tap to raise the curtain.`;
+  }
+  function fillTicket(){
+    S('r-tt').textContent=starUpper();
+    S('r-dir').textContent=credLabel();
+    S('r-when').textContent = state.date? fmtDate(state.date) : 'tonight';
+  }
+  function recPremiere(){
+    wipeTo(12);
+    setTimeout(()=>{
+      S('r-star').textContent=starUpper();
+      S('r-by').textContent=credLabel();
+      S('r-reveal').style.display='none';
+      const t=S('theatre2'); t.classList.remove('open');
+      setTimeout(()=>{
+        t.classList.add('open'); burst2();
+        // director's note (voice or text) as the closing beat
+        if(state.noteMode==='voice' && state.voiceRecorded){
+          S('r-noteLbl').textContent='🎙️ A message, in their voice';
+          S('r-noteMsg').innerHTML=`<span style="display:inline-flex;align-items:center;gap:8px">
+            <button class="recbtn play" onclick="playVoice(this)" aria-label="Play">▶</button>
+            <span class="wave" id="playWave" style="width:90px">${bars(12)}</span>
+            <span class="rectime">0:${String(state.voiceLen||8).padStart(2,'0')}</span></span>`;
+        } else {
+          S('r-noteLbl').textContent='🎬 A message, held for the end';
+          S('r-noteMsg').textContent = state.note.trim()? '“'+state.note.trim()+'”' : '“You have no idea how much you mean to me.”';
+        }
+        setTimeout(()=>{ S('r-reveal').style.display='block'; }, 2400);
+      }, 500);
+    }, 360);
+  }
+  function burst2(){ const box=S('confetti2'); if(!box) return; box.innerHTML=''; const colors=['#ffcf6b','#ff6fae','#4be3b0','#fff','#ffb03a'];
+    for(let i=0;i<50;i++){ const c=document.createElement('i'); c.style.left=Math.random()*100+'%'; c.style.background=colors[i%colors.length];
+      c.style.animationDuration=(1.8+Math.random()*1.6)+'s'; c.style.animationDelay=(Math.random()*.6)+'s'; c.style.transform='rotate('+(Math.random()*360)+'deg)'; box.appendChild(c);} }
+
+  /* ---------- Finale ---------- */
+  function fillFinale(){
+    S('pTitle').textContent=starUpper();
+    S('pMeta').textContent=`A ${feelWord()} ${scoreWord()} production${state.age? ' · turning '+state.age:''}`;
+    S('pDir').textContent=`Directed by ${credLabel()} 🎬`;
+    S('n6').textContent=nameOr('them');
+    if(state.date){
+      const now=new Date(); const d=new Date(state.date+'T09:00:00'); let ms=d-now;
+      if(ms<0) ms=0; const days=Math.floor(ms/86400000); const hrs=Math.floor(ms/3600000)%24; const mins=Math.floor(ms/60000)%60;
+      S('cd-d').textContent=String(days).padStart(2,'0'); S('cd-h').textContent=String(hrs).padStart(2,'0'); S('cd-m').textContent=String(mins).padStart(2,'0');
+      S('deliverLine').textContent=`We'll deliver the premiere link so it opens on ${fmtDate(state.date)} — right on cue.`;
+    }
+  }
+
+  /* ---------- pricing ---------- */
+  const TIERS={Premiere:{p:'$14.99',n:'Premiere'},Deluxe:{p:'$24.99',n:'Deluxe Premiere'},Production:{p:'$44.99',n:'Full Production'}};
+  function selectTier(t){ state.tier=t;
+    ['Premiere','Deluxe','Production'].forEach(x=>S('tier-'+x).classList.toggle('sel',x===t));
+    S('releaseBtn').textContent=`🎬 Release the ${TIERS[t].n} — ${TIERS[t].p} →`;
+  }
+
+  function restart(){
+    Object.keys(state).forEach(k=>state[k]="");
+    state.noteMode='text'; state.voiceRecorded=false; state.tier='Deluxe';
+    recording=false; clearInterval(recTimer);
+    bi=0; S('name').value=''; S('pron').value=''; S('go0').disabled=true; S('b1').textContent='—';
+    S('reveal').style.display='none';
+    ['photoOk'].forEach(id=>S(id).style.display='none'); S('inviteOk').style.display='none';
+    syncDossier(); nm(); wipeTo(0);
+  }
+  syncDossier();
+  document.querySelectorAll('.reel.full').forEach(r=>{ r.innerHTML=beats.map(()=>'<i class="on"></i>').join(''); });
+</script>
+</body>
+</html>

@@ -309,6 +309,28 @@ export type SharedSong = {
     directorName?: string;
     closesAt?: number;
   };
+  /**
+   * v4 "Production Studio" fields. All additive/optional so legacy songs and
+   * existing readers are unaffected.
+   *
+   * directorCredit — how the giver is credited in the premiere titles
+   *   ("their partner", "their best friend"…). Distinct from senderName (the
+   *   giver's actual name) and from waitCapture.relationship; this is the
+   *   display credit shown on the premiere ("Produced by your partner").
+   * feeling — the emotional target chosen in casting ("goosebumps", "laughing
+   *   till they cry"…). Fed into lyric + Suno style so tone reflects intent.
+   * directorNote — a private message from the giver revealed as the CLOSING
+   *   beat of the premiere. `text` is shown on-screen; `voiceUrl` (Vercel Blob)
+   *   is an optional spoken recording played after the song ends
+   *   (voiceDurationSec is its rounded length). Either/both may be present.
+   */
+  directorCredit?: string;
+  feeling?: string;
+  directorNote?: {
+    text?: string;
+    voiceUrl?: string;
+    voiceDurationSec?: number;
+  };
 };
 
 export type ShareCreateRequest = {
@@ -360,6 +382,18 @@ export type ShareCreateRequest = {
    * creation. The slideshow itself is rendered later, after unlock.
    */
   photoUrls?: string[];
+  /**
+   * v4 "Production Studio" capture. All additive — never block share creation.
+   * director_credit: display credit ("their partner"…). feeling: casting vibe.
+   * director_note_text: typed closing message. director_note_voice_url: https
+   * Blob URL of the recorded closing message (validated server-side);
+   * director_note_voice_duration_sec its rounded length.
+   */
+  director_credit?: string;
+  feeling?: string;
+  director_note_text?: string;
+  director_note_voice_url?: string;
+  director_note_voice_duration_sec?: number;
 };
 
 export type ShareCreateResponse = {

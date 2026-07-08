@@ -7,7 +7,7 @@ import { toAudioProxyUrl } from "@/lib/audio-proxy";
 import { logClientEvent } from "@/lib/client-events";
 import { greetingFor } from "@/lib/greetings";
 import UnlockableAudio from "@/components/share/UnlockableAudio";
-import { CrowdPremiere } from "@/components/share/CrowdPremiere";
+import { SharePremiere } from "@/components/share/SharePremiere";
 
 const MAX_RETRIES = 2;
 
@@ -250,45 +250,33 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
         </div>
       )}
 
-      {/* Audio: full playback + MP3 download when unlocked, 15s preview + unlock
-          CTA when locked. A merged crowd song gets the theatrical Premiere reveal
-          instead of the flat player — same locked/unlocked audioSrc, so the
-          paywall behaves identically (locked → gated preview clip). */}
-      {song.crowd?.status === "merged" ? (
-        <>
-          <CrowdPremiere
-            recipientName={song.name}
-            directorName={song.crowd.directorName}
-            songTitle={song.lyrics.title}
-            audioSrc={
-              unlocked ? toAudioProxyUrl(currentAudio) : `/api/share/${song.id}/preview`
-            }
-            language={song.language}
-          />
-          {/* Premiere is the player; UnlockableAudio still owns the paywall CTA
-              (locked) / MP3 download (unlocked) — same gate, no second player. */}
-          <UnlockableAudio
-            shareId={song.id}
-            audioSrc={
-              unlocked ? toAudioProxyUrl(currentAudio) : `/api/share/${song.id}/preview`
-            }
-            unlocked={unlocked}
-            recipientName={song.name}
-            tier={song.tier}
-            hidePlayer
-          />
-        </>
-      ) : (
-        <UnlockableAudio
-          shareId={song.id}
-          audioSrc={
-            unlocked ? toAudioProxyUrl(currentAudio) : `/api/share/${song.id}/preview`
-          }
-          unlocked={unlocked}
-          recipientName={song.name}
-          tier={song.tier}
-        />
-      )}
+      {/* Audio: EVERY song is delivered as the theatrical Premiere reveal (not
+          just crowd songs). The premiere is the player; UnlockableAudio still
+          owns the paywall CTA (locked) / MP3 download (unlocked) with its own
+          player hidden — same gate, one player. audioSrc is identical to the
+          flat player's (locked → gated 15s preview clip), so the paywall behaves
+          exactly as before. */}
+      <SharePremiere
+        recipientName={song.name}
+        directorName={song.directorCredit || song.crowd?.directorName || song.senderName}
+        songTitle={song.lyrics.title}
+        audioSrc={
+          unlocked ? toAudioProxyUrl(currentAudio) : `/api/share/${song.id}/preview`
+        }
+        language={song.language}
+        directorNote={song.directorNote}
+        isCrowd={song.crowd?.status === "merged"}
+      />
+      <UnlockableAudio
+        shareId={song.id}
+        audioSrc={
+          unlocked ? toAudioProxyUrl(currentAudio) : `/api/share/${song.id}/preview`
+        }
+        unlocked={unlocked}
+        recipientName={song.name}
+        tier={song.tier}
+        hidePlayer
+      />
 
       {/* Unlocked-only downloads: branded video + photo slideshow. */}
       {unlocked && currentVideo && (
