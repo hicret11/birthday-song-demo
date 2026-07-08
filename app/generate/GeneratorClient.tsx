@@ -276,13 +276,13 @@ const themes = {
   dark: {
     name: "Dark Neon",
     desc: "Vibrant & energetic",
-    pageBg: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
-    title: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
-    card: "bg-cream-soft border-sand",
+    pageBg: "from-[#ffcf6b] via-[#ff8ac0] to-[#ff3d90]",
+    title: "from-[#ffcf6b] via-[#ff8ac0] to-[#ff3d90]",
+    card: "bg-cream-soft border-sand backdrop-blur-md",
     text: "text-ink",
     sub: "text-ink-soft",
     input: "bg-cream-soft border-sand placeholder:text-ink-soft",
-    accent: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
+    accent: "from-[#ffcf6b] via-[#ff8ac0] to-[#ff3d90]",
     effect: "emoji",
     emojis: ["🎵", "🎶", "🎂", "🎉", "🎁", "🎈", "✨", "🎊", "🥳", "🪩", "🍰", "🎤"],
   },
@@ -290,12 +290,12 @@ const themes = {
     name: "Light Dream",
     desc: "Soft & clean",
     pageBg: "from-[#ffe3d2] via-[#ffd0dc] to-[#ffc9a3]",
-    title: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
-    card: "bg-cream-soft border-sand",
+    title: "from-[#ffcf6b] via-[#ff8ac0] to-[#ff3d90]",
+    card: "bg-cream-soft border-sand backdrop-blur-md",
     text: "text-ink",
     sub: "text-ink-soft",
     input: "bg-cream-soft border-sand placeholder:text-ink-soft",
-    accent: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
+    accent: "from-[#ffcf6b] via-[#ff8ac0] to-[#ff3d90]",
     effect: "emoji",
     emojis: ["☁️", "🎀", "🎂", "🎈", "✨", "💖", "🎶", "🧁", "🎁", "🌸", "🍰", "🎵"],
   },
@@ -303,12 +303,12 @@ const themes = {
     name: "Birthday Party",
     desc: "Fun & colorful",
     pageBg: "from-[#ff8faa] via-[#ffc9a3] to-[#ff6f91]",
-    title: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
-    card: "bg-cream-soft border-sand",
+    title: "from-[#ffcf6b] via-[#ff8ac0] to-[#ff3d90]",
+    card: "bg-cream-soft border-sand backdrop-blur-md",
     text: "text-ink",
     sub: "text-ink-soft",
     input: "bg-cream-soft border-sand placeholder:text-ink-soft",
-    accent: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
+    accent: "from-[#ffcf6b] via-[#ff8ac0] to-[#ff3d90]",
     effect: "emoji",
     emojis: ["🎉", "🎊", "🥳", "🎈", "🎂", "🎁", "🍰", "✨", "🎵", "🪅", "🧁", "🎶"],
   },
@@ -316,12 +316,12 @@ const themes = {
     name: "Soft Pastel",
     desc: "Calm & gentle",
     pageBg: "from-[#ffe3d2] via-[#ffd0dc] to-[#ffb7cc]",
-    title: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
-    card: "bg-cream-soft border-sand",
+    title: "from-[#ffcf6b] via-[#ff8ac0] to-[#ff3d90]",
+    card: "bg-cream-soft border-sand backdrop-blur-md",
     text: "text-ink",
     sub: "text-ink-soft",
     input: "bg-cream-soft border-sand placeholder:text-ink-soft",
-    accent: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
+    accent: "from-[#ffcf6b] via-[#ff8ac0] to-[#ff3d90]",
     effect: "emoji",
     emojis: ["🧸", "🎀", "🎂", "🎈", "✨", "🌈", "🎶", "🧁", "💖", "🎁", "🍭", "🎵"],
   },
@@ -329,25 +329,25 @@ const themes = {
     name: "Luxury Night",
     desc: "Elegant & premium",
     pageBg: "from-[#c9a24b] via-[#ffc9a3] to-[#ff8faa]",
-    title: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
-    card: "bg-cream-soft border-sand",
+    title: "from-[#ffcf6b] via-[#ff8ac0] to-[#ff3d90]",
+    card: "bg-cream-soft border-sand backdrop-blur-md",
     text: "text-ink",
     sub: "text-ink-soft",
     input: "bg-cream-soft border-sand placeholder:text-ink-soft",
-    accent: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
+    accent: "from-[#ffcf6b] via-[#ff8ac0] to-[#ff3d90]",
     effect: "emoji",
     emojis: ["✨", "🌙", "🎂", "🎁", "🥂", "🎵", "🎶", "⭐", "🍰", "🎈", "💫", "🎉"],
   },
   confetti: {
     name: "Confetti",
     desc: "Classic party motion",
-    pageBg: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
-    title: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
-    card: "bg-cream-soft border-sand",
+    pageBg: "from-[#ffcf6b] via-[#ff8ac0] to-[#ff3d90]",
+    title: "from-[#ffcf6b] via-[#ff8ac0] to-[#ff3d90]",
+    card: "bg-cream-soft border-sand backdrop-blur-md",
     text: "text-ink",
     sub: "text-ink-soft",
     input: "bg-cream-soft border-sand placeholder:text-ink-soft",
-    accent: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
+    accent: "from-[#ffcf6b] via-[#ff8ac0] to-[#ff3d90]",
     effect: "confetti",
     emojis: [],
   },
@@ -355,12 +355,12 @@ const themes = {
     name: "Balloons",
     desc: "Floating birthday balloons",
     pageBg: "from-[#ffd0dc] via-[#ff8faa] to-[#ff6f91]",
-    title: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
-    card: "bg-cream-soft border-sand",
+    title: "from-[#ffcf6b] via-[#ff8ac0] to-[#ff3d90]",
+    card: "bg-cream-soft border-sand backdrop-blur-md",
     text: "text-ink",
     sub: "text-ink-soft",
     input: "bg-cream-soft border-sand placeholder:text-ink-soft",
-    accent: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
+    accent: "from-[#ffcf6b] via-[#ff8ac0] to-[#ff3d90]",
     effect: "balloons",
     emojis: [],
   },
@@ -368,12 +368,12 @@ const themes = {
     name: "Bubbles",
     desc: "Soft floating bubbles",
     pageBg: "from-[#ffe3d2] via-[#ffc6a4] to-[#ff8faa]",
-    title: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
-    card: "bg-cream-soft border-sand",
+    title: "from-[#ffcf6b] via-[#ff8ac0] to-[#ff3d90]",
+    card: "bg-cream-soft border-sand backdrop-blur-md",
     text: "text-ink",
     sub: "text-ink-soft",
     input: "bg-cream-soft border-sand placeholder:text-ink-soft",
-    accent: "from-[#ffc9a3] via-[#ff8faa] to-[#ff6f91]",
+    accent: "from-[#ffcf6b] via-[#ff8ac0] to-[#ff3d90]",
     effect: "bubbles",
     emojis: [],
   },
@@ -2183,11 +2183,31 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
 
   return (
     <main
-      className={`grain relative min-h-screen overflow-x-hidden bg-cream ${theme.text} px-4 py-6 sm:py-8 transition-all duration-700`}
+      className={`gen-stage grain relative min-h-screen overflow-x-hidden bg-cream ${theme.text} px-4 py-6 sm:py-8 transition-all duration-700`}
     >
       <style>{`
         * { scrollbar-width: none; }
         *::-webkit-scrollbar { display: none; }
+        /* ── Theatrical "noir stage" repaint — scoped to the intake only.
+           Overriding the @theme CSS vars on this subtree flips every
+           bg-cream / text-ink / border-sand / text-gold to the premiere's
+           dark palette without touching any other route (share/join/etc.). */
+        .gen-stage {
+          --color-cream: #120a1e;
+          --color-cream-soft: rgba(255,255,255,0.055);
+          --color-sand: rgba(255,255,255,0.13);
+          --color-ink: #f4e9ff;
+          --color-ink-soft: #c9b8e6;
+          --color-gold: #ffcf6b;
+          --color-jade: #4be3b0;
+          --color-blush: #ff6fae;
+          --warm-gradient: linear-gradient(120deg,#ffb03a 0%,#ff6fae 55%,#ff3d90 100%);
+          --warm-gradient-soft: linear-gradient(120deg,rgba(255,207,107,0.16),rgba(255,111,174,0.16));
+          background: radial-gradient(1200px 720px at 50% -12%, #3a1f5e 0%, #1c1030 46%, #120a1e 100%) fixed;
+        }
+        .gen-stage input, .gen-stage textarea { background: rgba(0,0,0,0.26); }
+        .gen-stage ::placeholder { color: #a596c4; opacity: 1; }
+        .gen-stage .grain { color: #f4e9ff; }
         @keyframes floatOne {
           0%, 100% { transform: translateY(0px) rotate(0deg) scale(1); }
           50% { transform: translateY(-32px) rotate(8deg) scale(1.08); }
@@ -2212,11 +2232,15 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
       {/* Warm organic blobs bleeding off the edges (matches the landing look). */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -left-40 -top-40 z-0 h-[520px] w-[520px] rounded-full bg-[radial-gradient(circle,rgba(255,158,120,0.5),transparent_66%)] blur-2xl"
+        className="pointer-events-none absolute left-1/2 -top-56 z-0 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,207,107,0.28),transparent_62%)] blur-2xl"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute -right-40 top-10 z-0 h-[560px] w-[560px] rounded-full bg-[radial-gradient(circle,rgba(255,126,157,0.45),transparent_66%)] blur-2xl"
+        className="pointer-events-none absolute -right-40 top-24 z-0 h-[560px] w-[560px] rounded-full bg-[radial-gradient(circle,rgba(255,111,174,0.30),transparent_66%)] blur-2xl"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -left-40 top-40 z-0 h-[480px] w-[480px] rounded-full bg-[radial-gradient(circle,rgba(123,63,158,0.35),transparent_66%)] blur-2xl"
       />
 
       <canvas ref={canvasRef} className="fixed inset-0 z-[1] pointer-events-none select-none" />
