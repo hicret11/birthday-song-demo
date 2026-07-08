@@ -99,15 +99,15 @@ beforeEach(() => {
 
 describe("giftPoolTargetCents — pool target follows the solo price ladder", () => {
   it("uses the tier's full price", () => {
-    expect(giftPoolTargetCents({ tier: "A", plan: "full" })).toBe(999);
-    expect(giftPoolTargetCents({ tier: "B", plan: "full" })).toBe(599);
-    expect(giftPoolTargetCents({ tier: "C", plan: "full" })).toBe(299);
+    expect(giftPoolTargetCents({ tier: "A", plan: "full" })).toBe(1499);
+    expect(giftPoolTargetCents({ tier: "B", plan: "full" })).toBe(999);
+    expect(giftPoolTargetCents({ tier: "C", plan: "full" })).toBe(699);
   });
   it("uses the deluxe price when the plan is deluxe", () => {
-    expect(giftPoolTargetCents({ tier: "A", plan: "deluxe" })).toBe(1499);
+    expect(giftPoolTargetCents({ tier: "A", plan: "deluxe" })).toBe(2499);
   });
   it("defaults to Tier C / full when unknown (never over-charges the pool)", () => {
-    expect(giftPoolTargetCents({})).toBe(299);
+    expect(giftPoolTargetCents({})).toBe(699);
   });
 });
 
@@ -129,56 +129,56 @@ describe("isGroupPayEnabled — off by default", () => {
 
 describe("applyChipIn — two contributors reaching the price unlock the gift", () => {
   it("does NOT unlock until the pool reaches the price, then unlocks", async () => {
-    const song = seedSong({ tier: "A" }); // price = 999
+    const song = seedSong({ tier: "A" }); // price = 1499
 
     const first = await applyChipIn({
       giftId: "gift1",
       contributorToken: "friend-a",
-      amountCents: 600,
+      amountCents: 800,
       stripePaymentId: "pi_1",
     });
     expect(first.recorded).toBe(true);
-    expect(first.paidCents).toBe(600);
-    expect(first.targetCents).toBe(999);
+    expect(first.paidCents).toBe(800);
+    expect(first.targetCents).toBe(1499);
     expect(first.justUnlocked).toBe(false);
     expect(song.unlocked).toBeFalsy();
 
     const second = await applyChipIn({
       giftId: "gift1",
       contributorToken: "friend-b",
-      amountCents: 600, // pool now 1200 ≥ 999 (overshoot is fine)
+      amountCents: 800, // pool now 1600 ≥ 1499 (overshoot is fine)
       stripePaymentId: "pi_2",
     });
     expect(second.recorded).toBe(true);
-    expect(second.paidCents).toBe(1200);
+    expect(second.paidCents).toBe(1600);
     expect(second.justUnlocked).toBe(true);
     expect(song.unlocked).toBe(true);
     expect(song.plan).toBe("full");
   });
 
   it("is idempotent — a redelivered webhook (same payment id) does not double-count or re-unlock", async () => {
-    seedSong({ tier: "C" }); // price = 299
+    seedSong({ tier: "C" }); // price = 699
 
     const a = await applyChipIn({
       giftId: "gift1",
       contributorToken: "friend-a",
-      amountCents: 299,
+      amountCents: 699,
       stripePaymentId: "pi_dup",
     });
     expect(a.justUnlocked).toBe(true);
-    expect(a.paidCents).toBe(299);
+    expect(a.paidCents).toBe(699);
 
     // Same Stripe payment id delivered again.
     const replay = await applyChipIn({
       giftId: "gift1",
       contributorToken: "friend-a",
-      amountCents: 299,
+      amountCents: 699,
       stripePaymentId: "pi_dup",
     });
     expect(replay.recorded).toBe(false); // no new row
     expect(replay.justUnlocked).toBe(false); // not unlocked again
     const progress = await getChipInProgress("gift1");
-    expect(progress.paidCents).toBe(299); // still counted once
+    expect(progress.paidCents).toBe(699); // still counted once
     expect(progress.count).toBe(1);
   });
 

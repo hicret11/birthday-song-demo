@@ -10,14 +10,14 @@ export type Tier = "A" | "B" | "C";
 
 /** Standard "Full Song" unlock — geo-tiered display labels. */
 export const FULL_PRICE_LABEL: Record<Tier, string> = {
-  A: "$9.99",
-  B: "$5.99",
-  C: "$2.99",
+  A: "$14.99",
+  B: "$9.99",
+  C: "$6.99",
 };
 
 /** Deluxe (Full Song + photo slideshow) — geo-tiered display labels. */
 export const DELUXE_PRICE_LABEL: Record<Tier, string> = {
-  A: "$14.99",
-  B: "$9.99",
-  C: "$5.99",
+  A: "$24.99",
+  B: "$16.99",
+  C: "$11.99",
 };
