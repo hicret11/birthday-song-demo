@@ -172,6 +172,125 @@ export const en = {
     deliveryNow: "Available now",
     deliveryHint: "We’ll hold the premiere behind a countdown until 9am their time on the day. You can always preview it yourself first.",
     deliveryPreviewLink: "Preview your premiere (only you can see it early) →",
+    // ── Reimagined intake v4 — the marquee opening + beat engine + studio. ──
+    // Opening (name-in-lights marquee)
+    openingBadge: "🎬 You’re the director tonight",
+    openingLead:
+      "Not a form. Not a song generator. Step into the director’s chair — we build the whole show together and end on a premiere made only for them.",
+    marqueeNowCasting: "Now casting · one night only",
+    marqueeYourStar: "your star",
+    marqueeBottom: "★ the birthday premiere ★",
+    miloOpeningEmpty:
+      "Hi, I’m {producer}, your producer. Every show needs a star. Type their name — watch it hit the marquee.",
+    miloOpeningNamed: "{name} — that belongs in lights. Let’s build their show.",
+    pronLabel: "How do we say it?",
+    pronOptional: "(optional — so the song nails it)",
+    pronPlaceholder: "e.g. ‘sha-VON’ for Siobhan",
+    senderNameLabel: "And your name?",
+    senderNameOptional: "(optional — for the director credit)",
+    senderNamePlaceholder: "Optional",
+    startProduction: "Start the production →",
+    startProductionHint: "Add their name to continue.",
+    // Beat engine — nav + call-sheet dossier
+    beatBack: "← Back",
+    beatNext: "Next →",
+    beatToStudio: "To the studio →",
+    callSheetHeading: "🎬 The call sheet",
+    dossierStar: "Star",
+    dossierDirected: "Directed by",
+    dossierScene: "Opening scene",
+    dossierNote: "Director’s note",
+    dossierFeeling: "The feeling",
+    dossierScore: "The score",
+    dossierLanguage: "Language",
+    dossierCurtain: "Curtain rises",
+    dossierWritten: "written ✓",
+    dossierRecorded: "recorded 🎙️",
+    dossierDirectedYou: "you",
+    // Beat: credit (relationship)
+    actCredit: "Act 1 · Casting — the credit",
+    miloCredit:
+      "Every director gets a credit. When they see the titles — who put on this show?",
+    // Beat: the moment (memory)
+    actMoment: "Act 1 · Casting — the heart",
+    miloMoment:
+      "Now the heart. Tell me one moment that’s so them — I’ll write it into the opening.",
+    miloMomentFriend:
+      "Best-friend energy. Tell me the most them thing they do that you’d never trade.",
+    miloMomentPartner:
+      "This one’s a love story. Give me the moment you knew.",
+    miloMomentFamily:
+      "For family. Give me a small thing they always do — the kind that means home.",
+    miloMomentColleague:
+      "Give me the one work moment that’s so them everyone would recognize it.",
+    miloMomentOther:
+      "Tell me one moment that’s so them it could only be them.",
+    momentLabel: "A moment that makes them them",
+    momentPlaceholder:
+      "the way she sings off-key in the car… how he always calls first…",
+    sparkPrefix: "need a spark? ",
+    sparkLink: "tap for an example",
+    moreDetailsOpen: "＋ more details (optional)",
+    moreDetailsClose: "− fewer details",
+    professionPlaceholder: "What do they do? (optional)",
+    extrasPlaceholder: "A favorite band, an inside joke, anything else to weave in…",
+    styleNotesPlaceholder: "A music style or an artist reference (optional)",
+    miloMomentReactFun: "Ha — that’s the opening scene right there. 🎬",
+    miloMomentReactKind: "Oof. That’s the kind of line that lands. Keeping it.",
+    miloMomentReactDefault:
+      "Perfect — one real detail beats ten adjectives. That’s the soul of it.",
+    // Beat: private note
+    actNote: "Act 2 · Direction — your private note",
+    miloNote:
+      "One thing only you can give: a message just for them. Write it, or say it in your own voice — I’ll hold it back as the closing moment of the premiere.",
+    noteBeatFootnote:
+      "This is the moment that makes them tear up — the reason it could only come from you.",
+    // Beat: feeling
+    actFeelingBeat: "Act 2 · Direction — the feeling",
+    miloFeeling:
+      "Every great scene lands one feeling. When the song ends, how should they feel?",
+    // Beat: score (genre)
+    actScore: "Act 2 · Direction — the score",
+    miloScore: "And the sound of their night — what’s the score?",
+    scoreLabel: "Pick the soundtrack",
+    scoreSurprise: "🎲 Surprise Me",
+    // Beat: language
+    actLanguage: "Act 2 · Direction — the language",
+    miloLanguage: "What language should they hear their song in?",
+    languageSing: "Sing it in",
+    // Beat: birthday
+    actBirthday: "Act 2 · Direction — the premiere date",
+    miloBirthday:
+      "Last call. When does their birthday land? I’ll hold the premiere and release it right on the day.",
+    birthdayLabel: "Their birthday",
+    birthdayOptional: "(just the day — we find the next one)",
+    monthPlaceholder: "Month",
+    dayPlaceholder: "Day",
+    ageBeatLabel: "How old are they turning?",
+    ageBeatHint: "Milo can weave it in",
+    birthdayNeedAge: "Add their age to open the studio.",
+    premiereOpensPrefix: "🎭 Their premiere opens ",
+    months: [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December",
+    ],
+    // Act 3 — the studio / co-creation + wait
+    actStudio: "Act 3 · In the studio",
+    studioRecordingPrefix: "Milo is recording ",
+    studioRecordingSuffix: "’s song…",
+    miloStudio:
+      "Give me about a minute to mix. While I do — don’t just wait. This is where a song becomes their whole night:",
+    studioChorusTag: "writing now",
+    studioChorusLabel: "The chorus, coming to life",
+    studioCastTag: "the crowd magic",
+    studioCastHeading: "Secretly cast their people",
+    studioCastBody:
+      "Send one secret link to their friends and family. Each adds a line, a voice note, or a photo — Milo weaves everyone into the one song.",
+    studioGateHeading: "Where should we send the premiere?",
+    openCurtain: "✨ Open the curtain",
+    openCurtainMixing: "🎬 Mixing the track…",
+    studioMixingHeadline: "Mixing their premiere…",
+    studioRewrite: "Not quite the words? Rewrite the lyrics",
   },
   paywall: {
     // Preview label — the 15s cap framed as the trailer/opening of the show

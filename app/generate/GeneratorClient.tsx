@@ -398,45 +398,6 @@ type Props = {
 };
 
 /**
- * Two-dot sub-progress for the "About them" step (person → vibe). Makes the
- * inner "Next →" feel like real forward motion and lets keyboard/mouse users
- * jump back to the first sub-step. Kept tiny + purely presentational.
- */
-function SubStepDots({
-  active,
-  onJump,
-}: {
-  active: 0 | 1;
-  onJump: (index: 0 | 1) => void;
-}) {
-  return (
-    <div className="flex items-center gap-2" aria-hidden>
-      <span className="text-[11px] font-bold text-ink-soft">{active + 1} of 2</span>
-      <div className="flex items-center gap-1.5">
-        {[0, 1].map((i) => {
-          const isActive = i === active;
-          // Only the first dot is ever a back-jump target; going forward still
-          // requires a name (guarded by the primary CTA), so we don't enable it.
-          const clickable = i === 0 && active === 1;
-          return (
-            <button
-              key={i}
-              type="button"
-              tabIndex={-1}
-              onClick={() => clickable && onJump(0)}
-              disabled={!clickable}
-              className={`h-2 rounded-full transition-all ${
-                isActive ? "w-5 bg-jade" : "w-2 bg-sand"
-              } ${clickable ? "cursor-pointer" : "cursor-default"}`}
-            />
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-/**
  * Producer persona — a small avatar + speech bubble that turns the intake into a
  * guided conversation with "the producer" (matches the concept prototype's
  * Milo). Purely presentational; all copy comes from the dictionary. No essential
@@ -656,8 +617,17 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
   // Presentational-only: controls the single "Add more details" expander that
   // replaced the Basic/Advanced tab toggle. Never gates or drives any logic.
   const [moreOpen, setMoreOpen] = useState(false);
-  // Sub-step within the "About them" step: 0 = the person, 1 = the vibe.
-  const [inputStep, setInputStep] = useState<0 | 1>(0);
+  // Reimagined intake (v4 "production studio"): the opening name-in-lights
+  // marquee, then a one-decision-per-screen beat engine. `intakeStage` and
+  // `beatIndex` drive only the RENDER of step 1 — all captured values still
+  // land in the same canonical state fields the backend contract expects.
+  const [intakeStage, setIntakeStage] = useState<"opening" | "beats">("opening");
+  const [beatIndex, setBeatIndex] = useState(0);
+  // Birthday beat: month + day selects → next-birthday ISO stored in
+  // waitBirthdayDate (deliveryMode stays "scheduled"). The ISO is computed in
+  // the change handler (never during render — react-hooks/purity).
+  const [birthMonth, setBirthMonth] = useState("");
+  const [birthDay, setBirthDay] = useState("");
   const [themeKey] = useState<ThemeKey>("dark");
   const [name, setName] = useState("");
   const [pronunciationHint, setPronunciationHint] = useState("");
@@ -1343,6 +1313,109 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
       .filter(Boolean)
       .join(" · ") || undefined;
 
+  // ── v4 beat engine ─────────────────────────────────────────────────────
+  // One decision per screen. Each beat only sets an existing canonical state
+  // field; the render below reads `beatIndex` to pick which beat to show.
+  const BEAT_COUNT = 7;
+  const starUpper = name.trim() ? name.trim().toUpperCase() : "";
+  const monthNames = t.generate.months;
+  // Director credit for the dossier: the localized relationship role, else the
+  // sender's name, else a soft "you" — never touches the payload derivations.
+  const dossierDirectedBy =
+    (relationship.trim() ? relationshipRole : senderName.trim()) ||
+    t.generate.dossierDirectedYou;
+  const birthdayLabelText =
+    birthMonth && birthDay
+      ? `${monthNames[Number.parseInt(birthMonth, 10) - 1] ?? ""} ${birthDay}`
+      : "";
+  // Relationship-aware Milo line for the "moment" beat.
+  const miloMomentLine =
+    relationship === "Friend"
+      ? t.generate.miloMomentFriend
+      : relationship === "Partner"
+        ? t.generate.miloMomentPartner
+        : relationship === "Family"
+          ? t.generate.miloMomentFamily
+          : relationship === "Colleague"
+            ? t.generate.miloMomentColleague
+            : relationship === "Other"
+              ? t.generate.miloMomentOther
+              : t.generate.miloMoment;
+  // Milo's little reaction to the typed moment (shown once there's real text).
+  const memoryLower = memory.toLowerCase();
+  const miloMomentReaction = !memory.trim()
+    ? ""
+    : /laugh|funny|joke|sing|danc/.test(memoryLower)
+      ? t.generate.miloMomentReactFun
+      : /kind|care|always|help|there|love/.test(memoryLower)
+        ? t.generate.miloMomentReactKind
+        : t.generate.miloMomentReactDefault;
+
+  // Compute the next occurrence of a month/day as an ISO date (09:00 that day)
+  // and store it in waitBirthdayDate. Runs only from the select change handler
+  // (event handler — Date use here is allowed; never during render).
+  function syncBirthday(monthStr: string, dayStr: string) {
+    setBirthMonth(monthStr);
+    setBirthDay(dayStr);
+    const m = Number.parseInt(monthStr, 10);
+    const d = Number.parseInt(dayStr, 10);
+    if (!m || !d) {
+      setWaitBirthdayDate("");
+      return;
+    }
+    const now = new Date();
+    let year = now.getFullYear();
+    const todayMidnight = new Date(year, now.getMonth(), now.getDate());
+    const candidate = new Date(year, m - 1, d);
+    if (candidate < todayMidnight) year += 1;
+    const iso = `${year}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    setWaitBirthdayDate(iso);
+  }
+
+  const birthdayBeatValid = !!birthMonth && !!birthDay && recipientAge !== null;
+  // Per-beat validity gates the "Next" button. Beats 2 (moment) & 6 (birthday)
+  // require input; the note beat is always skippable; chip beats auto-advance.
+  function beatValid(i: number): boolean {
+    switch (i) {
+      case 0:
+        return !!relationship;
+      case 1:
+        return memory.trim().length > 2;
+      case 2:
+        return true; // private note is optional
+      case 3:
+        return !!feeling;
+      case 4:
+        return !!genre;
+      case 5:
+        return true; // language always has a default
+      case 6:
+        return birthdayBeatValid;
+      default:
+        return true;
+    }
+  }
+  function scrollToFlowTop() {
+    if (typeof window === "undefined") return;
+    try {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch {
+      // Older browsers may reject the options object; ignore.
+    }
+  }
+  function goToBeat(i: number) {
+    setBeatIndex(Math.max(0, Math.min(BEAT_COUNT - 1, i)));
+    scrollToFlowTop();
+  }
+  function advanceBeat() {
+    if (beatIndex >= BEAT_COUNT - 1) {
+      // Last beat finished → write the lyrics (studio takes over on step 2).
+      void generateLyricsHandler();
+      return;
+    }
+    goToBeat(beatIndex + 1);
+  }
+
   // Guided 3-step flow — derived purely from existing state so it can never
   // desync from the actual render conditions (no parallel state machine):
   //   Step 1 "About them"  → no lyrics yet (the details form).
@@ -1664,10 +1737,6 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
     setJobId(null);
     setLongWaitHint(false);
     setProgress(0);
-  }
-
-  function updateSectionText(index: number, text: string) {
-    setEditableSections((prev) => prev.map((s, i) => (i === index ? { ...s, text } : s)));
   }
 
   function buildLyricsFromEditable(): Lyrics | null {
@@ -2152,271 +2221,6 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
     return () => cancelAnimationFrame(raf);
   }
 
-  const personFields = (
-    <div className="space-y-5">
-      <div>
-        <label htmlFor="recipient-name" className="mb-2 block font-display text-lg font-bold text-ink">
-          {t.generate.nameLabel}
-        </label>
-        <input
-          id="recipient-name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => {
-            // Enter on a filled name jumps straight to the vibe sub-step — the
-            // fastest path for keyboard users, matching the primary "Next" CTA.
-            if (e.key === "Enter" && name.trim()) {
-              e.preventDefault();
-              setInputStep(1);
-            }
-          }}
-          placeholder={t.generate.namePlaceholder}
-          className={`w-full rounded-xl border px-4 py-4 text-lg text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
-        />
-      </div>
-
-      {/* Sender recognition — the warm "who are you to them?" step. The stored
-          value stays canonical (unchanged lyric-prompt context); the label is
-          localized and the answer becomes the producer credit on the premiere. */}
-      <div>
-        <label className="mb-2 block text-sm font-bold text-ink">
-          {t.generate.relationshipLabel}{" "}
-          <span className="opacity-60">{t.generate.relationshipOptional}</span>
-        </label>
-        <div className="flex flex-wrap gap-2">
-          {relationshipOptions.map(({ value, label }) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setRelationship(relationship === value ? "" : value)}
-              className={`rounded-full border px-4 py-2 text-sm font-bold transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] ${
-                relationship === value
-                  ? "border-transparent bg-warm-gradient text-white shadow-md"
-                  : "border-sand bg-cream text-ink hover:border-jade"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        <p className="mt-1.5 text-xs text-ink-soft">{t.generate.relationshipHint}</p>
-      </div>
-
-      <div>
-        <label htmlFor="pronunciation-hint" className="mb-2 block text-sm font-bold text-ink">
-          How is the name pronounced? <span className="opacity-60">(optional)</span>
-        </label>
-        <input
-          id="pronunciation-hint"
-          value={pronunciationHint}
-          onChange={(e) => setPronunciationHint(e.target.value.slice(0, 80))}
-          placeholder="e.g., 'sha-VON' for Siobhan"
-          maxLength={80}
-          className={`w-full rounded-xl border px-4 py-3.5 text-base text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
-        />
-        <p className="mt-1.5 text-xs text-ink-soft">
-          Tip: write it the way you’d say it out loud. ‘KAY-tlin’ for Caitlin, ‘EE-fa’ for Aoife.
-        </p>
-
-        <div className="mt-3">
-          {micState === "warming" ? (
-            <div className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gold/40 bg-warm-soft px-4 py-3 text-sm font-bold text-ink">
-              <span aria-hidden className="inline-block h-2 w-2 animate-pulse rounded-full bg-gold" />
-              <span>Get ready…</span>
-            </div>
-          ) : micState === "recording" ? (
-            <button
-              type="button"
-              onClick={stopMicRecording}
-              className="inline-flex w-full items-center justify-center gap-3 rounded-xl border border-blush/50 bg-warm-soft px-4 py-3 text-sm font-bold text-ink transition hover:border-blush"
-            >
-              <span aria-hidden className="flex h-5 items-end gap-[3px]">
-                {[0, 1, 2, 3, 4, 5, 6].map((i) => (
-                  <span
-                    key={i}
-                    className="block h-full w-[3px] rounded bg-blush animate-pulse-bar"
-                    style={{ animationDelay: `${i * 0.08}s` }}
-                  />
-                ))}
-              </span>
-              <span>🎙️ Speak now! ⏹ Stop (auto-stops at 4s)</span>
-            </button>
-          ) : micState === "transcribing" ? (
-            <div className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-sand bg-cream px-4 py-3 text-sm font-bold text-ink-soft">
-              ✨ Reading the pronunciation…
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={startMicRecording}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-sand bg-cream px-4 py-3 text-sm font-bold text-ink transition hover:border-jade"
-            >
-              <span aria-hidden>🎤</span> Or just say the name
-            </button>
-          )}
-          {micError && (
-            <p role="alert" className="mt-2 text-xs text-blush">
-              {micError}
-            </p>
-          )}
-          <p className="mt-1.5 text-[11px] text-ink-soft">
-            Audio is sent for transcription and discarded. Not stored.
-          </p>
-        </div>
-      </div>
-
-      <div>
-        <label htmlFor="recipient-age" className="mb-2 block text-sm font-bold text-ink">
-          {t.generate.ageLabel}
-        </label>
-        <input
-          id="recipient-age"
-          type="number"
-          inputMode="numeric"
-          min={MIN_AGE}
-          max={MAX_AGE}
-          value={ageInput}
-          onChange={(e) => setAgeInput(e.target.value)}
-          placeholder={t.generate.agePlaceholder}
-          className={`w-full rounded-xl border px-4 py-3.5 text-base text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
-        />
-        {/* Quick-pick milestone ages — additive convenience; typing still
-            works and drives the same ageInput state / recipientAge parsing. */}
-        <div className="mt-2 flex flex-wrap gap-2">
-          {[1, 18, 21, 30, 40, 50, 60].map((milestone) => (
-            <button
-              key={milestone}
-              type="button"
-              onClick={() => setAgeInput(String(milestone))}
-              className={`rounded-full border px-3 py-1.5 text-xs font-bold transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] ${
-                ageInput === String(milestone)
-                  ? "border-transparent bg-warm-gradient text-white shadow-md"
-                  : "border-sand bg-cream text-ink hover:border-jade"
-              }`}
-            >
-              {milestone}
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-
-  const vibeFields = (
-    <div className="space-y-5">
-      <div>
-        <label className="mb-2 block text-sm font-bold text-ink">
-          {t.generate.feelingLabel}
-        </label>
-        <div className="flex flex-wrap gap-2">
-          {feelingOptions.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() =>
-                setFeeling((cur) => (cur === opt.value ? "" : opt.value))
-              }
-              aria-pressed={feeling === opt.value}
-              className={`rounded-full border px-4 py-2 text-sm font-bold transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] ${
-                feeling === opt.value
-                  ? "border-transparent bg-warm-gradient text-white shadow-md"
-                  : "border-sand bg-cream text-ink hover:border-jade"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <label htmlFor="sender-name" className="mb-2 block text-sm font-bold text-ink">
-          Your name <span className="opacity-60">(optional — shown on the share)</span>
-        </label>
-        <input
-          id="sender-name"
-          value={senderName}
-          onChange={(e) => setSenderName(e.target.value.slice(0, 50))}
-          placeholder="Optional — shown on the share page"
-          maxLength={50}
-          className={`w-full rounded-xl border px-4 py-3.5 text-base text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
-        />
-      </div>
-
-      <div>
-        <label className="mb-2 block text-sm font-bold text-ink">Language</label>
-        <div className="flex flex-wrap gap-2">
-          {languages.map((lang) => (
-            <button
-              key={lang}
-              type="button"
-              onClick={() => setLanguage(lang as Language)}
-              className={`rounded-full border px-4 py-2 text-sm font-bold transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] ${
-                language === lang
-                  ? "border-transparent bg-warm-gradient text-white shadow-md"
-                  : "border-sand bg-cream text-ink hover:border-jade"
-              }`}
-            >
-              {lang}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <label className="mb-3 block text-sm font-bold text-ink">
-          {t.generate.genreLabel}
-        </label>
-
-        <div className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-3">
-          {genres.map((item) => (
-            <button
-              key={item}
-              type="button"
-              onClick={() => setGenre(item)}
-              className={`rounded-xl border px-3 py-3 text-sm font-bold transition hover:-translate-y-1 ${
-                genre === item
-                  ? "border-transparent bg-warm-gradient text-white shadow-md"
-                  : "border-sand bg-cream text-ink hover:border-jade"
-              }`}
-            >
-              {item}
-            </button>
-          ))}
-
-          <button
-            type="button"
-            onClick={() => setGenre("🎲 Surprise Me")}
-            className={`col-span-2 md:col-span-3 rounded-xl border border-dashed px-4 py-3.5 text-base font-extrabold transition hover:-translate-y-1 ${
-              genre === "🎲 Surprise Me"
-                ? "border-transparent bg-warm-gradient text-white shadow-md"
-                : "border-tan bg-cream text-ink hover:border-jade"
-            }`}
-          >
-            🎲 Surprise Me!
-          </button>
-        </div>
-      </div>
-
-      <div>
-        <label htmlFor="style-notes" className="mb-2 block text-sm font-bold text-ink">
-          Anything to mention? <span className="opacity-60">(optional)</span>
-        </label>
-        <input
-          id="style-notes"
-          value={styleNotes}
-          onChange={(e) => setStyleNotes(e.target.value.slice(0, 2000))}
-          placeholder="e.g., 'their favorite band is Coldplay,' 'they love running,' 'mention their dog Max'"
-          maxLength={2000}
-          className={`w-full rounded-xl border px-4 py-3.5 text-base text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
-        />
-        <p className="mt-1.5 text-xs text-ink-soft">
-          Personal details, a music style, an artist reference, or a mood — we weave it into the lyrics and the music.
-        </p>
-      </div>
-    </div>
-  );
-
   return (
     <main
       className={`gen-stage grain relative min-h-screen overflow-x-hidden bg-cream ${theme.text} px-4 py-6 sm:py-8 transition-all duration-700`}
@@ -2463,6 +2267,38 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
         }
         .float-one { animation: floatOne 9s ease-in-out infinite; }
         .float-two { animation: floatTwo 12s ease-in-out infinite; }
+
+        /* ── v4 beat-engine chrome: marquee, reel, dossier, chips ── */
+        .gen-stage .marquee-sign {
+          position: relative; border-radius: 16px; padding: 22px 18px; text-align: center;
+          background: rgba(0,0,0,.30); border: 2px solid rgba(255,207,107,.45);
+          box-shadow: 0 0 46px -10px rgba(255,180,90,.45), inset 0 0 34px rgba(255,180,90,.09);
+        }
+        .gen-stage .marquee-sign::before, .gen-stage .marquee-sign::after {
+          content: ""; position: absolute; left: 10px; right: 10px; height: 7px;
+          background-image: radial-gradient(circle, #ffde8f 0 2.6px, transparent 3px);
+          background-size: 16px 7px; background-repeat: repeat-x; opacity: .9;
+          filter: drop-shadow(0 0 3px rgba(255,207,107,.9));
+        }
+        .gen-stage .marquee-sign::before { top: 6px; }
+        .gen-stage .marquee-sign::after { bottom: 6px; }
+        .gen-stage .m-name {
+          font-weight: 900; letter-spacing: .06em; font-size: 32px; line-height: 1.05;
+          text-transform: uppercase; color: #fff; word-break: break-word; min-height: 34px;
+          text-shadow: 0 0 12px rgba(255,207,107,.85), 0 0 30px rgba(255,111,174,.55);
+        }
+        .gen-stage .m-name.empty { color: #5a4a78; text-shadow: none; }
+        .gen-stage .reel { display: flex; gap: 6px; justify-content: center; }
+        .gen-stage .reel i {
+          height: 4px; width: 20px; border-radius: 3px;
+          background: rgba(255,255,255,.14); transition: .3s;
+        }
+        .gen-stage .reel i.on { background: linear-gradient(120deg,#ffcf6b,#ff6fae); }
+        .gen-stage .dossier li { opacity: .34; transition: .35s; }
+        .gen-stage .dossier li.on { opacity: 1; }
+        @media (prefers-reduced-motion: reduce) {
+          .gen-stage .animate-eq { animation: none !important; }
+        }
       `}</style>
 
       {/* Warm organic blobs bleeding off the edges (matches the landing look). */}
@@ -2580,335 +2416,627 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
         </ol>
       </nav>
 
-      {/* Step 1 — "About them": the details form. Also kept mounted while the
-          music is rendering (loadingMusic) because the rich wait UI — live
-          lyric reveal, template picker, "make it yours", wait-capture — lives
-          inside this section and is the step-2 wait experience. The form's
-          own fields/CTAs are guarded so they hide once lyrics exist (steps 2-3),
-          while the wait block still renders during loadingMusic. */}
-      {(step === 1 || loadingMusic) && (
-      <section
-        className={`relative z-10 mx-auto max-w-xl rounded-[2rem] border ${theme.card} p-5 shadow-sm sm:p-8`}
-      >
-        {/* Step 1 form fields + lyrics CTA. Hidden once lyrics exist so steps
-            2-3 don't re-show the details form (the loadingMusic wait UI below
-            stays visible during the music render). */}
-        {!lyrics && (
-        <>
-        {inputStep === 0 ? (
-          <>
-            <div className="mb-4">
-              <div className="flex items-center justify-between gap-3">
-                <StudioKicker>{t.generate.actCasting}</StudioKicker>
-                <SubStepDots active={0} onJump={(i) => i === 0 && setInputStep(0)} />
-              </div>
-              <h2 className="font-display text-xl font-black text-ink sm:text-2xl">
-                {t.generate.personHeading}
-              </h2>
-            </div>
-            <ProducerBubble emoji="🎩">
-              {t.generate.producerIntro.replace("{producer}", t.generate.producerName)}
-            </ProducerBubble>
-            {personFields}
-            <button
-              type="button"
-              onClick={() => setInputStep(1)}
-              disabled={!name.trim()}
-              className="mt-6 w-full min-h-[44px] rounded-full bg-jade py-4 text-base font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(31,142,125,0.7)] transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] hover:bg-jade-deep disabled:cursor-not-allowed disabled:bg-sand disabled:text-ink-soft disabled:shadow-none disabled:hover:translate-y-0 disabled:hover:bg-sand sm:text-lg"
-            >
-              Next →
-            </button>
-            {!name.trim() && (
-              <p className="mt-2 text-center text-xs text-ink-soft">Add their name to continue.</p>
-            )}
-          </>
-        ) : (
-          <>
-            <div className="mb-4">
-              <div className="flex items-center justify-between gap-3">
-                <StudioKicker>{t.generate.actFeeling}</StudioKicker>
-                <SubStepDots active={1} onJump={(i) => i === 0 && setInputStep(0)} />
-              </div>
-              <h2 className="font-display text-xl font-black text-ink sm:text-2xl">
-                {t.generate.vibeHeading}
-              </h2>
-            </div>
-            <ProducerBubble emoji="🎛️">{t.generate.producerVibe}</ProducerBubble>
-            {vibeFields}
+      {/* ── STEP 1 · the intake: opening marquee, then the beat engine ── */}
+      {step === 1 && (
+        <section className={`relative z-10 mx-auto max-w-xl rounded-[2rem] border ${theme.card} p-5 shadow-sm sm:p-8`}>
+          {intakeStage === "opening" ? (
+            <>
+              <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-gold/40 bg-warm-soft px-4 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-gold">
+                {t.generate.openingBadge}
+              </span>
+              <p className="mb-4 text-sm leading-relaxed text-ink-soft">{t.generate.openingLead}</p>
 
-            {/* The director's private note — the closing beat of the premiere.
-                Captured as text OR a short voice clip; both optional. */}
-            <div className="mt-5 rounded-2xl border border-gold/30 bg-cream-soft p-4">
-              <h3 className="font-display text-base font-black text-ink">
-                {t.generate.noteHeading}
-              </h3>
-              <p className="mt-1 text-xs text-ink-soft">{t.generate.noteSubtext}</p>
-
-              <div className="mt-3 inline-flex rounded-full border border-sand bg-cream p-1">
-                <button
-                  type="button"
-                  onClick={() => setNoteMode("text")}
-                  aria-pressed={noteMode === "text"}
-                  className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition ${
-                    noteMode === "text"
-                      ? "bg-warm-gradient text-white shadow"
-                      : "text-ink-soft hover:text-ink"
-                  }`}
-                >
-                  {t.generate.noteTabText}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setNoteMode("voice")}
-                  aria-pressed={noteMode === "voice"}
-                  className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition ${
-                    noteMode === "voice"
-                      ? "bg-warm-gradient text-white shadow"
-                      : "text-ink-soft hover:text-ink"
-                  }`}
-                >
-                  {t.generate.noteTabVoice}
-                </button>
+              {/* The marquee — the star's name lights up as you type it. */}
+              <div className="marquee-sign">
+                <div className="text-[10.5px] font-extrabold uppercase tracking-[0.28em] text-gold">
+                  {t.generate.marqueeNowCasting}
+                </div>
+                <div className={`m-name my-2 ${starUpper ? "" : "empty"}`}>
+                  {starUpper || t.generate.marqueeYourStar}
+                </div>
+                <div className="text-[10.5px] font-bold uppercase tracking-[0.22em] text-ink-soft">
+                  {t.generate.marqueeBottom}
+                </div>
               </div>
 
-              {noteMode === "text" ? (
-                <textarea
-                  value={directorNoteText}
-                  onChange={(e) => setDirectorNoteText(e.target.value.slice(0, 280))}
-                  placeholder={t.generate.notePlaceholder}
-                  rows={3}
-                  maxLength={280}
-                  className={`mt-3 w-full resize-none rounded-xl border px-4 py-3.5 text-sm text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
-                />
-              ) : (
-                <div className="mt-3">
-                  {directorNoteVoiceUrl ? (
-                    <div className="flex items-center gap-3">
-                      <audio
-                        src={directorNoteVoiceUrl}
-                        controls
-                        className="h-10 w-full max-w-xs"
-                      />
+              <div className="mt-5">
+                <ProducerBubble emoji="🎩">
+                  {name.trim()
+                    ? t.generate.miloOpeningNamed.replace("{name}", name.trim())
+                    : t.generate.miloOpeningEmpty.replace("{producer}", t.generate.producerName)}
+                </ProducerBubble>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="recipient-name" className="mb-2 block font-display text-lg font-bold text-ink">
+                    {t.generate.nameLabel}
+                  </label>
+                  <input
+                    id="recipient-name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && name.trim()) {
+                        e.preventDefault();
+                        setIntakeStage("beats");
+                      }
+                    }}
+                    placeholder={t.generate.namePlaceholder}
+                    className={`w-full rounded-xl border px-4 py-4 text-lg text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="pronunciation-hint" className="mb-2 block text-sm font-bold text-ink">
+                    {t.generate.pronLabel} <span className="opacity-60">{t.generate.pronOptional}</span>
+                  </label>
+                  <input
+                    id="pronunciation-hint"
+                    value={pronunciationHint}
+                    onChange={(e) => setPronunciationHint(e.target.value.slice(0, 80))}
+                    placeholder={t.generate.pronPlaceholder}
+                    maxLength={80}
+                    className={`w-full rounded-xl border px-4 py-3.5 text-base text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
+                  />
+                  <div className="mt-3">
+                    {micState === "warming" ? (
+                      <div className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gold/40 bg-warm-soft px-4 py-3 text-sm font-bold text-ink">
+                        <span aria-hidden className="inline-block h-2 w-2 animate-pulse rounded-full bg-gold" />
+                        <span>…</span>
+                      </div>
+                    ) : micState === "recording" ? (
                       <button
                         type="button"
-                        onClick={clearNoteVoice}
-                        className="shrink-0 rounded-full border border-sand bg-cream px-3 py-2 text-xs font-bold text-ink-soft transition hover:text-ink"
+                        onClick={stopMicRecording}
+                        className="inline-flex w-full items-center justify-center gap-3 rounded-xl border border-blush/50 bg-warm-soft px-4 py-3 text-sm font-bold text-ink transition hover:border-blush"
                       >
-                        {t.generate.noteReRecord}
+                        <span aria-hidden className="flex h-5 items-end gap-[3px]">
+                          {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+                            <span
+                              key={i}
+                              className="block h-full w-[3px] rounded bg-blush animate-pulse-bar"
+                              style={{ animationDelay: `${i * 0.08}s` }}
+                            />
+                          ))}
+                        </span>
+                        <span>⏹</span>
+                      </button>
+                    ) : micState === "transcribing" ? (
+                      <div className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-sand bg-cream px-4 py-3 text-sm font-bold text-ink-soft">
+                        ✨
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={startMicRecording}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-sand bg-cream px-4 py-3 text-sm font-bold text-ink transition hover:border-jade"
+                      >
+                        <span aria-hidden>🎤</span> {t.generate.pronLabel}
+                      </button>
+                    )}
+                    {micError && <p role="alert" className="mt-2 text-xs text-blush">{micError}</p>}
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="sender-name" className="mb-2 block text-sm font-bold text-ink">
+                    {t.generate.senderNameLabel}{" "}
+                    <span className="opacity-60">{t.generate.senderNameOptional}</span>
+                  </label>
+                  <input
+                    id="sender-name"
+                    value={senderName}
+                    onChange={(e) => setSenderName(e.target.value.slice(0, 50))}
+                    placeholder={t.generate.senderNamePlaceholder}
+                    maxLength={50}
+                    className={`w-full rounded-xl border px-4 py-3.5 text-base text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
+                  />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIntakeStage("beats")}
+                disabled={!name.trim()}
+                className="mt-6 w-full min-h-[44px] rounded-full bg-warm-gradient py-4 text-base font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(255,80,150,0.6)] transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-sand disabled:bg-none disabled:text-ink-soft disabled:shadow-none disabled:hover:translate-y-0 sm:text-lg"
+              >
+                {t.generate.startProduction}
+              </button>
+              {!name.trim() && (
+                <p className="mt-2 text-center text-xs text-ink-soft">{t.generate.startProductionHint}</p>
+              )}
+            </>
+          ) : (
+            <>
+              {/* Reel progress */}
+              <div className="reel mb-4">
+                {Array.from({ length: BEAT_COUNT }).map((_, i) => (
+                  <i key={i} className={i <= beatIndex ? "on" : ""} />
+                ))}
+              </div>
+
+              <StudioKicker>
+                {[
+                  t.generate.actCredit,
+                  t.generate.actMoment,
+                  t.generate.actNote,
+                  t.generate.actFeelingBeat,
+                  t.generate.actScore,
+                  t.generate.actLanguage,
+                  t.generate.actBirthday,
+                ][beatIndex]}
+              </StudioKicker>
+
+              <ProducerBubble emoji={["🎬", "🎩", "💌", "🎭", "🎼", "🌍", "📅"][beatIndex]}>
+                {[
+                  t.generate.miloCredit,
+                  miloMomentLine,
+                  t.generate.miloNote,
+                  t.generate.miloFeeling,
+                  t.generate.miloScore,
+                  t.generate.miloLanguage,
+                  t.generate.miloBirthday,
+                ][beatIndex]}
+              </ProducerBubble>
+
+              {/* The single beat card */}
+              <div className="rounded-[1.25rem] border border-sand bg-cream-soft p-5">
+                {/* Beat 0 — the credit (relationship) */}
+                {beatIndex === 0 && (
+                  <>
+                    <label className="mb-2 block text-sm font-bold text-ink">{t.generate.relationshipLabel}</label>
+                    <div className="flex flex-wrap gap-2">
+                      {relationshipOptions.map(({ value, label }) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => {
+                            setRelationship(value);
+                            goToBeat(1);
+                          }}
+                          className={`rounded-full border px-4 py-2.5 text-sm font-bold transition hover:-translate-y-0.5 ${
+                            relationship === value
+                              ? "border-transparent bg-warm-gradient text-white shadow-md"
+                              : "border-sand bg-cream text-ink hover:border-blush"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="mt-3 text-xs text-ink-soft">{t.generate.relationshipHint}</p>
+                  </>
+                )}
+
+                {/* Beat 1 — the moment (memory) */}
+                {beatIndex === 1 && (
+                  <>
+                    <label htmlFor="moment" className="mb-2 block text-sm font-bold text-ink">
+                      {t.generate.momentLabel}
+                    </label>
+                    <textarea
+                      id="moment"
+                      value={memory}
+                      onChange={(e) => setMemory(e.target.value)}
+                      rows={3}
+                      placeholder={t.generate.momentPlaceholder}
+                      className={`w-full resize-none rounded-xl border px-4 py-3.5 text-sm text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setMemory(t.generate.momentPlaceholder)}
+                      className="mt-2 text-xs text-ink-soft"
+                    >
+                      {t.generate.sparkPrefix}
+                      <span className="text-blush underline">{t.generate.sparkLink}</span>
+                    </button>
+                    {miloMomentReaction && (
+                      <p className="mt-3 text-xs font-semibold text-jade">{miloMomentReaction}</p>
+                    )}
+                    <div className="mt-4">
+                      <button
+                        type="button"
+                        onClick={() => setMoreOpen((v) => !v)}
+                        aria-expanded={moreOpen}
+                        className="flex w-full items-center justify-center gap-2 rounded-xl border border-sand bg-cream px-4 py-3 text-sm font-bold text-ink-soft transition hover:text-ink"
+                      >
+                        {moreOpen ? t.generate.moreDetailsClose : t.generate.moreDetailsOpen}
+                      </button>
+                      {moreOpen && (
+                        <div className="mt-4 space-y-3">
+                          <input
+                            value={profession}
+                            onChange={(e) => setProfession(e.target.value)}
+                            placeholder={t.generate.professionPlaceholder}
+                            className={`w-full rounded-xl border px-4 py-3.5 text-sm text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
+                          />
+                          <input
+                            value={styleNotes}
+                            onChange={(e) => setStyleNotes(e.target.value.slice(0, 2000))}
+                            placeholder={t.generate.styleNotesPlaceholder}
+                            maxLength={2000}
+                            className={`w-full rounded-xl border px-4 py-3.5 text-sm text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
+                          />
+                          <textarea
+                            value={extras}
+                            onChange={(e) => setExtras(e.target.value)}
+                            placeholder={t.generate.extrasPlaceholder}
+                            rows={2}
+                            className={`w-full resize-none rounded-xl border px-4 py-3.5 text-sm text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {/* Beat 2 — the private note (text or voice) */}
+                {beatIndex === 2 && (
+                  <>
+                    <div className="mb-3 inline-flex rounded-full border border-sand bg-cream p-1">
+                      <button
+                        type="button"
+                        onClick={() => setNoteMode("text")}
+                        aria-pressed={noteMode === "text"}
+                        className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition ${
+                          noteMode === "text" ? "bg-warm-gradient text-white shadow" : "text-ink-soft hover:text-ink"
+                        }`}
+                      >
+                        {t.generate.noteTabText}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNoteMode("voice")}
+                        aria-pressed={noteMode === "voice"}
+                        className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition ${
+                          noteMode === "voice" ? "bg-warm-gradient text-white shadow" : "text-ink-soft hover:text-ink"
+                        }`}
+                      >
+                        {t.generate.noteTabVoice}
                       </button>
                     </div>
-                  ) : noteUploading ? (
-                    <p className="text-sm text-ink-soft">{t.generate.noteUploadingLabel}</p>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        noteRecording ? stopNoteRecording() : startNoteRecording()
-                      }
-                      className={`inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-extrabold text-white transition ${
-                        noteRecording ? "bg-blush" : "bg-jade hover:bg-jade-deep"
-                      }`}
-                    >
-                      {noteRecording ? t.generate.noteStopCta : t.generate.noteRecordCta}
-                    </button>
-                  )}
-                  {noteRecording && (
-                    <p className="mt-2 text-xs text-ink-soft">
-                      {t.generate.noteRecordingLabel}
-                    </p>
-                  )}
-                </div>
-              )}
-              {directorNoteVoiceUrl && directorNoteVoiceDurationSec != null && (
-                <p className="mt-2 text-xs text-jade">
-                  {t.generate.noteVoiceReady.replace(
-                    "{seconds}",
-                    String(directorNoteVoiceDurationSec),
-                  )}
-                </p>
-              )}
-              {noteError && <p className="mt-2 text-xs text-blush">{noteError}</p>}
-            </div>
+                    {noteMode === "text" ? (
+                      <textarea
+                        value={directorNoteText}
+                        onChange={(e) => setDirectorNoteText(e.target.value.slice(0, 280))}
+                        placeholder={t.generate.notePlaceholder}
+                        rows={3}
+                        maxLength={280}
+                        className={`w-full resize-none rounded-xl border px-4 py-3.5 text-sm text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
+                      />
+                    ) : (
+                      <div>
+                        {directorNoteVoiceUrl ? (
+                          <div className="flex items-center gap-3">
+                            <audio src={directorNoteVoiceUrl} controls className="h-10 w-full max-w-xs" />
+                            <button
+                              type="button"
+                              onClick={clearNoteVoice}
+                              className="shrink-0 rounded-full border border-sand bg-cream px-3 py-2 text-xs font-bold text-ink-soft transition hover:text-ink"
+                            >
+                              {t.generate.noteReRecord}
+                            </button>
+                          </div>
+                        ) : noteUploading ? (
+                          <p className="text-sm text-ink-soft">{t.generate.noteUploadingLabel}</p>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => (noteRecording ? stopNoteRecording() : startNoteRecording())}
+                            className={`inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-extrabold text-white transition ${
+                              noteRecording ? "bg-blush" : "bg-jade hover:bg-jade-deep"
+                            }`}
+                          >
+                            {noteRecording ? t.generate.noteStopCta : t.generate.noteRecordCta}
+                          </button>
+                        )}
+                        {noteRecording && <p className="mt-2 text-xs text-ink-soft">{t.generate.noteRecordingLabel}</p>}
+                      </div>
+                    )}
+                    {directorNoteVoiceUrl && directorNoteVoiceDurationSec != null && (
+                      <p className="mt-2 text-xs text-jade">
+                        {t.generate.noteVoiceReady.replace("{seconds}", String(directorNoteVoiceDurationSec))}
+                      </p>
+                    )}
+                    {noteError && <p className="mt-2 text-xs text-blush">{noteError}</p>}
+                    <p className="mt-3 text-xs text-ink-soft">{t.generate.noteBeatFootnote}</p>
+                  </>
+                )}
 
-            {/* Progressive disclosure: secondary personalization behind one tap. */}
-            <div className="mt-5">
-              <button
-                type="button"
-                onClick={() => setMoreOpen((v) => !v)}
-                aria-expanded={moreOpen}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-sand bg-cream px-4 py-3 text-sm font-bold text-ink-soft transition hover:text-ink"
-              >
-                {moreOpen ? "− Fewer details" : "＋ Add more details (optional)"}
-              </button>
-
-              {moreOpen && (
-                <div className="mt-4 space-y-4">
-                  <input
-                    value={profession}
-                    onChange={(e) => setProfession(e.target.value)}
-                    placeholder="What do they do? (optional)"
-                    className={`w-full rounded-xl border px-4 py-3.5 text-sm text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
-                  />
-                  <textarea
-                    value={memory}
-                    onChange={(e) => setMemory(e.target.value)}
-                    placeholder="A special memory you share (optional)"
-                    rows={2}
-                    className={`w-full resize-none rounded-xl border px-4 py-3.5 text-sm text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
-                  />
-                  <textarea
-                    value={extras}
-                    onChange={(e) => setExtras(e.target.value)}
-                    placeholder="Anything else to weave in? A favorite band, an inside joke…"
-                    rows={3}
-                    className={`w-full resize-none rounded-xl border px-4 py-3.5 text-sm text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Email + attestation are collected later (progressive commitment). */}
-            {(name || genre) && (
-              <p className="mt-6 text-center text-sm text-ink-soft">
-                A{" "}
-                <span className="font-bold text-ink">
-                  {genre && genre !== "🎲 Surprise Me" ? genre.replace(/^[^A-Za-z]+/, "").trim() : "surprise"}
-                </span>{" "}
-                song for{" "}
-                <span className="font-bold text-ink">{name || "them"}</span>
-                {ageInput ? `, turning ${ageInput}` : ""}.
-              </p>
-            )}
-
-            <div className="mt-4 flex gap-3">
-              <button
-                type="button"
-                onClick={() => setInputStep(0)}
-                className="min-h-[44px] shrink-0 rounded-full border border-sand bg-cream px-6 text-base font-bold text-ink-soft transition hover:text-ink"
-              >
-                ← Back
-              </button>
-              <button
-                type="button"
-                onClick={generateLyricsHandler}
-                disabled={!canGenerateLyrics || loadingLyrics || loadingMusic}
-                className="flex-1 min-h-[44px] rounded-full bg-jade py-4 text-base font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(31,142,125,0.7)] transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] hover:bg-jade-deep disabled:cursor-not-allowed disabled:bg-sand disabled:text-ink-soft disabled:shadow-none disabled:hover:translate-y-0 disabled:hover:bg-sand sm:text-lg"
-              >
-                {loadingLyrics ? t.generate.writingLyrics : t.generate.writeLyrics}
-              </button>
-            </div>
-
-            {/* Trust / reassurance strip — honest signals only. */}
-            <div className="mt-3 space-y-1.5 text-center">
-              <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[11px] text-ink-soft">
-                <span>{t.generate.trustFreePreview}</span>
-                <span aria-hidden className="opacity-40">·</span>
-                <span>{t.generate.trustNoSignup}</span>
-                <span aria-hidden className="opacity-40">·</span>
-                <span>{t.generate.trustMoneyBack}</span>
-                <span aria-hidden className="opacity-40">·</span>
-                <span>{t.generate.trustSecureStripe}</span>
-              </p>
-              <p className="text-[11px] text-ink-soft">
-                {t.generate.trustRewriteFree}
-              </p>
-            </div>
-
-            {!canGenerateLyrics && !loadingLyrics && !loadingMusic && missingForLyrics && (
-              <p className="mt-2 text-center text-xs text-ink-soft">{missingForLyrics}</p>
-            )}
-
-            {/* Crowd-magic entry point — optional fork off the solo flow. Mints
-                a group-song gift so the recipient's circle can add lines before
-                the song is made. Shown once we have a name to mint against. */}
-            {name.trim() && (
-              <div className="mt-4 rounded-2xl border border-blush/40 bg-warm-soft p-4">
-                {!crowdJoinUrl ? (
+                {/* Beat 3 — the feeling */}
+                {beatIndex === 3 && (
                   <>
-                    <button
-                      type="button"
-                      onClick={createGroupSong}
-                      disabled={crowdCreating}
-                      className="w-full min-h-[44px] rounded-full border border-blush/50 bg-cream-soft px-5 py-3 text-sm font-extrabold text-ink transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] hover:border-blush disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {crowdCreating ? t.crowd.creating : t.crowd.cta}
-                    </button>
-                    <p className="mt-2 text-center text-[11px] text-ink-soft">{t.crowd.ctaHint}</p>
-                    {crowdError && (
-                      <p role="alert" className="mt-2 text-center text-xs text-blush">
-                        {crowdError}
+                    <label className="mb-2 block text-sm font-bold text-ink">{t.generate.feelingLabel}</label>
+                    <div className="flex flex-wrap gap-2">
+                      {feelingOptions.map((opt) => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => {
+                            setFeeling(opt.value);
+                            goToBeat(4);
+                          }}
+                          className={`rounded-full border px-4 py-2.5 text-sm font-bold transition hover:-translate-y-0.5 ${
+                            feeling === opt.value
+                              ? "border-transparent bg-warm-gradient text-white shadow-md"
+                              : "border-sand bg-cream text-ink hover:border-blush"
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {/* Beat 4 — the score (genre) */}
+                {beatIndex === 4 && (
+                  <>
+                    <label className="mb-2 block text-sm font-bold text-ink">{t.generate.scoreLabel}</label>
+                    <div className="flex flex-wrap gap-2">
+                      {genres.map((item) => (
+                        <button
+                          key={item}
+                          type="button"
+                          onClick={() => {
+                            setGenre(item);
+                            goToBeat(5);
+                          }}
+                          className={`rounded-full border px-4 py-2.5 text-sm font-bold transition hover:-translate-y-0.5 ${
+                            genre === item
+                              ? "border-transparent bg-warm-gradient text-white shadow-md"
+                              : "border-sand bg-cream text-ink hover:border-blush"
+                          }`}
+                        >
+                          {item}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setGenre("🎲 Surprise Me");
+                          goToBeat(5);
+                        }}
+                        className={`rounded-full border border-dashed px-4 py-2.5 text-sm font-extrabold transition hover:-translate-y-0.5 ${
+                          genre === "🎲 Surprise Me"
+                            ? "border-transparent bg-warm-gradient text-white shadow-md"
+                            : "border-tan bg-cream text-ink hover:border-blush"
+                        }`}
+                      >
+                        {t.generate.scoreSurprise}
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {/* Beat 5 — the language */}
+                {beatIndex === 5 && (
+                  <>
+                    <label className="mb-2 block text-sm font-bold text-ink">{t.generate.languageSing}</label>
+                    <div className="flex flex-wrap gap-2">
+                      {languages.map((lang) => (
+                        <button
+                          key={lang}
+                          type="button"
+                          onClick={() => {
+                            setLanguage(lang as Language);
+                            goToBeat(6);
+                          }}
+                          className={`rounded-full border px-4 py-2.5 text-sm font-bold transition hover:-translate-y-0.5 ${
+                            language === lang
+                              ? "border-transparent bg-warm-gradient text-white shadow-md"
+                              : "border-sand bg-cream text-ink hover:border-blush"
+                          }`}
+                        >
+                          {lang}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {/* Beat 6 — the birthday (month + day + optional age) */}
+                {beatIndex === 6 && (
+                  <>
+                    <label className="mb-2 block text-sm font-bold text-ink">
+                      {t.generate.birthdayLabel}{" "}
+                      <span className="opacity-60">{t.generate.birthdayOptional}</span>
+                    </label>
+                    <div className="flex gap-2.5">
+                      <select
+                        value={birthMonth}
+                        onChange={(e) => syncBirthday(e.target.value, birthDay)}
+                        className={`flex-[1.4] rounded-xl border px-4 py-3.5 text-base text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
+                      >
+                        <option value="" disabled>
+                          {t.generate.monthPlaceholder}
+                        </option>
+                        {monthNames.map((m, i) => (
+                          <option key={m} value={String(i + 1)}>
+                            {m}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        value={birthDay}
+                        onChange={(e) => syncBirthday(birthMonth, e.target.value)}
+                        className={`flex-1 rounded-xl border px-4 py-3.5 text-base text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
+                      >
+                        <option value="" disabled>
+                          {t.generate.dayPlaceholder}
+                        </option>
+                        {Array.from({ length: 31 }).map((_, i) => (
+                          <option key={i + 1} value={String(i + 1)}>
+                            {i + 1}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="mt-4">
+                      <label htmlFor="recipient-age" className="mb-2 block text-sm font-bold text-ink">
+                        {t.generate.ageBeatLabel}{" "}
+                        <span className="opacity-60">({t.generate.ageBeatHint})</span>
+                      </label>
+                      <input
+                        id="recipient-age"
+                        type="number"
+                        inputMode="numeric"
+                        min={MIN_AGE}
+                        max={MAX_AGE}
+                        value={ageInput}
+                        onChange={(e) => setAgeInput(e.target.value)}
+                        placeholder={t.generate.agePlaceholder}
+                        className={`w-full rounded-xl border px-4 py-3.5 text-base text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
+                      />
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {[1, 18, 21, 30, 40, 50, 60].map((milestone) => (
+                          <button
+                            key={milestone}
+                            type="button"
+                            onClick={() => setAgeInput(String(milestone))}
+                            className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${
+                              ageInput === String(milestone)
+                                ? "border-transparent bg-warm-gradient text-white shadow-md"
+                                : "border-sand bg-cream text-ink hover:border-blush"
+                            }`}
+                          >
+                            {milestone}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {birthMonth && birthDay && recipientAge === null && (
+                      <p className="mt-3 text-xs text-ink-soft">{t.generate.birthdayNeedAge}</p>
+                    )}
+                    {birthdayLabelText && (
+                      <p className="mt-3 text-xs text-gold">
+                        {t.generate.premiereOpensPrefix}
+                        {birthdayLabelText}.
                       </p>
                     )}
                   </>
-                ) : (
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-sm font-extrabold text-ink">{t.crowd.linkHeading}</p>
-                      <p className="mt-1 text-xs text-ink-soft">{t.crowd.linkSubtitle}</p>
-                    </div>
-                    <div className="flex items-stretch gap-2">
-                      <input
-                        readOnly
-                        value={crowdJoinUrl}
-                        onFocus={(e) => e.currentTarget.select()}
-                        className={`flex-1 rounded-xl border px-4 py-3 text-sm text-ink outline-none ${theme.input}`}
-                      />
-                      <button
-                        type="button"
-                        onClick={copyCrowdLink}
-                        className="shrink-0 rounded-full bg-warm-gradient px-4 py-3 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99]"
-                      >
-                        {crowdCopied ? t.crowd.copied : t.crowd.copy}
-                      </button>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={shareCrowdLink}
-                      className="w-full min-h-[44px] rounded-full border border-sand bg-cream-soft py-2.5 text-sm font-bold text-ink transition hover:border-jade"
-                    >
-                      {t.crowd.share}
-                    </button>
-                  </div>
                 )}
               </div>
-            )}
-          </>
-        )}
 
-        {loadingLyrics && (
-          <div className="mt-5">
-            <div className="mb-2 flex justify-between text-xs text-ink-soft">
-              <span>Writing lyrics...</span>
-            </div>
-            <div className="h-2 overflow-hidden rounded-full bg-sand">
-              <div className="h-full animate-pulse bg-warm-gradient" style={{ width: "100%" }} />
+              {/* Back / Next */}
+              <div className="mt-4 flex gap-3">
+                {beatIndex > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => goToBeat(beatIndex - 1)}
+                    className="min-h-[44px] shrink-0 rounded-full border border-sand bg-cream-soft px-6 text-base font-bold text-ink-soft transition hover:text-ink"
+                  >
+                    {t.generate.beatBack}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={advanceBeat}
+                  disabled={!beatValid(beatIndex) || loadingLyrics}
+                  className="flex-1 min-h-[44px] rounded-full bg-warm-gradient py-4 text-base font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(255,80,150,0.6)] transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-sand disabled:bg-none disabled:text-ink-soft disabled:shadow-none disabled:hover:translate-y-0 sm:text-lg"
+                >
+                  {beatIndex === BEAT_COUNT - 1
+                    ? loadingLyrics
+                      ? t.generate.writingLyrics
+                      : t.generate.beatToStudio
+                    : t.generate.beatNext}
+                </button>
+              </div>
+
+              {/* The call sheet — the dossier fills in as beats are answered */}
+              <div className="dossier mt-5 rounded-2xl border border-dashed border-sand p-3.5">
+                <div className="mb-2 text-[11px] font-extrabold uppercase tracking-[0.14em] text-ink-soft">
+                  {t.generate.callSheetHeading}
+                </div>
+                <ul className="flex flex-col gap-1.5 text-sm">
+                  {[
+                    { k: t.generate.dossierStar, v: name.trim(), on: !!name.trim() },
+                    { k: t.generate.dossierDirected, v: relationship ? dossierDirectedBy : "", on: !!relationship },
+                    {
+                      k: t.generate.dossierScene,
+                      v: memory.trim() ? `“${memory.trim().slice(0, 34)}${memory.trim().length > 34 ? "…" : ""}”` : "",
+                      on: !!memory.trim(),
+                    },
+                    {
+                      k: t.generate.dossierNote,
+                      v:
+                        noteMode === "voice" && directorNoteVoiceUrl
+                          ? t.generate.dossierRecorded
+                          : directorNoteText.trim()
+                            ? t.generate.dossierWritten
+                            : "",
+                      on: !!(directorNoteVoiceUrl || directorNoteText.trim()),
+                    },
+                    { k: t.generate.dossierFeeling, v: feeling, on: !!feeling },
+                    { k: t.generate.dossierScore, v: genre, on: !!genre },
+                    { k: t.generate.dossierLanguage, v: language, on: !!language },
+                    { k: t.generate.dossierCurtain, v: birthdayLabelText, on: !!birthdayLabelText },
+                  ].map((row) => (
+                    <li key={row.k} className={`flex gap-2 text-ink-soft ${row.on ? "on" : ""}`}>
+                      <span className="inline-block min-w-[86px] text-[11.5px] uppercase tracking-[0.05em] text-ink-soft">
+                        {row.k}
+                      </span>
+                      <span className={row.on ? "font-semibold text-ink" : ""}>{row.v || "—"}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </>
+          )}
+        </section>
+      )}
+
+      {/* ── STEP 2 · the studio: co-creation + the "open the curtain" gate ── */}
+      {lyrics && !audioUrl && (
+        <section className={`relative z-10 mx-auto max-w-xl rounded-[2rem] border ${theme.card} p-5 shadow-sm sm:p-8`}>
+          <StudioKicker>{t.generate.actStudio}</StudioKicker>
+          <h2 className="font-display text-2xl font-black text-ink">
+            {t.generate.studioRecordingPrefix}
+            <span className="bg-warm-gradient bg-clip-text text-transparent">
+              {name.trim() || t.generate.marqueeYourStar}
+            </span>
+            {t.generate.studioRecordingSuffix}
+          </h2>
+          <div className="mt-4">
+            <ProducerBubble emoji="🎛️">{t.generate.miloStudio}</ProducerBubble>
+          </div>
+
+          {/* Live lyric reveal — the chorus coming to life (read-only). */}
+          <div className="rounded-2xl border border-sand bg-cream-soft p-4">
+            <span className="inline-block rounded-lg border border-gold/30 bg-gold/10 px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wide text-gold">
+              {t.generate.studioChorusTag}
+            </span>
+            <p className="mb-2 mt-3 text-sm font-bold text-ink">{t.generate.studioChorusLabel}</p>
+            <div
+              className="max-h-52 overflow-y-auto whitespace-pre-wrap border-l-2 border-gold pl-3.5 text-sm leading-relaxed text-cream"
+              dir={language === "Arabic" ? "rtl" : "ltr"}
+              style={
+                language === "Hindi"
+                  ? { fontFamily: '"Noto Sans Devanagari", "Mangal", system-ui, sans-serif' }
+                  : undefined
+              }
+              aria-live="polite"
+              aria-busy={!loadingMusic}
+            >
+              {lyrics.raw.slice(0, lyricRevealChars)}
+              {lyricRevealChars < lyrics.raw.length && (
+                <span aria-hidden className="ml-0.5 inline-block w-[1px] animate-pulse opacity-80">
+                  ▍
+                </span>
+              )}
             </div>
           </div>
-        )}
-        </>
-        )}
 
-        {loadingMusic && (
-          <div className="mt-6">
-            {/* Alive, personal centerpiece — a "studio" moment so the wait
-                feels like the song is being made for THEM, not a dead spinner. */}
-            {!audioUrl && (
+          {loadingMusic ? (
+            /* Mixing state — the track is rendering. */
+            <div className="mt-6">
               <p className="mb-3 text-center text-[10px] font-bold uppercase tracking-[0.22em] text-jade">
-                🎙 In the studio
+                🎙 {t.generate.actStudio}
               </p>
-            )}
-            <p className="text-center font-display text-lg font-bold text-ink">
-              {audioUrl
-                ? t.generate.waitReady
-                : name.trim()
-                  ? `Making ${name.trim()}’s song…`
-                  : "Making your song…"}
-            </p>
-
-            {/* Live equalizer — a bigger, glowing bar row gives the wait real
-                motion. Freezes on completion; respects reduced-motion via
-                .animate-eq. */}
-            {!audioUrl && (
+              <p className="text-center font-display text-lg font-bold text-ink">
+                {audioUrl ? t.generate.waitReady : t.generate.studioMixingHeadline}
+              </p>
               <div className="mt-5 flex items-end justify-center gap-1.5" aria-hidden>
                 {Array.from({ length: 11 }).map((_, i) => (
                   <span
@@ -2922,51 +3050,26 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                   />
                 ))}
               </div>
-            )}
-
-            {/* Rotating "production stage" sits below the stable headline so
-                there's steady forward motion without the copy jumping around. */}
-            {!audioUrl && (
               <p className="mt-4 text-center text-sm font-semibold text-ink-soft">
                 {LOADING_MESSAGES[loadingMsgIdx]}
               </p>
-            )}
-
-            {/* Simulated progress: 75s linear → 95%, jumps to 100% on completion. */}
-            <div className="mt-3 h-3 overflow-hidden rounded-full bg-sand">
-              <div
-                className={`h-full bg-warm-gradient ${audioUrl ? "" : "animate-progress"}`}
-                style={
-                  audioUrl
-                    ? { width: "100%", transition: "width 0.6s ease-out" }
-                    : undefined
-                }
-              />
+              <div className="mt-3 h-3 overflow-hidden rounded-full bg-sand">
+                <div className="h-full bg-warm-gradient animate-progress" />
+              </div>
+              <p className="mt-2 text-center text-xs text-ink-soft">
+                {elapsedMs < 60_000 ? t.generate.waitAboutAMinute : t.generate.waitAlmostThere}
+              </p>
+              {/* Optional wait-time game — pure fun, never blocks. */}
+              <WaitGame />
             </div>
-
-            {/* Countdown label */}
-            <p className="mt-2 text-center text-xs text-ink-soft">
-              {audioUrl
-                ? t.generate.waitSongReady
-                : elapsedMs < 60_000
-                  ? t.generate.waitAboutAMinute
-                  : t.generate.waitAlmostThere}
-            </p>
-
-            {/* Co-authorship — while the track mixes, invite the director to make
-                the gift more theirs by adding photos that become premiere scenes.
-                Optional + non-blocking; reuses the existing photoUrls state and
-                upload handler. The reveal's photo input isn't mounted during the
-                wait (opposite audioUrl guards), so sharing photoInputRef is safe. */}
-            {!audioUrl && (
-              <div className="mt-6 rounded-2xl border border-blush/40 bg-warm-soft p-4">
+          ) : (
+            <>
+              {/* Photos → premiere scenes */}
+              <div className="mt-5 rounded-2xl border border-blush/40 bg-warm-soft p-4">
                 <span className="inline-block rounded-full bg-jade/10 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.12em] text-jade">
                   {t.generate.coauthorTag}
                 </span>
-                <div className="mt-3">
-                  <ProducerBubble emoji="🎛️">{t.generate.producerWait}</ProducerBubble>
-                </div>
-                <p className="mb-3 text-sm text-ink-soft">{t.generate.coauthorPhotoLabel}</p>
+                <p className="mb-3 mt-3 text-sm text-ink-soft">{t.generate.coauthorPhotoLabel}</p>
                 <input
                   ref={photoInputRef}
                   type="file"
@@ -2994,418 +3097,217 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                   </p>
                 )}
               </div>
-            )}
 
-            {/* Optional wait-time game — pure fun, never blocks the render. */}
-            {!audioUrl && <WaitGame />}
-
-            {/* Live lyric reveal — Claude's response already exists by the
-                time Suno starts working, so this is a UX device that makes
-                the ~60s wait feel productive rather than passive. The
-                pulsing 🎵 hints that music is being layered onto the words. */}
-            {lyrics && (
-              <div className="mt-6">
-                <div className="mb-2 flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest text-ink-soft">
-                  <span aria-hidden className="inline-block animate-pulse">🎵</span>
-                  <span>{t.generate.waitWritingSong}</span>
-                </div>
-                <div
-                  className="max-h-48 overflow-y-auto rounded-2xl border border-sand bg-noir px-4 py-3 text-sm leading-relaxed text-white whitespace-pre-wrap"
-                  dir={language === "Arabic" ? "rtl" : "ltr"}
-                  style={
-                    language === "Hindi"
-                      ? { fontFamily: '"Noto Sans Devanagari", "Mangal", system-ui, sans-serif' }
-                      : undefined
-                  }
-                  aria-live="polite"
-                  aria-busy={!audioUrl}
-                >
-                  {lyrics.raw.slice(0, lyricRevealChars)}
-                  {!audioUrl && lyricRevealChars < lyrics.raw.length && (
-                    <span aria-hidden className="ml-0.5 inline-block w-[1px] animate-pulse opacity-80">
-                      ▍
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Optional extras — collapsed by default so the wait stays calm
-                and focused on the song. Everything inside is additive; skipping
-                is fine (a default template + no capture still works). */}
-            <details className="mt-8 rounded-2xl border border-sand bg-cream-soft/60">
-              <summary className="flex cursor-pointer list-none items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[11px] font-bold uppercase tracking-widest text-ink-soft transition hover:text-ink">
-                ✨ Personalize while you wait (optional)
-              </summary>
-              <div className="space-y-6 px-4 pb-5 pt-1">
-
-            {/* Template picker — pick during the wait. The selected template
-                locks in when createShareLink() auto-fires on song completion. */}
-            <div className="mt-2">
-              <p className="mb-2 text-center text-[10px] font-bold uppercase tracking-widest text-ink-soft">
-                Pick a design while you wait
-              </p>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
-                {SHARE_TEMPLATES.map((key) => {
-                  const meta = TEMPLATE_LABELS[key];
-                  const selected = shareTemplate === key;
-                  return (
+              {/* Secret cast link (crowd) */}
+              <div className="mt-4 rounded-2xl border border-blush/40 bg-warm-soft p-4">
+                <span className="inline-block rounded-lg border border-blush/30 bg-blush/10 px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wide text-blush">
+                  {t.generate.studioCastTag}
+                </span>
+                <p className="mb-3 mt-3 text-sm font-extrabold text-ink">{t.generate.studioCastHeading}</p>
+                <p className="mb-3 text-xs text-ink-soft">{t.generate.studioCastBody}</p>
+                {!crowdJoinUrl ? (
+                  <>
                     <button
-                      key={key}
                       type="button"
-                      onClick={() => setShareTemplate(key)}
-                      disabled={!!audioUrl || creatingShare}
-                      className={`flex items-center justify-center gap-1.5 rounded-xl border px-2 py-2 text-xs font-bold transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 ${
-                        selected
-                          ? "border-transparent bg-warm-gradient text-white shadow-md"
-                          : "border-sand bg-cream text-ink hover:border-jade"
-                      }`}
+                      onClick={createGroupSong}
+                      disabled={crowdCreating}
+                      className="w-full min-h-[44px] rounded-full border border-blush/50 bg-cream-soft px-5 py-3 text-sm font-extrabold text-ink transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] hover:border-blush disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      <span
-                        aria-hidden
-                        className="inline-block h-2 w-2 shrink-0 rounded-full"
-                        style={{ backgroundColor: TEMPLATE_ACCENT[key] }}
-                      />
-                      <span>{meta.name}</span>
+                      {crowdCreating ? t.crowd.creating : t.crowd.cta}
                     </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Preview card — shows the recipient name styled in the selected
-                template. Helps the user pick something they like. */}
-            {name.trim() && (
-              <div className="mt-4 overflow-hidden rounded-2xl border border-sand">
-                <div className={`px-5 py-7 text-center ${PREVIEW_BG[shareTemplate]}`}>
-                  <p className="text-[11px] font-bold uppercase tracking-widest opacity-60" style={{ color: "rgba(255,255,255,0.55)" }}>
-                    Preview
-                  </p>
-                  <p
-                    className="mt-2 text-2xl font-extrabold leading-tight"
-                    style={PREVIEW_TEXT_STYLE[shareTemplate]}
-                  >
-                    Happy Birthday, {name.trim()}!
-                  </p>
-                  {personalNote.trim() && (
-                    <p
-                      className="mt-2 text-xs italic opacity-80"
-                      style={{ color: "rgba(255,255,255,0.85)" }}
+                    {crowdError && (
+                      <p role="alert" className="mt-2 text-center text-xs text-blush">
+                        {crowdError}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex items-stretch gap-2">
+                      <input
+                        readOnly
+                        value={crowdJoinUrl}
+                        onFocus={(e) => e.currentTarget.select()}
+                        className={`flex-1 rounded-xl border px-4 py-3 text-sm text-ink outline-none ${theme.input}`}
+                      />
+                      <button
+                        type="button"
+                        onClick={copyCrowdLink}
+                        className="shrink-0 rounded-full bg-warm-gradient px-4 py-3 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99]"
+                      >
+                        {crowdCopied ? t.crowd.copied : t.crowd.copy}
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={shareCrowdLink}
+                      className="w-full min-h-[44px] rounded-full border border-sand bg-cream-soft py-2.5 text-sm font-bold text-ink transition hover:border-blush"
                     >
-                      {personalNote.trim()}
-                    </p>
+                      {t.crowd.share}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* "Where should we send the premiere?" — email + attestation gate */}
+              <div className="mt-5 rounded-2xl border border-gold/30 bg-cream-soft p-4">
+                <p className="font-display text-base font-black text-ink">{t.generate.studioGateHeading}</p>
+                <div className="mt-3 space-y-3">
+                  <div>
+                    <label htmlFor="contact-email" className="mb-2 block text-sm font-bold text-ink">
+                      {t.generate.emailLabel}
+                    </label>
+                    <input
+                      id="contact-email"
+                      type="email"
+                      autoComplete="email"
+                      value={emailInput}
+                      onChange={(e) => setEmailInput(e.target.value)}
+                      placeholder={t.generate.emailPlaceholder}
+                      className={`w-full rounded-xl border px-4 py-3.5 text-base text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
+                    />
+                    <p className="mt-1.5 text-xs text-ink-soft">{t.generate.emailHint}</p>
+                  </div>
+
+                  <label
+                    className={`flex items-start gap-3 rounded-2xl border p-3 text-sm text-ink transition ${
+                      recipientIsMinor ? "border-gold/30 bg-warm-soft" : "border-sand bg-cream"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={attested}
+                      onChange={(e) => setAttested(e.target.checked)}
+                      disabled={recipientAge === null}
+                      className={`mt-1 h-4 w-4 shrink-0 rounded border-sand ${
+                        recipientIsMinor ? "accent-gold" : "accent-jade"
+                      }`}
+                    />
+                    <span className="text-ink-soft">
+                      {recipientIsMinor
+                        ? `${t.generate.attestationGuardianPrefix}${name.trim() || t.generate.attestationGuardianFallback}.`
+                        : t.generate.attestationAdult}
+                    </span>
+                  </label>
+
+                  {!recipientIsMinor && (
+                    <label className="flex items-start gap-3 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={marketingConsent}
+                        onChange={(e) => setMarketingConsent(e.target.checked)}
+                        className="mt-1 h-4 w-4 shrink-0 rounded border-sand accent-jade"
+                      />
+                      <span className="text-ink-soft">{t.generate.marketingConsent}</span>
+                    </label>
                   )}
                 </div>
+
+                <button
+                  type="button"
+                  onClick={generateMusicHandler}
+                  disabled={!canGenerateMusic || loadingLyrics || loadingMusic}
+                  className="mt-4 w-full min-h-[44px] rounded-full bg-warm-gradient py-4 text-base font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(255,80,150,0.6)] transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-sand disabled:bg-none disabled:text-ink-soft disabled:shadow-none disabled:hover:translate-y-0"
+                >
+                  {loadingMusic ? t.generate.openCurtainMixing : t.generate.openCurtain}
+                </button>
+                {!canGenerateMusic && !loadingLyrics && !loadingMusic && missingForMusic && (
+                  <p className="mt-2 text-center text-xs text-ink-soft">{missingForMusic}</p>
+                )}
+                {captureError && (
+                  <p role="alert" className="mt-2 text-center text-xs text-blush">
+                    {captureError}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={generateLyricsHandler}
+                  disabled={loadingLyrics || loadingMusic}
+                  className="mt-3 w-full text-center text-xs font-bold text-ink-soft underline transition hover:text-ink disabled:opacity-40"
+                >
+                  {loadingLyrics ? t.generate.rewriting : t.generate.studioRewrite}
+                </button>
               </div>
-            )}
 
-            {/* "Make it Yours" personalization chain. All three picks are
-                optional — server validates against closed enums (cake,
-                candle) and a length cap (note); empty values fall back to
-                the default render. */}
-            <div className="mt-6 space-y-4">
-              <p className="text-center text-[10px] font-bold uppercase tracking-widest text-ink-soft">
-                Make it yours (optional)
-              </p>
-
-              {/* Cake + candle pickers are gated off until a future visual
-                  pass — the overlay path was rolled back because the
-                  template MP4s already include cake/candle imagery and the
-                  overlays conflicted visually. The state hooks are kept so
-                  flipping NEXT_PUBLIC_ENABLE_VISUAL_PICKS="true" re-exposes
-                  the UI without any other code changes. */}
-              {VISUAL_PICKS_ENABLED && (
-                <>
+              {/* Optional: personalize the delivery + share design while you decide. */}
+              <details className="mt-5 rounded-2xl border border-sand bg-cream-soft/60">
+                <summary className="flex cursor-pointer list-none items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[11px] font-bold uppercase tracking-widest text-ink-soft transition hover:text-ink">
+                  ✨ {t.generate.deliveryHeading}
+                </summary>
+                <div className="space-y-5 px-4 pb-5 pt-1">
                   <div>
-                    <p className="mb-2 text-xs font-semibold text-ink-soft">
-                      Pick a cake
+                    <p className="mb-2 text-center text-[10px] font-bold uppercase tracking-widest text-ink-soft">
+                      {t.generate.deliveryHeading}
                     </p>
-                    <div className="grid grid-cols-4 gap-2">
-                      {CAKE_STYLES.map((style) => {
-                        const selected = cakeStyle === style;
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
+                      {SHARE_TEMPLATES.map((key) => {
+                        const meta = TEMPLATE_LABELS[key];
+                        const selected = shareTemplate === key;
                         return (
                           <button
-                            key={style}
+                            key={key}
                             type="button"
-                            onClick={() =>
-                              setCakeStyle((prev) => (prev === style ? null : style))
-                            }
-                            className="flex flex-col items-center gap-1 rounded-2xl bg-transparent p-1 transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99]"
-                            aria-pressed={selected}
+                            onClick={() => setShareTemplate(key)}
+                            disabled={creatingShare}
+                            className={`flex items-center justify-center gap-1.5 rounded-xl border px-2 py-2 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                              selected
+                                ? "border-transparent bg-warm-gradient text-white shadow-md"
+                                : "border-sand bg-cream text-ink hover:border-blush"
+                            }`}
                           >
-                            <CakeIcon style={style} selected={selected} />
-                            <span className="text-[10px] font-bold text-ink-soft">
-                              {CAKE_LABELS[style]}
-                            </span>
+                            <span
+                              aria-hidden
+                              className="inline-block h-2 w-2 shrink-0 rounded-full"
+                              style={{ backgroundColor: TEMPLATE_ACCENT[key] }}
+                            />
+                            <span>{meta.name}</span>
                           </button>
                         );
                       })}
                     </div>
                   </div>
 
-                  <div>
-                    <p className="mb-2 text-xs font-semibold text-ink-soft">
-                      Candle color
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {CANDLE_COLORS.map((color) => {
-                        const selected = candleColor === color;
-                        return (
-                          <button
-                            key={color}
-                            type="button"
-                            onClick={() =>
-                              setCandleColor((prev) => (prev === color ? null : color))
-                            }
-                            aria-label={color}
-                            aria-pressed={selected}
-                            className={`h-8 w-8 rounded-full transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] ${
-                              selected
-                                ? "ring-2 ring-jade ring-offset-2 ring-offset-cream-soft"
-                                : "ring-1 ring-sand"
-                            }`}
-                            style={{ backgroundColor: CANDLE_HEX[color] }}
-                          />
-                        );
-                      })}
+                  {waitBirthdayDate.trim() && (
+                    <div>
+                      <span className="mb-1.5 block text-xs font-semibold text-ink-soft">
+                        {t.generate.deliveryHeading}
+                      </span>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setDeliveryMode("scheduled")}
+                          aria-pressed={deliveryMode === "scheduled"}
+                          className={`flex-1 rounded-xl border px-3 py-2 text-xs font-bold transition ${
+                            deliveryMode === "scheduled"
+                              ? "border-blush bg-warm-soft text-ink ring-1 ring-blush"
+                              : "border-sand bg-cream text-ink-soft hover:border-blush"
+                          }`}
+                        >
+                          {t.generate.deliveryOnBirthday}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeliveryMode("now")}
+                          aria-pressed={deliveryMode === "now"}
+                          className={`flex-1 rounded-xl border px-3 py-2 text-xs font-bold transition ${
+                            deliveryMode === "now"
+                              ? "border-jade bg-warm-soft text-ink ring-1 ring-jade"
+                              : "border-sand bg-cream text-ink-soft hover:border-jade"
+                          }`}
+                        >
+                          {t.generate.deliveryNow}
+                        </button>
+                      </div>
+                      {deliveryMode === "scheduled" && (
+                        <p className="mt-1.5 text-[11px] leading-snug text-ink-soft">{t.generate.deliveryHint}</p>
+                      )}
                     </div>
-                  </div>
-                </>
-              )}
-
-              <div>
-                <label
-                  htmlFor="personal-note"
-                  className="mb-1 block text-xs font-semibold text-ink-soft"
-                >
-                  Add a personal note
-                </label>
-                <input
-                  id="personal-note"
-                  type="text"
-                  value={personalNote}
-                  onChange={(e) =>
-                    setPersonalNote(e.target.value.slice(0, PERSONAL_NOTE_MAX_LEN))
-                  }
-                  maxLength={PERSONAL_NOTE_MAX_LEN}
-                  placeholder="Wishing you the best year yet…"
-                  className="w-full rounded-xl border border-sand bg-cream-soft px-3 py-2 text-sm text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade placeholder:text-ink-soft"
-                />
-                <p className="mt-1 text-right text-[10px] text-ink-soft">
-                  {personalNote.trim().length}/{PERSONAL_NOTE_MAX_LEN}
-                </p>
-              </div>
-            </div>
-
-            {/* Wait-state capture — optional, additive, doesn't gate or delay
-                song generation. Values flow into the auto-share payload when
-                the song completes. */}
-            <div className="mt-6 space-y-3">
-              <p className="text-center text-[10px] font-bold uppercase tracking-widest text-ink-soft">
-                A few quick details (optional)
-              </p>
-              <div>
-                <label
-                  htmlFor="wait-relationship"
-                  className="mb-1 block text-xs font-semibold text-ink-soft"
-                >
-                  How do you know {name.trim() || "them"}?
-                </label>
-                <select
-                  id="wait-relationship"
-                  value={waitRelationship}
-                  onChange={(e) =>
-                    setWaitRelationship(e.target.value as WaitCaptureRelationship | "")
-                  }
-                  className="w-full rounded-xl border border-sand bg-cream-soft px-3 py-2 text-sm text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade placeholder:text-ink-soft"
-                >
-                  <option value="">—</option>
-                  {WAIT_CAPTURE_RELATIONSHIPS.map((rel) => (
-                    <option key={rel} value={rel}>
-                      {rel.charAt(0).toUpperCase() + rel.slice(1)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label
-                  htmlFor="wait-location"
-                  className="mb-1 block text-xs font-semibold text-ink-soft"
-                >
-                  Where will you celebrate?
-                </label>
-                <select
-                  id="wait-location"
-                  value={waitLocation}
-                  onChange={(e) =>
-                    setWaitLocation(e.target.value as WaitCaptureLocation | "")
-                  }
-                  className="w-full rounded-xl border border-sand bg-cream-soft px-3 py-2 text-sm text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade placeholder:text-ink-soft"
-                >
-                  <option value="">—</option>
-                  {WAIT_CAPTURE_LOCATIONS.map((loc) => (
-                    <option key={loc} value={loc}>
-                      {loc.charAt(0).toUpperCase() + loc.slice(1)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <label className="flex items-center gap-2 text-xs font-semibold text-ink">
-                <input
-                  type="checkbox"
-                  checked={waitYearReminder}
-                  onChange={(e) => setWaitYearReminder(e.target.checked)}
-                  className="h-4 w-4 cursor-pointer rounded border-sand bg-cream-soft accent-jade"
-                />
-                Remind me next year?
-              </label>
-              <div>
-                <label
-                  htmlFor="wait-birthday"
-                  className="mb-1 block text-xs font-semibold text-ink-soft"
-                >
-                  Their birthday (optional — we&apos;ll remind you next year)
-                </label>
-                <input
-                  id="wait-birthday"
-                  type="date"
-                  value={waitBirthdayDate}
-                  onChange={(e) => setWaitBirthdayDate(e.target.value)}
-                  className="w-full rounded-xl border border-sand bg-cream-soft px-3 py-2 text-sm text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade placeholder:text-ink-soft"
-                />
-              </div>
-
-              {/* Countdown delivery choice — only meaningful with a birthday. */}
-              {waitBirthdayDate.trim() && (
-                <div>
-                  <span className="mb-1.5 block text-xs font-semibold text-ink-soft">
-                    {t.generate.deliveryHeading}
-                  </span>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setDeliveryMode("scheduled")}
-                      aria-pressed={deliveryMode === "scheduled"}
-                      className={`flex-1 rounded-xl border px-3 py-2 text-xs font-bold transition ${
-                        deliveryMode === "scheduled"
-                          ? "border-blush bg-warm-soft text-ink ring-1 ring-blush"
-                          : "border-sand bg-cream-soft text-ink-soft hover:border-blush"
-                      }`}
-                    >
-                      {t.generate.deliveryOnBirthday}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDeliveryMode("now")}
-                      aria-pressed={deliveryMode === "now"}
-                      className={`flex-1 rounded-xl border px-3 py-2 text-xs font-bold transition ${
-                        deliveryMode === "now"
-                          ? "border-jade bg-warm-soft text-ink ring-1 ring-jade"
-                          : "border-sand bg-cream-soft text-ink-soft hover:border-jade"
-                      }`}
-                    >
-                      {t.generate.deliveryNow}
-                    </button>
-                  </div>
-                  {deliveryMode === "scheduled" && (
-                    <p className="mt-1.5 text-[11px] leading-snug text-ink-soft">
-                      {t.generate.deliveryHint}
-                    </p>
                   )}
                 </div>
-              )}
-            </div>
-
-            {/* "While you wait" panels — both collapsed by default so the
-                main wait surface (template picker, preview, capture) stays
-                visually dominant. Additive engagement, never blocking. */}
-            <div className="mt-6 space-y-3">
-              <p className="text-center text-[10px] font-bold uppercase tracking-widest text-ink-soft">
-                While you wait
-              </p>
-
-              {/* Share-message preview — same string that will land in
-                  navigator.share() / wa.me/?text=, rendered as a faux chat
-                  bubble. Live-updates as the user edits sender / name. */}
-              <details
-                open={previewPanelOpen}
-                onToggle={(e) => setPreviewPanelOpen((e.target as HTMLDetailsElement).open)}
-                className="overflow-hidden rounded-2xl border border-sand bg-cream-soft"
-              >
-                <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-xs font-bold text-ink transition hover:bg-warm-soft">
-                  <span>💬 Preview the share message</span>
-                  <span aria-hidden className="text-base opacity-70">
-                    {previewPanelOpen ? "−" : "+"}
-                  </span>
-                </summary>
-                <div className="border-t border-sand bg-[#0f1318] px-4 py-4">
-                  <div className="ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-[#005c4b] px-3 py-2 text-[13px] leading-snug text-white shadow-sm">
-                    <div>
-                      {senderName.trim()
-                        ? `${senderName.trim()} made you a birthday song 🎂`
-                        : `A birthday song for ${name.trim() || "you"} 🎂`}
-                    </div>
-                    <div className="mt-1 truncate text-[11px] opacity-80">
-                      singmybirthday.com/share/…
-                    </div>
-                    <div className="mt-1 text-right text-[10px] opacity-70">
-                      now ✓✓
-                    </div>
-                  </div>
-                </div>
               </details>
-
-              {/* Genre sample strip — short clip of a previously-generated
-                  song in the chosen genre. Auto-mutes at 15s; pauses when
-                  the user's real audio arrives or is played. Hidden when
-                  the env doesn't expose a samples base (no upload yet). */}
-              {sampleUrlForGenre(resolvedGenre ?? genre) && (
-                <details
-                  open={samplePanelOpen}
-                  onToggle={(e) => setSamplePanelOpen((e.target as HTMLDetailsElement).open)}
-                  className="overflow-hidden rounded-2xl border border-sand bg-cream-soft"
-                >
-                  <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-xs font-bold text-ink transition hover:bg-warm-soft">
-                    <span>🎧 Hear a sample in this genre</span>
-                    <span aria-hidden className="text-base opacity-70">
-                      {samplePanelOpen ? "−" : "+"}
-                    </span>
-                  </summary>
-                  <div className="border-t border-sand px-4 py-3">
-                    <p className="mb-2 text-[11px] text-ink-soft">
-                      15-second preview · auto-stops
-                    </p>
-                    <audio
-                      ref={sampleAudioRef}
-                      controls
-                      preload="metadata"
-                      src={sampleUrlForGenre(resolvedGenre ?? genre) ?? undefined}
-                      className="w-full"
-                      onTimeUpdate={(e) => {
-                        const el = e.currentTarget;
-                        if (el.currentTime >= SAMPLE_MAX_SECONDS) {
-                          el.pause();
-                          // Reset so the user can tap play again to hear the
-                          // 15s preview from the start.
-                          el.currentTime = 0;
-                        }
-                      }}
-                      onError={() => {
-                        // Sample 404'd or otherwise failed — close the panel
-                        // so the user doesn't see a broken player. The next
-                        // genre change re-evaluates the URL via the conditional.
-                        setSamplePanelOpen(false);
-                      }}
-                    />
-                  </div>
-                </details>
-              )}
-            </div>
-              </div>
-            </details>
-          </div>
-        )}
-      </section>
+            </>
+          )}
+        </section>
       )}
 
       {errorMsg && (
@@ -3422,11 +3324,10 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
         </section>
       )}
 
-      {/* Collapsed details summary — replaces the big step-1 form once lyrics
-          exist (steps 2-3), so the flow feels stepped. Non-destructive: "Edit"
-          scrolls back to the flow top rather than mutating state, which keeps
-          the melody-lock rule intact (lyrics/song aren't reset). */}
-      {lyrics && (
+      {/* Collapsed details summary — shown alongside the finished premiere so
+          the giver can see the call-sheet recap. Non-destructive: "Edit"
+          scrolls back to the flow top rather than mutating state. */}
+      {lyrics && audioUrl && (
         <div className="relative z-20 mx-auto mt-2 mb-1 flex max-w-xl flex-wrap items-center gap-2 rounded-2xl border border-jade/30 bg-warm-soft px-4 py-2.5 text-sm font-semibold text-ink">
           <span aria-hidden className="text-jade">✓</span>
           <span className="min-w-0 truncate">
@@ -3449,15 +3350,14 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
         </div>
       )}
 
-      {lyrics && (
+      {lyrics && audioUrl && (
         <section className={`relative z-20 mx-auto mt-6 max-w-xl rounded-[2rem] border ${theme.card} p-6 shadow-sm`}>
           <h2 className="font-display text-xl font-bold text-ink">Happy Birthday, {name}!</h2>
           <p className="text-sm text-ink-soft">
             {language} • {resolvedGenre ?? genre} • {lyrics.title}
           </p>
 
-          {audioUrl ? (
-            <div className="mt-4 space-y-3">
+          <div className="mt-4 space-y-3">
               {/* The Premiere — the deliberately built peak. Replaces the flat
                   player as the reveal. The full-song source is proxied
                   same-origin so the visualizer reacts to real sound; the
@@ -3745,143 +3645,6 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                 )}
               </div>
             </div>
-          ) : loadingMusic ? (
-            <div className="mt-4 rounded-2xl border border-sand bg-cream px-4 py-3 text-sm text-ink-soft">
-              🎵 {ready ? "Audio is ready." : longWaitHint ? "Music is still rendering — almost there..." : "Music is rendering..."}
-            </div>
-          ) : (
-            <p className="mt-3 text-xs text-ink-soft">
-              Edit any section below, then generate the music.
-            </p>
-          )}
-
-          <div
-            dir={language === "Arabic" ? "rtl" : "ltr"}
-            style={language === "Hindi" ? { fontFamily: '"Noto Sans Devanagari", "Mangal", system-ui, sans-serif' } : undefined}
-            className="mt-5 space-y-4"
-          >
-            {editableSections.map((section, idx) => (
-              <div key={idx}>
-                <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-ink-soft">
-                  [{section.tag}]
-                </label>
-                <textarea
-                  value={section.text}
-                  onChange={(e) => updateSectionText(idx, e.target.value)}
-                  disabled={musicLocked}
-                  rows={Math.max(2, section.text.split("\n").length)}
-                  dir={language === "Arabic" ? "rtl" : "ltr"}
-                  className={`w-full resize-none rounded-xl border px-4 py-3 text-sm leading-relaxed text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade disabled:opacity-70 ${theme.input}`}
-                />
-              </div>
-            ))}
-          </div>
-
-          {!audioUrl && (
-            <div className="mt-5 space-y-3">
-              {/* Commitment-point notice — Suno can't change words after the
-                  melody is generated, so users must iterate on lyrics here.
-                  Real feedback (Lemoni): loved the melody, wanted to edit the
-                  words after the fact, which the API doesn't support. */}
-              <div className="flex items-start gap-2 rounded-2xl border border-gold/30 bg-warm-soft px-4 py-3 text-xs leading-relaxed text-ink">
-                <span aria-hidden className="mt-px shrink-0">💡</span>
-                <span>
-                  {t.generate.commitmentHint}
-                </span>
-              </div>
-
-              {/* Progressive-commitment capture: email + attestation are
-                  collected HERE, right before the music payoff. Bound to the
-                  same emailInput / attested / marketingConsent state used by
-                  ensureCapture() and createShareLink(), so email lands before
-                  the music job → before song-ready → before auto-share and
-                  abandoned-recovery enrollment. */}
-              <div>
-                <label htmlFor="contact-email" className="mb-2 block text-sm font-bold text-ink">
-                  {t.generate.emailLabel}
-                </label>
-                <input
-                  id="contact-email"
-                  type="email"
-                  autoComplete="email"
-                  value={emailInput}
-                  onChange={(e) => setEmailInput(e.target.value)}
-                  placeholder={t.generate.emailPlaceholder}
-                  className={`w-full rounded-xl border px-4 py-3.5 text-base text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
-                />
-                <p className="mt-1.5 text-xs text-ink-soft">{t.generate.emailHint}</p>
-              </div>
-
-              <label
-                className={`flex items-start gap-3 rounded-2xl border p-3 text-sm text-ink transition ${
-                  recipientIsMinor
-                    ? "border-gold/30 bg-warm-soft"
-                    : "border-sand bg-cream-soft"
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  checked={attested}
-                  onChange={(e) => setAttested(e.target.checked)}
-                  disabled={recipientAge === null}
-                  className={`mt-1 h-4 w-4 shrink-0 rounded border-sand bg-cream-soft ${
-                    recipientIsMinor ? "accent-gold" : "accent-jade"
-                  }`}
-                />
-                <span className="text-ink-soft">
-                  {recipientIsMinor
-                    ? `${t.generate.attestationGuardianPrefix}${name.trim() || t.generate.attestationGuardianFallback}.`
-                    : t.generate.attestationAdult}
-                </span>
-              </label>
-
-              {/* Optional reminder/marketing opt-in. Hidden on child-recipient
-                  flows so we never solicit marketing in a child-directed
-                  session. */}
-              {!recipientIsMinor && (
-                <label className="flex items-start gap-3 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={marketingConsent}
-                    onChange={(e) => setMarketingConsent(e.target.checked)}
-                    className="mt-1 h-4 w-4 shrink-0 rounded border-sand bg-cream-soft accent-jade"
-                  />
-                  <span className="text-ink-soft">
-                    {t.generate.marketingConsent}
-                  </span>
-                </label>
-              )}
-
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <button
-                  type="button"
-                  onClick={generateMusicHandler}
-                  disabled={!canGenerateMusic || loadingLyrics || loadingMusic}
-                  className="flex-1 min-h-[44px] rounded-full bg-jade py-3.5 text-sm font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(31,142,125,0.7)] transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] hover:bg-jade-deep disabled:cursor-not-allowed disabled:bg-sand disabled:text-ink-soft disabled:shadow-none disabled:hover:translate-y-0 disabled:hover:bg-sand"
-                >
-                  {loadingMusic ? t.generate.generatingMusic : t.generate.generateMusic}
-                </button>
-                <button
-                  type="button"
-                  onClick={generateLyricsHandler}
-                  disabled={loadingLyrics || loadingMusic}
-                  className="flex-1 min-h-[44px] rounded-full border border-sand bg-cream-soft py-3.5 text-sm font-bold text-ink transition hover:border-jade disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  {loadingLyrics ? t.generate.rewriting : t.generate.rewriteLyrics}
-                </button>
-              </div>
-
-              {!canGenerateMusic && !loadingLyrics && !loadingMusic && missingForMusic && (
-                <p className="text-center text-xs text-ink-soft">{missingForMusic}</p>
-              )}
-
-              {captureError && (
-                <p role="alert" className="text-center text-xs text-blush">
-                  {captureError}
-                </p>
-              )}
-            </div>
-          )}
         </section>
       )}
 
