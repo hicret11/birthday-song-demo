@@ -98,7 +98,7 @@ export default function PremiereReveal({
   songTitle,
   directorNote,
   contributors,
-  continueLabel = "Отправить им",
+  continueLabel = "Send it to them 💌",
   onContinue,
   labels,
   previewSeconds,
@@ -108,19 +108,19 @@ export default function PremiereReveal({
   const [playing, setPlaying] = useState(false);
   const [playingNote, setPlayingNote] = useState(false);
 
-  // Resolve copy once, falling back to the Russian defaults for the /premiere
-  // preview (the real flow always passes localized `labels`).
+  // Resolve copy once, falling back to English defaults (the real flow and the
+  // /premiere preview both pass localized `labels`; these are a safety net).
   const L = {
-    overline: labels?.overline ?? "Премьера · только один вечер",
-    introPrefix: labels?.introPrefix ?? "Песня для ",
+    overline: labels?.overline ?? "Premiere · opening night",
+    introPrefix: labels?.introPrefix ?? "The premiere for ",
     introSuffix:
       labels?.introSuffix ??
-      " готова. Погаси свет, включи звук — и открой занавес.",
-    openCta: labels?.openCta ?? "🎬 Открыть премьеру",
-    marqueeOverline: labels?.marqueeOverline ?? "Звезда сегодняшнего вечера",
-    pause: labels?.pause ?? "⏸ Пауза",
-    replay: labels?.replay ?? "▶ Играть снова",
-    director: labels?.director ?? "Продюсер вечера —",
+      " is ready. Dim the lights, turn up the sound — and open on the first scene.",
+    openCta: labels?.openCta ?? "🎬 Start the premiere",
+    marqueeOverline: labels?.marqueeOverline ?? "Tonight’s star",
+    pause: labels?.pause ?? "⏸ Pause",
+    replay: labels?.replay ?? "▶ Play again",
+    director: labels?.director ?? "Produced by",
     noteLabel: labels?.noteLabel ?? "A message from the director",
     notePlay: labels?.notePlay ?? "▶ Play their message",
     notePause: labels?.notePause ?? "⏸ Pause",
@@ -145,7 +145,7 @@ export default function PremiereReveal({
   const rafRef = useRef<number | null>(null);
   const reactiveRef = useRef(false); // did we get real frequency data?
 
-  const star = (recipientName || "звезда").trim();
+  const star = (recipientName || "the star").trim();
   const director = (directorName || "").trim();
 
   // ---- Audio-reactive equalizer (Canvas 2D) ----------------------------------

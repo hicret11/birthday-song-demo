@@ -1,13 +1,22 @@
-// Live preview of the reimagined Premiere reveal (Phase 1 centerpiece).
+// Internal preview of the Premiere reveal — a review surface for the reveal
+// component in the real app with real audio (the sample at /_test/full.mp3 gives
+// the Web-Audio equalizer a same-origin source to react to). It renders the SAME
+// localized copy the shipping reveal uses (via /share/[id]); this route is not
+// linked from the product and is kept out of search engines.
 //
-// Visit /premiere?name=Майя&from=мама to see it in the real app with real audio.
-// Uses the local sample at /_test/full.mp3 (present in dev) as a same-origin
-// source so the Web-Audio equalizer reacts to actual sound. This route is a
-// review surface for the moment before it's wired into the generator flow.
+// Visit /premiere?name=Maya&from=Mom to preview with your own values.
 
+import type { Metadata } from "next";
 import PremiereClient from "./PremiereClient";
+import { resolveLocale } from "@/lib/i18n/server";
+import { DEFAULT_LOCALE } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
+
+// Not a user-facing marketing page — never index it.
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default async function PremierePreviewPage({
   searchParams,
@@ -18,29 +27,23 @@ export default async function PremierePreviewPage({
   const pick = (v: string | string[] | undefined) =>
     Array.isArray(v) ? v[0] : v;
 
-  const name = pick(sp.name) || "Майя";
-  const from = pick(sp.from) || "мама";
-  const title = pick(sp.title) || "Твой день, твой свет";
+  const locale = await resolveLocale().catch(() => DEFAULT_LOCALE);
+  const name = pick(sp.name) || "Maya";
+  const from = pick(sp.from) || "Mom";
+  const title = pick(sp.title) || "Your Day, Your Light";
   // Same-origin sample so AnalyserNode can read frequency data.
   const audio = pick(sp.audio) || "/_test/full.mp3";
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#120b16] px-4 py-10">
       <div className="w-full">
-        <p className="mb-6 text-center text-[11px] uppercase tracking-[0.24em] text-amber-200/50">
-          Sing My Birthday · Premiere (Phase 1 preview)
-        </p>
         <PremiereClient
           recipientName={name}
           directorName={from}
           songTitle={title}
           audioSrc={audio}
+          locale={locale}
         />
-        <p className="mx-auto mt-8 max-w-[440px] text-center text-xs leading-relaxed text-amber-200/35">
-          Подсказка: попробуй <code>/premiere?name=Лео&amp;from=лучший друг</code>.
-          В реальном flow сюда придёт настоящая песня через same-origin
-          audio-proxy, и эквалайзер оживёт под неё.
-        </p>
       </div>
     </main>
   );
