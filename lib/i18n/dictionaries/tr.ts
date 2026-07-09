@@ -262,6 +262,7 @@ export const tr: Dict = {
     production: "Tam Prodüksiyon",
     bestValue: "En iyi değer",
     mostChosen: "En çok seçilen",
+    comingSoon: "Çok yakında",
     bulletCompleteSong: "Tam prömiyer — şarkının tamamı",
     bulletMp3: "MP3 indirme — sonsuza dek sizin",
     bulletShareVideo: "WhatsApp ve Telegram için paylaşılabilir video",

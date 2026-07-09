@@ -308,6 +308,7 @@ export const en = {
     production: "Full Production",
     bestValue: "Best value",
     mostChosen: "Most chosen",
+    comingSoon: "Coming soon",
     // Value-stack bullets
     bulletCompleteSong: "The full premiere — the complete song",
     bulletMp3: "MP3 download — keep it forever",

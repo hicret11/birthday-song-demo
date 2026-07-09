@@ -229,27 +229,28 @@ export default function UnlockableAudio({
             </ul>
           </button>
 
-          <button
-            type="button"
-            onClick={() => setPlan("production")}
-            aria-pressed={plan === "production"}
-            className={`block w-full rounded-2xl border p-4 text-left transition ${
-              plan === "production"
-                ? "border-jade bg-cream-soft ring-1 ring-jade"
-                : "border-sand bg-cream hover:border-jade"
-            }`}
+          {/* Full Production is a NON-PURCHASABLE teaser until the AI-call
+              feature clears legal + telephony is armed. Rendered as a muted,
+              non-interactive "Coming soon" card — no selection, no checkout —
+              so nobody can buy a birthday call that would never fire. */}
+          <div
+            aria-disabled="true"
+            className="relative block w-full cursor-default rounded-2xl border border-dashed border-sand bg-cream/60 p-4 text-left opacity-80"
           >
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-extrabold text-ink">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-sm font-extrabold text-ink-soft">
                 {tr.paywall.production} <span aria-hidden>🎬</span>
+                <span className="ml-1.5 rounded-full bg-sand px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-ink-soft">
+                  {tr.paywall.comingSoon}
+                </span>
               </span>
-              <span className="text-sm font-extrabold text-ink">{productionLabel}</span>
+              <span className="text-sm font-extrabold text-ink-soft">{productionLabel}</span>
             </div>
-            <ul className="mt-2 space-y-1.5 text-sm text-ink">
-              <li className="flex items-start gap-2"><span className="text-jade">✓</span><span>{tr.paywall.bulletEverythingDeluxe}</span></li>
-              <li className="flex items-start gap-2"><span className="text-jade">☎</span><span className="font-semibold">{tr.paywall.bulletCall}</span></li>
+            <ul className="mt-2 space-y-1.5 text-sm text-ink-soft">
+              <li className="flex items-start gap-2"><span>✓</span><span>{tr.paywall.bulletEverythingDeluxe}</span></li>
+              <li className="flex items-start gap-2"><span>☎</span><span className="font-semibold">{tr.paywall.bulletCall}</span></li>
             </ul>
-          </button>
+          </div>
         </div>
 
         {/* Live-musician anchor — makes the tiers read as the smart middle. */}

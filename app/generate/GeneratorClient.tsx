@@ -3339,34 +3339,27 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                     </ul>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setUnlockPlan("production");
-                      try {
-                        track("plan_selected", { plan: "production", tier: shareTier ?? "unknown" });
-                      } catch {
-                        // Analytics is non-critical; swallow.
-                      }
-                    }}
-                    aria-pressed={unlockPlan === "production"}
-                    className={`block w-full rounded-2xl border p-3.5 text-left transition ${
-                      unlockPlan === "production"
-                        ? "border-jade bg-cream-soft ring-1 ring-jade"
-                        : "border-sand bg-cream-soft hover:border-jade"
-                    }`}
+                  {/* Full Production is a NON-PURCHASABLE teaser until the
+                      AI-call feature clears legal + telephony is armed — muted,
+                      non-interactive "Coming soon" card, no checkout. */}
+                  <div
+                    aria-disabled="true"
+                    className="relative block w-full cursor-default rounded-2xl border border-dashed border-sand bg-cream-soft/60 p-3.5 text-left opacity-80"
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-extrabold text-ink">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-sm font-extrabold text-ink-soft">
                         {t.paywall.production} <span aria-hidden>🎬</span>
+                        <span className="ml-1.5 rounded-full bg-sand px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-ink-soft">
+                          {t.paywall.comingSoon}
+                        </span>
                       </span>
-                      <span className="text-sm font-extrabold text-ink">{shareTier ? PRODUCTION_PRICE_LABEL[shareTier] : ""}</span>
+                      <span className="text-sm font-extrabold text-ink-soft">{shareTier ? PRODUCTION_PRICE_LABEL[shareTier] : ""}</span>
                     </div>
                     <ul className="mt-1.5 space-y-1 text-xs text-ink-soft">
-                      <li className="flex items-start gap-2"><span className="text-jade">✓</span><span>{t.paywall.bulletEverythingDeluxe}</span></li>
-                      <li className="flex items-start gap-2"><span className="text-jade">☎</span><span className="font-semibold text-ink">{t.paywall.bulletCall}</span></li>
+                      <li className="flex items-start gap-2"><span>✓</span><span>{t.paywall.bulletEverythingDeluxe}</span></li>
+                      <li className="flex items-start gap-2"><span>☎</span><span className="font-semibold">{t.paywall.bulletCall}</span></li>
                     </ul>
-                  </button>
+                  </div>
                 </div>
 
                 {/* Live-musician anchor — frames the tiers as the smart middle. */}

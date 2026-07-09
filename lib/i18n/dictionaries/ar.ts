@@ -269,6 +269,7 @@ export const ar: Dict = {
     production: "إنتاج كامل",
     bestValue: "أفضل قيمة",
     mostChosen: "الأكثر اختيارًا",
+    comingSoon: "قريبًا",
     // Value-stack bullets
     bulletCompleteSong: "العرض الأول كاملًا — الأغنية بالكامل",
     bulletMp3: "تنزيل MP3 — احتفظ به إلى الأبد",

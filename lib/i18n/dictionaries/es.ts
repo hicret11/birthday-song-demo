@@ -262,6 +262,7 @@ export const es: Dict = {
     production: "Producción Completa",
     bestValue: "Mejor opción",
     mostChosen: "La más elegida",
+    comingSoon: "Muy pronto",
     bulletCompleteSong: "El estreno completo — la canción íntegra",
     bulletMp3: "Descarga en MP3 — tuya para siempre",
     bulletShareVideo: "Un vídeo para compartir en WhatsApp y Telegram",
