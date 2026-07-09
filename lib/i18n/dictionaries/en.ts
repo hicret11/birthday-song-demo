@@ -209,11 +209,11 @@ export const en = {
     dossierRecorded: "recorded 🎙️",
     dossierDirectedYou: "you",
     // Beat: credit (relationship)
-    actCredit: "Act 1 · Casting — the credit",
+    actCredit: "Act 1 · Casting",
     miloCredit:
       "Every director gets a credit. When they see the titles — who put on this show?",
     // Beat: the moment (memory)
-    actMoment: "Act 1 · Casting — the heart",
+    actMoment: "Act 1 · Casting",
     miloMoment:
       "Now the heart. Tell me one moment that’s so them — I’ll write it into the opening.",
     miloMomentFriend:
@@ -241,26 +241,26 @@ export const en = {
     miloMomentReactDefault:
       "Perfect — one real detail beats ten adjectives. That’s the soul of it.",
     // Beat: private note
-    actNote: "Act 2 · Direction — your private note",
+    actNote: "Act 2 · Direction",
     miloNote:
       "One thing only you can give: a message just for them. Write it, or say it in your own voice — I’ll hold it back as the closing moment of the premiere.",
     noteBeatFootnote:
       "This is the moment that makes them tear up — the reason it could only come from you.",
     // Beat: feeling
-    actFeelingBeat: "Act 2 · Direction — the feeling",
+    actFeelingBeat: "Act 2 · Direction",
     miloFeeling:
       "Every great scene lands one feeling. When the song ends, how should they feel?",
     // Beat: score (genre)
-    actScore: "Act 2 · Direction — the score",
+    actScore: "Act 2 · Direction",
     miloScore: "And the sound of their night — what’s the score?",
     scoreLabel: "Pick the soundtrack",
     scoreSurprise: "🎲 Surprise Me",
     // Beat: language
-    actLanguage: "Act 2 · Direction — the language",
+    actLanguage: "Act 2 · Direction",
     miloLanguage: "What language should they hear their song in?",
     languageSing: "Sing it in",
     // Beat: birthday
-    actBirthday: "Act 2 · Direction — the premiere date",
+    actBirthday: "Act 2 · Direction",
     miloBirthday:
       "Last call. When does their birthday land? I’ll hold the premiere and release it right on the day.",
     birthdayLabel: "Their birthday",
@@ -297,10 +297,10 @@ export const en = {
     // Preview label — the 15s cap framed as the trailer/opening of the show
     // (prefix + suffix rendered together; the second is the invitation).
     previewLabelPrefix: "🎬 The opening of their premiere — ",
-    previewLabelSuffix: "unlock to raise the curtain",
+    previewLabelSuffix: "unlock the full song",
     // Unlock headline ({name} interpolated by caller)
-    unlockHeadlinePrefix: "Raise the curtain on ",
-    unlockHeadlineSuffix: "’s full premiere 🎬",
+    unlockHeadlinePrefix: "Unlock ",
+    unlockHeadlineSuffix: "’s full premiere",
     unlockHeadlineLovedPrefix: "That was just the opening. ",
     // Plan names
     standard: "Standard",
@@ -317,20 +317,20 @@ export const en = {
     bulletSlideshow: "A photo slideshow video — their favorite moments set to the song",
     bulletEverythingDeluxe: "Everything in Deluxe",
     bulletCall:
-      "An AI character phones them on their birthday — a wizard, fairy godmother, or pirate captain, in their own voice",
+      "An AI character phones them on their birthday — a wizard, fairy godmother, or pirate captain, in the character’s voice",
     // CTAs ({price} interpolated by caller)
     unlockDeluxePrefix: "Raise the curtain · Deluxe",
     unlockStandardPrefix: "Raise the curtain · Standard",
     unlockProductionPrefix: "Raise the curtain · Full Production",
     openingCheckout: "Opening secure checkout…",
     preparingSong: "Preparing the premiere…",
-    moneyBack: "Love it or your money back",
+    moneyBack: "Love it, or it’s free",
     secureCheckout: "One-time payment · instant unlock · secure checkout by Stripe",
     // Live-musician anchor row ({price} interpolated by caller)
     liveAnchorLabel: "Prefer a real musician in person? Live performances from",
     // Production tier — AI character call setup ({name} interpolated by caller)
     callHeading: "Set up the birthday call 🎬",
-    callSubtext: "An AI character will phone {name} to wish them a happy birthday, in their own voice.",
+    callSubtext: "An AI character will phone {name} to wish them a happy birthday, in the character’s voice.",
     callCharacterLabel: "Who should call?",
     callPhoneLabel: "{name}’s phone number",
     callPhonePlaceholder: "+1 555 123 4567",
@@ -473,7 +473,7 @@ export const en = {
   cast: {
     ctaTitle: "Send them a magical birthday call 📞",
     ctaSubtitle:
-      "Book an original character to phone {name} and wish them a happy birthday — in their own voice.",
+      "Book an original character to phone {name} and wish them a happy birthday — in the character’s voice.",
     open: "Book a character call",
     close: "Maybe later",
     pickCharacter: "Choose your character",

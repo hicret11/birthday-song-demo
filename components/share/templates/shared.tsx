@@ -346,7 +346,7 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
           onClick={openShareSheet}
           className="w-full rounded-full bg-jade px-5 py-4 text-base font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(31,142,125,0.7)] transition hover:-translate-y-0.5 hover:bg-jade-deep"
         >
-          📤 Send to a friend
+          💌 Send it to them
         </button>
 
         {showStyleEditor && retriesUsed < MAX_RETRIES && (
@@ -455,7 +455,7 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
       <div className="mt-12">
         <a
           href="/generate"
-          className="block w-full rounded-full bg-jade px-5 py-4 text-center text-base font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(31,142,125,0.7)] transition hover:-translate-y-0.5 hover:bg-jade-deep"
+          className="block w-full rounded-full border border-jade/50 bg-transparent px-5 py-3.5 text-center text-sm font-bold text-jade-deep transition hover:border-jade hover:bg-jade/5"
         >
           {unlocked ? "🎂 Make another birthday song →" : "🎂 Make your own birthday song →"}
         </a>
@@ -463,7 +463,7 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
 
       <footer className="mt-8 text-center text-xs text-ink-soft">
         <Link href="/" className="underline-offset-2 hover:underline">
-          Made with Birthday Song Generator
+          Made with love by Sing My Birthday
         </Link>
       </footer>
 

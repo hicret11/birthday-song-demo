@@ -416,7 +416,7 @@ export default function PremiereReveal({
               {L.marqueeOverline}
             </p>
             <h1
-              className="mt-2 text-[44px] font-black leading-[1.02]"
+              className="reveal-star-name mt-2 break-words text-[clamp(28px,9vw,44px)] font-black leading-[1.02]"
               style={{
                 background:
                   "linear-gradient(120deg,#ffffff,#ffd98a 40%,#ec4899)",
@@ -430,7 +430,7 @@ export default function PremiereReveal({
             </h1>
             {songTitle && (
               <p className="mt-1 text-sm italic text-amber-100/75">
-                «{songTitle}»
+                “{songTitle}”
               </p>
             )}
 

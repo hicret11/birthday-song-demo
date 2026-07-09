@@ -164,7 +164,7 @@ export default function Home() {
       {/* ── HERO ─────────────────────────────────────────────────────────── */}
       <section className="relative z-10 mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-14 px-5 pb-20 pt-6 lg:grid-cols-2 lg:gap-10 lg:pt-12">
         <div className="animate-rise text-center lg:text-left">
-          <p className="text-sm font-bold uppercase tracking-[0.2em] text-jade">
+          <p className="text-sm font-bold uppercase tracking-[0.2em] text-jade-deep">
             Personalized birthday songs
           </p>
 
@@ -187,7 +187,11 @@ export default function Home() {
             <LandingCta label="Create their song →" />
           </div>
 
-          <ul className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm font-medium text-ink-soft lg:justify-start">
+          <p className="mt-4 text-sm font-semibold text-ink-soft">
+            Love it, or it’s free — hear a preview before you pay a cent.
+          </p>
+
+          <ul className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm font-medium text-ink-soft lg:justify-start">
             <li className="inline-flex items-center gap-1.5">
               <Sparkles size={15} className="text-jade" /> Free 15-second preview
             </li>

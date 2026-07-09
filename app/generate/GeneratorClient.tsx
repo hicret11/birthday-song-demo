@@ -1048,7 +1048,8 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
   const [shareTier, setShareTier] = useState<"A" | "B" | "C" | null>(null);
   const [unlocking, setUnlocking] = useState(false);
   const [previewEnded, setPreviewEnded] = useState(false);
-  const [unlockPlan, setUnlockPlan] = useState<"full" | "deluxe" | "production">("full");
+  // Default to the "Most chosen" middle tier so selection ring, badge, and CTA agree.
+  const [unlockPlan, setUnlockPlan] = useState<"full" | "deluxe" | "production">("deluxe");
   // Production-tier AI-call setup (character + recipient phone + optional date +
   // consent). Only read when unlockPlan === "production"; validated server-side.
   const [callSetup, setCallSetup] = useState<ProductionCallValue>({
@@ -2268,7 +2269,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
             Sing My Birthday
           </span>
         </Link>
-        <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-ink-soft">
+        <span className="hidden text-[10px] font-medium uppercase tracking-[0.18em] text-ink-soft sm:inline">
           {t.generate.studioBrandbar.split("·").pop()?.trim()}
         </span>
       </header>
@@ -2300,6 +2301,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                   <input
                     id="recipient-name"
                     value={name}
+                    maxLength={40}
                     onChange={(e) => setName(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && name.trim()) {
@@ -2393,7 +2395,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                 type="button"
                 onClick={() => setIntakeStage("beats")}
                 disabled={!name.trim()}
-                className="mt-6 w-full min-h-[44px] rounded-full bg-jade py-4 text-base font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(31,142,125,0.7)] transition hover:-translate-y-0.5 hover:bg-jade-deep active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:border disabled:border-sand disabled:bg-transparent disabled:text-ink-soft disabled:shadow-none disabled:hover:translate-y-0 sm:text-lg"
+                className="mt-6 w-full min-h-[44px] rounded-full bg-jade py-4 text-base font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(31,142,125,0.7)] transition hover:-translate-y-0.5 hover:bg-jade-deep active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:border-transparent disabled:bg-sand disabled:text-ink-soft disabled:shadow-none disabled:hover:translate-y-0 sm:text-lg"
               >
                 {t.generate.startProduction}
               </button>
@@ -2778,7 +2780,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                   type="button"
                   onClick={advanceBeat}
                   disabled={!beatValid(beatIndex) || loadingLyrics}
-                  className="flex-1 min-h-[44px] rounded-full bg-jade py-4 text-base font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(31,142,125,0.7)] transition hover:-translate-y-0.5 hover:bg-jade-deep active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:border disabled:border-sand disabled:bg-transparent disabled:text-ink-soft disabled:shadow-none disabled:hover:translate-y-0 sm:text-lg"
+                  className="flex-1 min-h-[44px] rounded-full bg-jade py-4 text-base font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(31,142,125,0.7)] transition hover:-translate-y-0.5 hover:bg-jade-deep active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:border-transparent disabled:bg-sand disabled:text-ink-soft disabled:shadow-none disabled:hover:translate-y-0 sm:text-lg"
                 >
                   {beatIndex === BEAT_COUNT - 1
                     ? loadingLyrics
@@ -3052,7 +3054,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                   type="button"
                   onClick={generateMusicHandler}
                   disabled={!canGenerateMusic || loadingLyrics || loadingMusic}
-                  className="mt-4 w-full min-h-[44px] rounded-full bg-jade py-4 text-base font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(31,142,125,0.7)] transition hover:-translate-y-0.5 hover:bg-jade-deep active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:border disabled:border-sand disabled:bg-transparent disabled:text-ink-soft disabled:shadow-none disabled:hover:translate-y-0"
+                  className="mt-4 w-full min-h-[44px] rounded-full bg-jade py-4 text-base font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(31,142,125,0.7)] transition hover:-translate-y-0.5 hover:bg-jade-deep active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:border-transparent disabled:bg-sand disabled:text-ink-soft disabled:shadow-none disabled:hover:translate-y-0"
                 >
                   {loadingMusic ? t.generate.openCurtainMixing : t.generate.openCurtain}
                 </button>
@@ -3316,21 +3318,24 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                       }
                     }}
                     aria-pressed={unlockPlan === "deluxe"}
-                    className={`block w-full rounded-2xl border p-3.5 text-left transition ${
+                    className={`relative block w-full overflow-hidden rounded-2xl border p-3.5 pt-5 text-left transition ${
                       unlockPlan === "deluxe"
-                        ? "border-jade bg-cream-soft ring-1 ring-jade"
-                        : "border-sand bg-cream-soft hover:border-jade"
+                        ? "border-jade bg-cream-soft ring-2 ring-jade"
+                        : "border-jade/40 bg-cream-soft hover:border-jade"
                     }`}
                   >
+                    <span className="absolute inset-x-0 top-0 bg-jade py-0.5 text-center text-[10px] font-bold uppercase tracking-wide text-white">
+                      ★ {t.paywall.mostChosen}
+                    </span>
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-extrabold text-ink">
-                        {t.paywall.deluxe} <span className="ml-1 rounded-full bg-jade px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">{t.paywall.mostChosen}</span>
-                      </span>
+                      <span className="text-sm font-extrabold text-ink">{t.paywall.deluxe}</span>
                       <span className="text-sm font-extrabold text-ink">{shareTier ? DELUXE_PRICE_LABEL[shareTier] : ""}</span>
                     </div>
                     <ul className="mt-1.5 space-y-1 text-xs text-ink-soft">
-                      <li className="flex items-start gap-2"><span className="text-jade">✓</span><span>{t.paywall.bulletEverythingStandard}</span></li>
                       <li className="flex items-start gap-2"><span className="text-gold">★</span><span className="font-semibold text-ink">{t.paywall.bulletSlideshow}</span></li>
+                      <li className="flex items-start gap-2"><span className="text-jade">✓</span><span>{t.paywall.bulletCompleteSong}</span></li>
+                      <li className="flex items-start gap-2"><span className="text-jade">✓</span><span>{t.paywall.bulletMp3}</span></li>
+                      <li className="flex items-start gap-2"><span className="text-jade">✓</span><span>{t.paywall.bulletShareVideo}</span></li>
                     </ul>
                   </button>
 

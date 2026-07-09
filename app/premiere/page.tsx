@@ -7,6 +7,7 @@
 // Visit /premiere?name=Maya&from=Mom to preview with your own values.
 
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import PremiereClient from "./PremiereClient";
 import { resolveLocale } from "@/lib/i18n/server";
 import { DEFAULT_LOCALE } from "@/lib/i18n";
@@ -23,6 +24,10 @@ export default async function PremierePreviewPage({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
+  // Internal review surface only — never serve it on production, where it would
+  // otherwise return a dev/QA reveal backed by the /_test sample clip.
+  if (process.env.NODE_ENV === "production") notFound();
+
   const sp = await searchParams;
   const pick = (v: string | string[] | undefined) =>
     Array.isArray(v) ? v[0] : v;

@@ -260,3 +260,15 @@ body {
     animation-iteration-count: 1 !important;
   }
 }
+
+/* Forced-colors (Windows High-Contrast) fallback: the premiere star name is a
+   gradient painted through background-clip:text with color:transparent, which
+   would render the name invisible when the OS strips backgrounds. Restore a
+   solid system text color so the emotional-peak name is never blank. */
+@media (forced-colors: active) {
+  .reveal-star-name {
+    color: CanvasText !important;
+    -webkit-text-fill-color: CanvasText !important;
+    background: none !important;
+  }
+}

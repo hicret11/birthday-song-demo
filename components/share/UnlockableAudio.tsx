@@ -59,7 +59,9 @@ export default function UnlockableAudio({
   const [previewEnded, setPreviewEnded] = useState(false);
   const [requesting, setRequesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [plan, setPlan] = useState<Plan>("full");
+  // Default to the "Most chosen" middle tier so the selection ring, the badge,
+  // and the checkout CTA all agree on the recommended pick (good-better-best).
+  const [plan, setPlan] = useState<Plan>("deluxe");
   const [call, setCall] = useState<ProductionCallValue>({
     characterId: "",
     phone: "",
@@ -155,7 +157,7 @@ export default function UnlockableAudio({
 
   return (
     <div className="mt-6">
-      <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wide text-jade">
+      <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wide text-jade-deep">
         {tr.paywall.previewLabelPrefix}{tr.paywall.previewLabelSuffix}
       </p>
       {!hidePlayer && (
@@ -204,21 +206,26 @@ export default function UnlockableAudio({
             type="button"
             onClick={() => setPlan("deluxe")}
             aria-pressed={plan === "deluxe"}
-            className={`block w-full rounded-2xl border p-4 text-left transition ${
+            className={`relative block w-full overflow-hidden rounded-2xl border p-4 pt-5 text-left transition ${
               plan === "deluxe"
-                ? "border-jade bg-cream-soft ring-1 ring-jade"
-                : "border-sand bg-cream hover:border-jade"
+                ? "border-jade bg-cream-soft ring-2 ring-jade"
+                : "border-jade/40 bg-cream hover:border-jade"
             }`}
           >
+            {/* Recommendation ribbon — a full-width strip so the social-proof
+                signal reads at a glance instead of an easy-to-miss inline pill. */}
+            <span className="absolute inset-x-0 top-0 bg-jade py-0.5 text-center text-[10px] font-bold uppercase tracking-wide text-white">
+              ★ {tr.paywall.mostChosen}
+            </span>
             <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-extrabold text-ink">
-                {tr.paywall.deluxe} <span className="ml-1 rounded-full bg-jade px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">{tr.paywall.mostChosen}</span>
-              </span>
+              <span className="text-sm font-extrabold text-ink">{tr.paywall.deluxe}</span>
               <span className="text-sm font-extrabold text-ink">{deluxeLabel}</span>
             </div>
             <ul className="mt-2 space-y-1.5 text-sm text-ink">
-              <li className="flex items-start gap-2"><span className="text-jade">✓</span><span>{tr.paywall.bulletEverythingStandard}</span></li>
               <li className="flex items-start gap-2"><span className="text-gold">★</span><span className="font-semibold">{tr.paywall.bulletSlideshow}</span></li>
+              <li className="flex items-start gap-2"><span className="text-jade">✓</span><span>{tr.paywall.bulletCompleteSong}</span></li>
+              <li className="flex items-start gap-2"><span className="text-jade">✓</span><span>{tr.paywall.bulletMp3}</span></li>
+              <li className="flex items-start gap-2"><span className="text-jade">✓</span><span>{tr.paywall.bulletShareVideo}</span></li>
             </ul>
           </button>
 
@@ -282,7 +289,7 @@ export default function UnlockableAudio({
             `${tr.paywall.unlockStandardPrefix} · ${fullLabel} →`
           )}
         </button>
-        <p className="mt-3 flex items-center justify-center gap-1.5 text-xs font-bold text-jade">
+        <p className="mt-3 flex items-center justify-center gap-1.5 text-xs font-bold text-jade-deep">
           <span aria-hidden>✓</span>{" "}
           <a href="/refund" target="_blank" rel="noopener noreferrer" className="underline decoration-jade/40 underline-offset-2 hover:decoration-jade">
             {tr.paywall.moneyBack}

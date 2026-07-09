@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Sparkles, Music, Send } from "lucide-react";
@@ -120,7 +121,10 @@ export default async function HappyBirthdayNamePage({
   params: Promise<{ name: string }>;
 }) {
   const { name } = await params;
-  const display = cleanName(name) ?? "you";
+  // Junk / non-name segments fall through to the branded 404 rather than
+  // rendering a low-quality "Happy Birthday, you" page for crawlers to index.
+  const display = cleanName(name);
+  if (!display) notFound();
   const generateHref = `/generate?name=${encodeURIComponent(display)}`;
   const pageUrl = `${SITE_URL}/happy-birthday/${encodeURIComponent(name)}`;
 

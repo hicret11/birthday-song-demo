@@ -219,7 +219,7 @@ export function Neon({ song }: { song: SharedSong }) {
 
         <div className="mb-6 flex justify-center">
           <div className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-peach backdrop-blur-md">
-            ✨ It&apos;s Your Special Day!
+            🎬 Tonight&apos;s premiere
           </div>
         </div>
 
