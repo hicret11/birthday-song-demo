@@ -197,12 +197,13 @@ export default async function HappyBirthdayNamePage({
           />
         </Link>
 
-        <h1 className="text-warm-gradient text-balance pb-3 text-[clamp(34px,7vw,58px)] font-display font-extrabold leading-[1.05]">
-          A birthday song made for {display}
+        <h1 className="text-ink text-balance pb-3 text-[clamp(34px,7vw,58px)] font-display font-extrabold leading-[1.05]">
+          A birthday song made for{" "}
+          <span className="text-warm-gradient">{display}</span>
         </h1>
 
         <p className="mt-4 max-w-md text-balance text-[clamp(15px,3vw,18px)] text-ink-soft">
-          Surprise {display} with a one-of-a-kind, personalized birthday song —
+          Surprise {display}{" "}with a one-of-a-kind, personalized birthday song —
           written and sung in about a minute. Pick any language and any style,
           then share it anywhere. It&apos;s free and there&apos;s no signup.
         </p>
@@ -210,7 +211,7 @@ export default async function HappyBirthdayNamePage({
         <div className="mt-10 flex w-full justify-center">
           <Link
             href={generateHref}
-            className="inline-flex items-center justify-center rounded-full bg-warm-gradient px-8 py-4 text-lg font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(255,111,145,0.7)] transition hover:brightness-110 active:scale-[0.99]"
+            className="inline-flex items-center justify-center rounded-full bg-jade hover:bg-jade-deep px-8 py-4 text-lg font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(31,142,125,0.7)] transition hover:brightness-110 active:scale-[0.99]"
           >
             Make {display}&apos;s song →
           </Link>

@@ -23,7 +23,7 @@ type ManageVenue = {
   email: string | null;
 };
 
-const FALLBACK_COLOR = "#a855f7";
+const FALLBACK_COLOR = "#1f8e7d"; // jade — warm-system default when a venue has no valid brand color
 
 async function loadManageableVenue(rawSlug: string): Promise<ManageVenue | null> {
   const slug = rawSlug.toLowerCase();

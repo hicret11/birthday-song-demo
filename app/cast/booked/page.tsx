@@ -63,7 +63,7 @@ export default async function CastBookedPage({
         </div>
         <Link
           href={backHref}
-          className="mt-6 inline-block rounded-2xl bg-gradient-to-r from-brand-amber to-brand-pink px-6 py-3 text-sm font-extrabold text-white shadow-lg transition hover:-translate-y-0.5"
+          className="mt-6 inline-block rounded-2xl bg-jade hover:bg-jade-deep px-6 py-3 text-sm font-extrabold text-white shadow-lg transition hover:-translate-y-0.5"
         >
           {t.bookedHome}
         </Link>

@@ -25,9 +25,9 @@ export default async function PremierePreviewPage({
   const audio = pick(sp.audio) || "/_test/full.mp3";
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#120a1e] px-4 py-10">
+    <main className="flex min-h-screen items-center justify-center bg-[#120b16] px-4 py-10">
       <div className="w-full">
-        <p className="mb-6 text-center text-[11px] uppercase tracking-[0.24em] text-purple-300/60">
+        <p className="mb-6 text-center text-[11px] uppercase tracking-[0.24em] text-amber-200/50">
           Sing My Birthday · Premiere (Phase 1 preview)
         </p>
         <PremiereClient
@@ -36,7 +36,7 @@ export default async function PremierePreviewPage({
           songTitle={title}
           audioSrc={audio}
         />
-        <p className="mx-auto mt-8 max-w-[440px] text-center text-xs leading-relaxed text-purple-200/40">
+        <p className="mx-auto mt-8 max-w-[440px] text-center text-xs leading-relaxed text-amber-200/35">
           Подсказка: попробуй <code>/premiere?name=Лео&amp;from=лучший друг</code>.
           В реальном flow сюда придёт настоящая песня через same-origin
           audio-proxy, и эквалайзер оживёт под неё.

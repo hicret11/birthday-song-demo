@@ -72,7 +72,7 @@ export default function BecomeAVenueClient() {
       type="button"
       onClick={startCheckout}
       disabled={loading}
-      className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-warm-gradient px-8 text-base font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(255,111,145,0.7)] transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-sand disabled:text-ink-soft disabled:shadow-none disabled:hover:translate-y-0"
+      className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-jade px-8 text-base font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(31,142,125,0.7)] transition hover:-translate-y-0.5 hover:bg-jade-deep active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-sand disabled:text-ink-soft disabled:shadow-none disabled:hover:translate-y-0"
     >
       {loading ? "Redirecting…" : label}
     </button>
@@ -105,8 +105,9 @@ export default function BecomeAVenueClient() {
           <span className="inline-flex items-center gap-2 rounded-full border border-sand bg-cream-soft px-3 py-1 text-xs font-bold uppercase tracking-[0.15em] text-jade shadow-sm">
             For venues · Founding partner
           </span>
-          <h1 className="mt-4 font-display text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl lg:text-[3.4rem]">
-            <span className="text-warm-gradient">Turn birthdays into your best marketing.</span>
+          <h1 className="mt-4 font-display text-4xl font-extrabold leading-[1.05] tracking-tight text-ink sm:text-5xl lg:text-[3.4rem]">
+            Turn birthdays into your{" "}
+            <span className="text-warm-gradient">best marketing</span>.
           </h1>
           <p className="mt-5 text-lg text-ink-soft">
             Give guests a personalized birthday song branded to your venue — and put your name

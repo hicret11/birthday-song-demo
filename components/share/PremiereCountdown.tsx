@@ -81,18 +81,29 @@ export default function PremiereCountdown({
       className="flex min-h-screen items-center justify-center px-5 py-10"
       style={{
         background:
-          "radial-gradient(1100px 640px at 50% -10%, #3a1f5e 0%, #1c1030 46%, #120a1e 100%)",
-        color: "#f4e9ff",
+          "radial-gradient(1100px 640px at 50% -10%, #3b1c30 0%, #1f1016 48%, #140b0e 100%)",
+        color: "#f6ede2",
       }}
     >
       <div className="w-full max-w-md">
         <div
           className="relative rounded-2xl p-6 text-center shadow-2xl sm:p-8"
           style={{
-            background: "linear-gradient(135deg,#2a1745,#160b26)",
+            background: "linear-gradient(135deg,#2c1620,#180b12)",
             border: "1px solid rgba(255,207,107,.4)",
           }}
         >
+          {/* Ticket-stub notches — the dashed divider below reads as the tear line. */}
+          <span
+            aria-hidden
+            className="absolute left-[-9px] top-1/2 h-4 w-4 -translate-y-1/2 rounded-full"
+            style={{ background: "#1f1016" }}
+          />
+          <span
+            aria-hidden
+            className="absolute right-[-9px] top-1/2 h-4 w-4 -translate-y-1/2 rounded-full"
+            style={{ background: "#1f1016" }}
+          />
           <p
             className="text-[11px] font-extrabold uppercase tracking-[0.3em]"
             style={{ color: "#ffcf6b" }}
@@ -117,11 +128,11 @@ export default function PremiereCountdown({
             style={{ borderTop: "1.5px dashed rgba(255,207,107,.35)" }}
           />
 
-          <p className="text-sm" style={{ color: "#c9b8e6" }}>
+          <p className="text-sm" style={{ color: "#cdbfae" }}>
             {t.premieresOn.replace("{date}", dateLabel)}
           </p>
 
-          <p className="mt-5 text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: "#ffcf6b" }}>
+          <p className="mt-5 text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: "#b4a498" }}>
             {t.opensIn}
           </p>
           <div className="mt-2 flex justify-center gap-3 sm:gap-4" aria-live="off">
@@ -129,18 +140,18 @@ export default function PremiereCountdown({
               <div key={i} className="flex min-w-[52px] flex-col items-center">
                 <span
                   className="tabular-nums text-3xl font-black sm:text-4xl"
-                  style={{ color: "#f4e9ff" }}
+                  style={{ color: "#f6ede2" }}
                 >
                   {remaining === null ? "—" : u.v}
                 </span>
-                <span className="mt-1 text-[10px] uppercase tracking-widest" style={{ color: "#a596c4" }}>
+                <span className="mt-1 text-[10px] uppercase tracking-widest" style={{ color: "#b4a498" }}>
                   {u.label}
                 </span>
               </div>
             ))}
           </div>
 
-          <p className="mt-6 text-xs" style={{ color: "#a596c4" }}>
+          <p className="mt-6 text-xs" style={{ color: "#b4a498" }}>
             {t.footer}
           </p>
         </div>

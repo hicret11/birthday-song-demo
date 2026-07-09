@@ -22,7 +22,7 @@ export default function LanguageSwitcher({ locale }: { locale: Locale }) {
     <div
       role="group"
       aria-label="Language"
-      className="flex items-center gap-0.5 rounded-full border border-white/10 bg-white/5 p-0.5 backdrop-blur"
+      className="flex items-center gap-0.5 rounded-full border border-sand bg-cream-soft p-0.5"
     >
       {LOCALES.map((code) => {
         const active = code === locale;
@@ -34,8 +34,8 @@ export default function LanguageSwitcher({ locale }: { locale: Locale }) {
             aria-pressed={active}
             className={`rounded-full px-2.5 py-1 text-xs font-bold transition ${
               active
-                ? "bg-white/15 text-white"
-                : "text-slate-300 hover:text-white"
+                ? "bg-jade text-white"
+                : "text-ink-soft hover:text-ink"
             }`}
           >
             {LABELS[code]}

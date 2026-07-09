@@ -185,6 +185,37 @@ per step, not per field.
 
 ---
 
+## Site-wide rollout (applied after landing + /generate sign-off)
+
+The system is now applied across the product. Guiding rules used:
+
+- **One action color.** Every primary action is solid `jade` (hover `jade-deep`); the
+  legacy `brand-pink → brand-amber` gradient and `brand-pink` focus/selected/accent states
+  are retired everywhere (join/crowd, chip-in, cast add-ons + character picker, cast-booked,
+  onboarding, happy-birthday, become-a-venue, paywall). Selection states use a single jade
+  ring — no more jade/gold/blush fighting per tier.
+- **Global chrome re-skinned to warm** (these overlay every page): CookieConsent banner +
+  preferences modal, WaitlistForm, LanguageSwitcher — all migrated off the dark purple /
+  white-on-glass world onto cream/ink/jade tokens, dual-theme.
+- **Venues.** Per-venue `logo_color` branding is preserved; only the off-world purple
+  `FALLBACK_COLOR` became jade.
+- **Kept as deliberate variety (not flattened):** the share-card *templates*
+  (Classic/Elegant/Neon/Playful/Corporate) and their poster previews — these are a
+  user-chosen "pick your card style" feature, so their distinct looks stay.
+- **Earned accents that remain:** the hero-word `warm-gradient` (one per page), small
+  brand logo/step chips in `warm-gradient` (as on the landing), and a single `gold` ★ on the
+  Deluxe tier as premium metal.
+
+### The one exception — the cinematic payoff (kept dramatic on purpose)
+
+Calm everywhere **except** the moment meant to give chills. The **premiere reveal**
+(`PremiereReveal`: curtain-raise → name-in-lights → song → director's note → credits roll)
+and the **countdown "premiere ticket"** (`PremiereCountdown`) stay dark and theatrical.
+What changed: they were shifted off leftover flat "app purple" onto an **intentional warm
+gold-lit theater** palette (warm aubergine house, amber/gold stage light, velvet curtains,
+white→gold→pink name-in-lights), stacked kickers trimmed, and the ticket given real
+stub-notches so it reads as a premium admission ticket, not a plain card.
+
 ## Definition of done (the bar we grade against)
 
 A screen passes when a first-time visitor can answer, in under two seconds:

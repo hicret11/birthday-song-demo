@@ -356,7 +356,7 @@ export default function PremiereReveal({
         style={{
           minHeight: 480,
           background:
-            "radial-gradient(680px 340px at 50% -8%, #3a2160 0%, #1c1030 46%, #120a1e 100%)",
+            "radial-gradient(680px 340px at 50% -8%, #2f1b42 0%, #1a1020 48%, #120b16 100%)",
         }}
       >
         {/* confetti layer */}
@@ -385,7 +385,7 @@ export default function PremiereReveal({
               <p className="text-[13px] font-extrabold uppercase tracking-[0.28em] text-amber-300/90">
                 {L.overline}
               </p>
-              <p className="mt-3 max-w-[300px] text-sm leading-relaxed text-purple-100/70">
+              <p className="mt-3 max-w-[300px] text-sm leading-relaxed text-amber-100/75">
                 {L.introPrefix}
                 {star}
                 {L.introSuffix}
@@ -429,7 +429,7 @@ export default function PremiereReveal({
               {star}
             </h1>
             {songTitle && (
-              <p className="mt-1 text-sm italic text-purple-100/70">
+              <p className="mt-1 text-sm italic text-amber-100/75">
                 «{songTitle}»
               </p>
             )}
@@ -445,14 +445,14 @@ export default function PremiereReveal({
               <button
                 type="button"
                 onClick={togglePlay}
-                className="mt-1 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 py-2 text-sm font-bold text-purple-50 transition hover:border-pink-400"
+                className="mt-1 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 py-2 text-sm font-bold text-amber-50 transition hover:border-amber-300"
               >
                 {playing ? L.pause : L.replay}
               </button>
             )}
 
             {director && (
-              <p className="mt-5 text-[13px] text-purple-100/70">
+              <p className="mt-5 text-[13px] text-amber-100/75">
                 {L.director} <b className="text-amber-100">{director}</b> 🎬
               </p>
             )}
@@ -465,7 +465,7 @@ export default function PremiereReveal({
                   {L.noteLabel}
                 </p>
                 {noteText && (
-                  <p className="mt-1.5 text-[15px] italic leading-relaxed text-purple-50">
+                  <p className="mt-1.5 text-[15px] italic leading-relaxed text-amber-50">
                     “{noteText}”
                   </p>
                 )}
@@ -473,7 +473,7 @@ export default function PremiereReveal({
                   <button
                     type="button"
                     onClick={toggleNote}
-                    className="mt-2 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-bold text-purple-50 transition hover:border-pink-400"
+                    className="mt-2 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-bold text-amber-50 transition hover:border-amber-300"
                   >
                     {playingNote ? L.notePause : L.notePlay}
                   </button>
@@ -564,10 +564,10 @@ export default function PremiereReveal({
 function CreditRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="mt-2 first:mt-0 text-center">
-      <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-purple-200/50">
+      <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-amber-200/55">
         {label}
       </p>
-      <p className="mt-0.5 text-[15px] font-extrabold text-purple-50">{value}</p>
+      <p className="mt-0.5 text-[15px] font-extrabold text-amber-50">{value}</p>
     </div>
   );
 }

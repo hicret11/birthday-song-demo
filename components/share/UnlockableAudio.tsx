@@ -156,7 +156,7 @@ export default function UnlockableAudio({
   return (
     <div className="mt-6">
       <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wide text-jade">
-        {tr.paywall.previewLabelPrefix}{PREVIEW_SECONDS}{tr.paywall.previewLabelSuffix}
+        {tr.paywall.previewLabelPrefix}{tr.paywall.previewLabelSuffix}
       </p>
       {!hidePlayer && (
         <audio
@@ -184,7 +184,7 @@ export default function UnlockableAudio({
             aria-pressed={plan === "full"}
             className={`block w-full rounded-2xl border p-4 text-left transition ${
               plan === "full"
-                ? "border-jade bg-warm-soft ring-1 ring-jade"
+                ? "border-jade bg-cream-soft ring-1 ring-jade"
                 : "border-sand bg-cream hover:border-jade"
             }`}
           >
@@ -206,13 +206,13 @@ export default function UnlockableAudio({
             aria-pressed={plan === "deluxe"}
             className={`block w-full rounded-2xl border p-4 text-left transition ${
               plan === "deluxe"
-                ? "border-gold bg-warm-soft ring-1 ring-gold"
-                : "border-sand bg-cream hover:border-gold"
+                ? "border-jade bg-cream-soft ring-1 ring-jade"
+                : "border-sand bg-cream hover:border-jade"
             }`}
           >
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-extrabold text-ink">
-                {tr.paywall.deluxe} <span className="ml-1 rounded-full bg-warm-gradient px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">{tr.paywall.mostChosen}</span>
+                {tr.paywall.deluxe} <span className="ml-1 rounded-full bg-jade px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">{tr.paywall.mostChosen}</span>
               </span>
               <span className="text-sm font-extrabold text-ink">{deluxeLabel}</span>
             </div>
@@ -228,8 +228,8 @@ export default function UnlockableAudio({
             aria-pressed={plan === "production"}
             className={`block w-full rounded-2xl border p-4 text-left transition ${
               plan === "production"
-                ? "border-blush bg-warm-soft ring-1 ring-blush"
-                : "border-sand bg-cream hover:border-blush"
+                ? "border-jade bg-cream-soft ring-1 ring-jade"
+                : "border-sand bg-cream hover:border-jade"
             }`}
           >
             <div className="flex items-center justify-between gap-2">
@@ -240,7 +240,7 @@ export default function UnlockableAudio({
             </div>
             <ul className="mt-2 space-y-1.5 text-sm text-ink">
               <li className="flex items-start gap-2"><span className="text-jade">✓</span><span>{tr.paywall.bulletEverythingDeluxe}</span></li>
-              <li className="flex items-start gap-2"><span className="text-blush">☎</span><span className="font-semibold">{tr.paywall.bulletCall}</span></li>
+              <li className="flex items-start gap-2"><span className="text-jade">☎</span><span className="font-semibold">{tr.paywall.bulletCall}</span></li>
             </ul>
           </button>
         </div>

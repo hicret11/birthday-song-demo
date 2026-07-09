@@ -3318,13 +3318,13 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                     aria-pressed={unlockPlan === "deluxe"}
                     className={`block w-full rounded-2xl border p-3.5 text-left transition ${
                       unlockPlan === "deluxe"
-                        ? "border-gold bg-cream-soft ring-1 ring-gold"
+                        ? "border-jade bg-cream-soft ring-1 ring-jade"
                         : "border-sand bg-cream-soft hover:border-jade"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-sm font-extrabold text-ink">
-                        {t.paywall.deluxe} <span className="ml-1 rounded-full bg-warm-gradient px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">{t.paywall.mostChosen}</span>
+                        {t.paywall.deluxe} <span className="ml-1 rounded-full bg-jade px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">{t.paywall.mostChosen}</span>
                       </span>
                       <span className="text-sm font-extrabold text-ink">{shareTier ? DELUXE_PRICE_LABEL[shareTier] : ""}</span>
                     </div>
@@ -3347,8 +3347,8 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                     aria-pressed={unlockPlan === "production"}
                     className={`block w-full rounded-2xl border p-3.5 text-left transition ${
                       unlockPlan === "production"
-                        ? "border-blush bg-cream-soft ring-1 ring-blush"
-                        : "border-sand bg-cream-soft hover:border-blush"
+                        ? "border-jade bg-cream-soft ring-1 ring-jade"
+                        : "border-sand bg-cream-soft hover:border-jade"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
@@ -3359,7 +3359,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                     </div>
                     <ul className="mt-1.5 space-y-1 text-xs text-ink-soft">
                       <li className="flex items-start gap-2"><span className="text-jade">✓</span><span>{t.paywall.bulletEverythingDeluxe}</span></li>
-                      <li className="flex items-start gap-2"><span className="text-blush">☎</span><span className="font-semibold text-ink">{t.paywall.bulletCall}</span></li>
+                      <li className="flex items-start gap-2"><span className="text-jade">☎</span><span className="font-semibold text-ink">{t.paywall.bulletCall}</span></li>
                     </ul>
                   </button>
                 </div>
@@ -3387,7 +3387,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                     unlocking ||
                     (unlockPlan === "production" && !isProductionCallReady(callSetup))
                   }
-                  className="mt-3 w-full rounded-full bg-warm-gradient py-3.5 text-sm font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(255,111,145,0.7)] transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="mt-3 w-full rounded-full bg-jade py-3.5 text-sm font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(31,142,125,0.7)] transition hover:-translate-y-0.5 hover:bg-jade-deep active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {unlocking
                     ? t.paywall.openingCheckout
@@ -3547,7 +3547,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                   fully optional — it does not gate the share CTA above. */}
               {!recipientIsMinor && (
                 <div className="mt-2 rounded-2xl border border-sand bg-cream-soft p-4">
-                  <p className="text-sm font-bold text-ink">💜 Proud of this one? Let it inspire others.</p>
+                  <p className="text-sm font-bold text-ink">🧡 Proud of this one? Let it inspire others.</p>
                   <p className="mt-1 text-xs text-ink-soft">
                     Yes — Sing My Birthday can feature my song in highlights &amp; ads.
                     You can change your mind anytime; we&apos;ll never share private
@@ -3556,7 +3556,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                   {promoResponded ? (
                     <p className="mt-3 text-sm font-semibold text-jade">
                       {promoGranted
-                        ? "Thank you! You can feature it 💜"
+                        ? "Thank you! You can feature it 🧡"
                         : "No problem — we won't feature it."}
                       {promoSaved && <span className="ml-1 text-ink-soft">Saved ✓</span>}
                     </p>
@@ -3590,7 +3590,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
       )}
 
       <footer className="relative z-20 mt-8 text-center text-xs text-ink-soft">
-        Made with 💜 for birthday celebrations
+        Made with 🧡 for birthday celebrations
       </footer>
 
       {showConfetti && <Confetti />}

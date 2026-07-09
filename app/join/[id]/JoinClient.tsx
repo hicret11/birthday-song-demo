@@ -454,7 +454,7 @@ export default function JoinClient({
   return (
     <main dir={dir} className="min-h-screen bg-cream px-4 py-8 text-ink">
       <div className="mx-auto w-full max-w-[540px]">
-        <p className="text-center text-[11px] font-extrabold uppercase tracking-[0.22em] text-brand-pink">
+        <p className="text-center text-[11px] font-extrabold uppercase tracking-[0.22em] text-jade">
           {t.overline}
         </p>
         <h1 className="mt-2 text-center font-display text-3xl font-black leading-tight">
@@ -496,8 +496,8 @@ export default function JoinClient({
                   aria-pressed={sel}
                   className={`rounded-full px-4 py-2 text-sm font-bold transition ${
                     sel
-                      ? "bg-gradient-to-r from-brand-amber to-brand-pink text-white"
-                      : "border border-sand bg-cream text-ink hover:border-brand-pink"
+                      ? "bg-jade hover:bg-jade-deep text-white"
+                      : "border border-sand bg-cream text-ink hover:border-jade"
                   }`}
                 >
                   {KIND_EMOJI[k]} {t.kinds[k].label}
@@ -512,8 +512,8 @@ export default function JoinClient({
               aria-pressed={kind === "photo"}
               className={`rounded-full px-4 py-2 text-sm font-bold transition ${
                 kind === "photo"
-                  ? "bg-gradient-to-r from-brand-amber to-brand-pink text-white"
-                  : "border border-sand bg-cream text-ink hover:border-brand-pink"
+                  ? "bg-jade hover:bg-jade-deep text-white"
+                  : "border border-sand bg-cream text-ink hover:border-jade"
               }`}
             >
               📷 {t.photoTab}
@@ -526,8 +526,8 @@ export default function JoinClient({
               aria-pressed={kind === "voice"}
               className={`rounded-full px-4 py-2 text-sm font-bold transition ${
                 kind === "voice"
-                  ? "bg-gradient-to-r from-brand-amber to-brand-pink text-white"
-                  : "border border-sand bg-cream text-ink hover:border-brand-pink"
+                  ? "bg-jade hover:bg-jade-deep text-white"
+                  : "border border-sand bg-cream text-ink hover:border-jade"
               }`}
             >
               🎤 {t.voiceTab}
@@ -543,7 +543,7 @@ export default function JoinClient({
                   <button
                     type="button"
                     onClick={startRecording}
-                    className="mt-3 rounded-full border border-sand bg-cream px-4 py-2 text-xs font-bold text-ink transition hover:border-brand-pink"
+                    className="mt-3 rounded-full border border-sand bg-cream px-4 py-2 text-xs font-bold text-ink transition hover:border-jade"
                   >
                     🎤 {t.voiceReRecord}
                   </button>
@@ -552,7 +552,7 @@ export default function JoinClient({
                 <button
                   type="button"
                   onClick={stopRecording}
-                  className="flex w-full flex-col items-center justify-center gap-1 rounded-2xl border border-brand-pink bg-cream px-4 py-8 text-center text-sm font-bold text-brand-pink transition"
+                  className="flex w-full flex-col items-center justify-center gap-1 rounded-2xl border border-jade bg-cream px-4 py-8 text-center text-sm font-bold text-jade transition"
                 >
                   <span className="inline-block animate-pulse text-2xl">🔴</span>
                   {t.voiceRecording} {Math.floor(recordMs / 1000)}s
@@ -562,7 +562,7 @@ export default function JoinClient({
                 <button
                   type="button"
                   onClick={startRecording}
-                  className="flex w-full flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-sand bg-cream px-4 py-8 text-center text-sm font-semibold text-ink-soft transition hover:border-brand-pink"
+                  className="flex w-full flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-sand bg-cream px-4 py-8 text-center text-sm font-semibold text-ink-soft transition hover:border-jade"
                 >
                   <span className="text-2xl">🎤</span>
                   {t.voiceRecordPrompt}
@@ -599,7 +599,7 @@ export default function JoinClient({
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex w-full flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-sand bg-cream px-4 py-8 text-center text-sm font-semibold text-ink-soft transition hover:border-brand-pink"
+                  className="flex w-full flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-sand bg-cream px-4 py-8 text-center text-sm font-semibold text-ink-soft transition hover:border-jade"
                 >
                   <span className="text-2xl">📷</span>
                   {t.photoPickPrompt}
@@ -617,7 +617,7 @@ export default function JoinClient({
                 }}
                 rows={3}
                 placeholder={t.kinds[kind].placeholder}
-                className="mt-4 w-full rounded-2xl border border-sand bg-cream px-4 py-3 text-base text-ink outline-none focus:border-brand-pink"
+                className="mt-4 w-full rounded-2xl border border-sand bg-cream px-4 py-3 text-base text-ink outline-none focus:border-jade"
               />
               <div className="mt-1 text-right text-[11px] text-ink-soft">
                 {content.length}/{MAX_LEN}
@@ -629,16 +629,16 @@ export default function JoinClient({
             value={authorName}
             onChange={(e) => setAuthorName(e.target.value.slice(0, 60))}
             placeholder={t.namePlaceholder}
-            className="mt-2 w-full rounded-2xl border border-sand bg-cream px-4 py-3 text-sm text-ink outline-none focus:border-brand-pink"
+            className="mt-2 w-full rounded-2xl border border-sand bg-cream px-4 py-3 text-sm text-ink outline-none focus:border-jade"
           />
 
-          {error && <p className="mt-3 text-sm font-semibold text-brand-pink">{error}</p>}
+          {error && <p className="mt-3 text-sm font-semibold text-jade">{error}</p>}
 
           <button
             type="button"
             onClick={submit}
             disabled={submitting || (kind === "voice" && (recording || !voiceBlob))}
-            className="mt-4 w-full rounded-2xl bg-gradient-to-r from-brand-amber to-brand-pink px-6 py-4 text-base font-extrabold text-white shadow-lg transition hover:-translate-y-0.5 disabled:opacity-60"
+            className="mt-4 w-full rounded-2xl bg-jade hover:bg-jade-deep px-6 py-4 text-base font-extrabold text-white shadow-lg transition hover:-translate-y-0.5 disabled:opacity-60"
           >
             {submitting
               ? kind === "photo" || kind === "voice"

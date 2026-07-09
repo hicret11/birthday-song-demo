@@ -104,7 +104,7 @@ export default function ProductionCallFields({
       />
       <p className="mt-1 text-[11px] text-ink-soft">{t.callPhoneHint}</p>
       {countryBlocked && (
-        <p className="mt-1 text-[11px] font-semibold text-brand-pink">{t.callCountryUnavailable}</p>
+        <p className="mt-1 text-[11px] font-semibold text-blush">{t.callCountryUnavailable}</p>
       )}
 
       {/* Optional date */}
