@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import type {
   CakeStyle,
   CandleColor,
@@ -423,18 +425,6 @@ function ProducerBubble({
         {children}
       </div>
     </div>
-  );
-}
-
-/**
- * Small cinematic "Act N ·" kicker label above a step — gold, uppercase, tracked.
- * Presentational only.
- */
-function StudioKicker({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="mb-2 text-[11px] font-extrabold uppercase tracking-[0.16em] text-gold">
-      {children}
-    </p>
   );
 }
 
@@ -1315,7 +1305,6 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
   // One decision per screen. Each beat only sets an existing canonical state
   // field; the render below reads `beatIndex` to pick which beat to show.
   const BEAT_COUNT = 7;
-  const starUpper = name.trim() ? name.trim().toUpperCase() : "";
   const monthNames = t.generate.months;
   // Director credit for the dossier: the localized relationship role, else the
   // sender's name, else a soft "you" — never touches the payload derivations.
@@ -2221,100 +2210,36 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
       <style>{`
         * { scrollbar-width: none; }
         *::-webkit-scrollbar { display: none; }
-        /* ── Theatrical "noir stage" repaint — scoped to the intake only.
-           Overriding the @theme CSS vars on this subtree flips every
-           bg-cream / text-ink / border-sand / text-gold to the premiere's
-           dark palette without touching any other route (share/join/etc.). */
-        .gen-stage {
-          --color-cream: #120a1e;
-          --color-cream-soft: rgba(255,255,255,0.055);
-          --color-sand: rgba(255,255,255,0.13);
-          --color-ink: #f4e9ff;
-          --color-ink-soft: #c9b8e6;
-          --color-gold: #ffcf6b;
-          --color-jade: #4be3b0;
-          --color-blush: #ff6fae;
-          --warm-gradient: linear-gradient(120deg,#ffb03a 0%,#ff6fae 55%,#ff3d90 100%);
-          --warm-gradient-soft: linear-gradient(120deg,rgba(255,207,107,0.16),rgba(255,111,174,0.16));
-          /* Solid near-black base + a plum glow at the top. NOT fixed, so it
-             covers the full scroll height edge-to-edge (no cream leak below). */
-          background-color: #120a1e;
-          background-image: radial-gradient(1100px 680px at 50% -10%, #3a1f5e 0%, rgba(28,16,48,0.5) 46%, transparent 100%);
-        }
-        /* The page body + global site chrome are cream in light mode; paint the
-           whole viewport noir and hide the site footer so the stage is immersive
-           edge-to-edge (matches the prototype). Scoped to while this route is
-           mounted via :has — reverts on navigation. */
-        body:has(.gen-stage) { background: #120a1e; }
+        /* ── Calm studio stage ──────────────────────────────────────────────
+           The intake now lives in the SAME warm world as the landing (no
+           separate neon-purple theme). We keep the flow focused by hiding the
+           global site footer while this route is mounted, and lay a single
+           whisper-soft warm wash over the page — no plum, no glow storm. */
         body:has(.gen-stage) > footer { display: none; }
-        .gen-stage input, .gen-stage textarea { background: rgba(0,0,0,0.26); }
-        .gen-stage ::placeholder { color: #a596c4; opacity: 1; }
-        .gen-stage .grain { color: #f4e9ff; }
-        @keyframes floatOne {
-          0%, 100% { transform: translateY(0px) rotate(0deg) scale(1); }
-          50% { transform: translateY(-32px) rotate(8deg) scale(1.08); }
+        .gen-stage {
+          background-image:
+            radial-gradient(1200px 560px at 50% -12%, rgba(255,198,164,0.20), transparent 70%);
         }
-        @keyframes floatTwo {
-          0%, 100% { transform: translateY(0px) rotate(0deg) scale(1); }
-          50% { transform: translateY(28px) rotate(-10deg) scale(1.05); }
+        .dark .gen-stage {
+          background-image:
+            radial-gradient(1200px 560px at 50% -12%, rgba(255,150,120,0.10), transparent 70%);
         }
-        @keyframes bgMove {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-        .moving-bg {
-          background-size: 350% 350%;
-          animation: bgMove 16s ease infinite;
-        }
-        .float-one { animation: floatOne 9s ease-in-out infinite; }
-        .float-two { animation: floatTwo 12s ease-in-out infinite; }
-
-        /* ── v4 beat-engine chrome: marquee, reel, dossier, chips ── */
-        .gen-stage .marquee-sign {
-          position: relative; border-radius: 16px; padding: 22px 18px; text-align: center;
-          background: rgba(0,0,0,.30); border: 2px solid rgba(255,207,107,.45);
-          box-shadow: 0 0 46px -10px rgba(255,180,90,.45), inset 0 0 34px rgba(255,180,90,.09);
-        }
-        .gen-stage .marquee-sign::before, .gen-stage .marquee-sign::after {
-          content: ""; position: absolute; left: 10px; right: 10px; height: 7px;
-          background-image: radial-gradient(circle, #ffde8f 0 2.6px, transparent 3px);
-          background-size: 16px 7px; background-repeat: repeat-x; opacity: .9;
-          filter: drop-shadow(0 0 3px rgba(255,207,107,.9));
-        }
-        .gen-stage .marquee-sign::before { top: 6px; }
-        .gen-stage .marquee-sign::after { bottom: 6px; }
-        .gen-stage .m-name {
-          font-weight: 900; letter-spacing: .06em; font-size: 32px; line-height: 1.05;
-          text-transform: uppercase; color: #fff; word-break: break-word; min-height: 34px;
-          text-shadow: 0 0 12px rgba(255,207,107,.85), 0 0 30px rgba(255,111,174,.55);
-        }
-        .gen-stage .m-name.empty { color: #5a4a78; text-shadow: none; }
+        /* Progress reel — quiet sand track, jade for completed beats. */
         .gen-stage .reel { display: flex; gap: 6px; justify-content: center; }
         .gen-stage .reel i {
-          height: 4px; width: 20px; border-radius: 3px;
-          background: rgba(255,255,255,.14); transition: .3s;
+          height: 4px; width: 22px; border-radius: 3px;
+          background: var(--color-sand); transition: .3s;
         }
-        .gen-stage .reel i.on { background: linear-gradient(120deg,#ffcf6b,#ff6fae); }
-        .gen-stage .dossier li { opacity: .34; transition: .35s; }
-        .gen-stage .dossier li.on { opacity: 1; }
+        .gen-stage .reel i.on { background: var(--color-jade); }
         @media (prefers-reduced-motion: reduce) {
           .gen-stage .animate-eq { animation: none !important; }
         }
       `}</style>
 
-      {/* Warm organic blobs bleeding off the edges (matches the landing look). */}
+      {/* One soft warm blob — a hint of warmth, not a light show. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute left-1/2 -top-56 z-0 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,207,107,0.28),transparent_62%)] blur-2xl"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -right-40 top-24 z-0 h-[560px] w-[560px] rounded-full bg-[radial-gradient(circle,rgba(255,111,174,0.30),transparent_66%)] blur-2xl"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -left-40 top-40 z-0 h-[480px] w-[480px] rounded-full bg-[radial-gradient(circle,rgba(123,63,158,0.35),transparent_66%)] blur-2xl"
+        className="pointer-events-none absolute left-1/2 -top-56 z-0 h-[560px] w-[560px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,198,164,0.22),transparent_66%)] blur-3xl"
       />
 
       <canvas ref={canvasRef} className="fixed inset-0 z-[1] pointer-events-none select-none" />
@@ -2334,19 +2259,19 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
         </div>
       )}
 
-      {/* Brandbar — a small theatrical wordmark. The immersive noir stage
-          replaces the usual cream logo header + step nav (matches the v4
-          prototype: opening screen carries the hook, the reel carries progress). */}
-      <div className="relative z-20 mx-auto mb-5 flex max-w-xl items-center justify-center gap-2">
-        <span
-          aria-hidden
-          className="h-2.5 w-2.5 rounded-full"
-          style={{ background: "linear-gradient(135deg,#ffcf6b,#ff6fae)" }}
-        />
-        <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-ink-soft sm:text-xs">
-          {t.generate.studioBrandbar}
+      {/* Header — the same logo + wordmark as the landing, so the intake reads
+          as one product. The studio identity now lives in the H1 copy below. */}
+      <header className="relative z-20 mx-auto mb-8 flex max-w-xl items-center justify-between">
+        <Link href="/" className="flex items-center gap-2.5">
+          <Image src="/brand/logo-mark-tight.png" alt="" width={36} height={36} className="h-9 w-9" />
+          <span className="font-display text-lg font-extrabold tracking-tight text-ink">
+            Sing My Birthday
+          </span>
+        </Link>
+        <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-ink-soft">
+          {t.generate.studioBrandbar.split("·").pop()?.trim()}
         </span>
-      </div>
+      </header>
 
       {/* Scroll anchor — the step-change effect scrolls this into view so each
           new step lands at the top of the flow. */}
@@ -2354,43 +2279,20 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
 
       {/* ── STEP 1 · the intake: opening marquee, then the beat engine ── */}
       {step === 1 && (
-        <section className="relative z-10 mx-auto max-w-xl">
+        <section className="relative z-10 mx-auto flex min-h-[62vh] max-w-xl flex-col justify-center">
           {intakeStage === "opening" ? (
             <>
-              <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-gold/40 bg-warm-soft px-4 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-gold">
-                {t.generate.openingBadge}
-              </span>
-              <h1 className="mb-3 mt-3 font-display text-[26px] font-extrabold leading-[1.12] tracking-tight text-ink sm:text-[32px]">
+              <h1 className="mt-2 font-display text-3xl font-extrabold leading-[1.08] tracking-tight text-ink sm:text-4xl">
                 {t.generate.studioHook.split("{name}")[0]}
-                <span className="bg-gradient-to-r from-[#ffcf6b] via-[#ff8ac0] to-[#ff3d90] bg-clip-text text-transparent">
+                <span className="font-serif font-normal italic text-warm-gradient">
                   {name.trim() || t.generate.studioHookThem}
                 </span>
                 {t.generate.studioHook.split("{name}")[1]}
               </h1>
-              <p className="mb-5 text-[15px] leading-relaxed text-ink-soft">{t.generate.openingLead}</p>
+              <p className="mt-4 mb-6 max-w-md text-base leading-relaxed text-ink-soft">{t.generate.openingLead}</p>
 
-              {/* The marquee — the star's name lights up as you type it. */}
-              <div className="marquee-sign">
-                <div className="text-[10.5px] font-extrabold uppercase tracking-[0.28em] text-gold">
-                  {t.generate.marqueeNowCasting}
-                </div>
-                <div className={`m-name my-2 ${starUpper ? "" : "empty"}`}>
-                  {starUpper || t.generate.marqueeYourStar}
-                </div>
-                <div className="text-[10.5px] font-bold uppercase tracking-[0.22em] text-ink-soft">
-                  {t.generate.marqueeBottom}
-                </div>
-              </div>
-
-              <div className="mt-5">
-                <ProducerBubble emoji="🎩">
-                  {name.trim()
-                    ? t.generate.miloOpeningNamed.replace("{name}", name.trim())
-                    : t.generate.miloOpeningEmpty.replace("{producer}", t.generate.producerName)}
-                </ProducerBubble>
-              </div>
-
-              <div className="mt-5 space-y-4 rounded-[1.25rem] border border-sand bg-cream-soft p-5">
+              {/* One question: their name. Everything optional is disclosed on ask. */}
+              <div className="rounded-[1.5rem] border border-sand bg-cream-soft p-6 shadow-[0_24px_60px_-30px_rgba(60,40,30,0.35)]">
                 <div>
                   <label htmlFor="recipient-name" className="mb-2 block font-display text-lg font-bold text-ink">
                     {t.generate.nameLabel}
@@ -2406,13 +2308,20 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                       }
                     }}
                     placeholder={t.generate.namePlaceholder}
-                    className={`w-full rounded-xl border px-4 py-4 text-lg text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
+                    className={`w-full rounded-2xl border px-4 py-4 text-lg text-ink outline-none transition focus:border-jade focus:ring-2 focus:ring-jade ${theme.input}`}
                   />
                 </div>
 
+                <details className="group mt-4">
+                  <summary className="flex cursor-pointer list-none items-center gap-1.5 text-sm font-semibold text-ink-soft transition hover:text-ink [&::-webkit-details-marker]:hidden">
+                    <span className="transition group-open:rotate-90" aria-hidden>›</span>
+                    {t.generate.pronLabel} · {t.generate.senderNameLabel}
+                  </summary>
+
+                  <div className="mt-4 space-y-5 border-t border-sand pt-4">
                 <div>
                   <label htmlFor="pronunciation-hint" className="mb-2 block text-sm font-bold text-ink">
-                    {t.generate.pronLabel} <span className="opacity-60">{t.generate.pronOptional}</span>
+                    {t.generate.pronLabel} <span className="font-normal text-ink-soft">{t.generate.pronOptional}</span>
                   </label>
                   <input
                     id="pronunciation-hint"
@@ -2420,7 +2329,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                     onChange={(e) => setPronunciationHint(e.target.value.slice(0, 80))}
                     placeholder={t.generate.pronPlaceholder}
                     maxLength={80}
-                    className={`w-full rounded-xl border px-4 py-3.5 text-base text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
+                    className={`w-full rounded-2xl border px-4 py-3.5 text-base text-ink outline-none transition focus:border-jade focus:ring-2 focus:ring-jade ${theme.input}`}
                   />
                   <div className="mt-3">
                     {micState === "warming" ? (
@@ -2465,7 +2374,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                 <div>
                   <label htmlFor="sender-name" className="mb-2 block text-sm font-bold text-ink">
                     {t.generate.senderNameLabel}{" "}
-                    <span className="opacity-60">{t.generate.senderNameOptional}</span>
+                    <span className="font-normal text-ink-soft">{t.generate.senderNameOptional}</span>
                   </label>
                   <input
                     id="sender-name"
@@ -2473,16 +2382,18 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                     onChange={(e) => setSenderName(e.target.value.slice(0, 50))}
                     placeholder={t.generate.senderNamePlaceholder}
                     maxLength={50}
-                    className={`w-full rounded-xl border px-4 py-3.5 text-base text-ink outline-none transition focus:border-jade focus:ring-1 focus:ring-jade ${theme.input}`}
+                    className={`w-full rounded-2xl border px-4 py-3.5 text-base text-ink outline-none transition focus:border-jade focus:ring-2 focus:ring-jade ${theme.input}`}
                   />
                 </div>
+                  </div>
+                </details>
               </div>
 
               <button
                 type="button"
                 onClick={() => setIntakeStage("beats")}
                 disabled={!name.trim()}
-                className="mt-6 w-full min-h-[44px] rounded-full bg-warm-gradient py-4 text-base font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(255,80,150,0.6)] transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-sand disabled:bg-none disabled:text-ink-soft disabled:shadow-none disabled:hover:translate-y-0 sm:text-lg"
+                className="mt-6 w-full min-h-[44px] rounded-full bg-jade py-4 text-base font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(31,142,125,0.7)] transition hover:-translate-y-0.5 hover:bg-jade-deep active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:border disabled:border-sand disabled:bg-transparent disabled:text-ink-soft disabled:shadow-none disabled:hover:translate-y-0 sm:text-lg"
               >
                 {t.generate.startProduction}
               </button>
@@ -2499,19 +2410,9 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                 ))}
               </div>
 
-              <StudioKicker>
-                {[
-                  t.generate.actCredit,
-                  t.generate.actMoment,
-                  t.generate.actNote,
-                  t.generate.actFeelingBeat,
-                  t.generate.actScore,
-                  t.generate.actLanguage,
-                  t.generate.actBirthday,
-                ][beatIndex]}
-              </StudioKicker>
-
-              <ProducerBubble emoji={["🎬", "🎩", "💌", "🎭", "🎼", "🌍", "📅"][beatIndex]}>
+              {/* One producer line per step — the single guiding voice. The
+                  field's own label carries the question; no stacked kicker/hint. */}
+              <p className="mb-4 text-center text-sm leading-relaxed text-ink-soft">
                 {[
                   t.generate.miloCredit,
                   miloMomentLine,
@@ -2521,10 +2422,10 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                   t.generate.miloLanguage,
                   t.generate.miloBirthday,
                 ][beatIndex]}
-              </ProducerBubble>
+              </p>
 
               {/* The single beat card */}
-              <div className="rounded-[1.25rem] border border-sand bg-cream-soft p-5">
+              <div className="rounded-[1.5rem] border border-sand bg-cream-soft p-6 shadow-[0_24px_60px_-30px_rgba(60,40,30,0.35)]">
                 {/* Beat 0 — the credit (relationship) */}
                 {beatIndex === 0 && (
                   <>
@@ -2540,8 +2441,8 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                           }}
                           className={`rounded-full border px-4 py-2.5 text-sm font-bold transition hover:-translate-y-0.5 ${
                             relationship === value
-                              ? "border-transparent bg-warm-gradient text-white shadow-md"
-                              : "border-sand bg-cream text-ink hover:border-blush"
+                              ? "border-jade bg-jade/10 text-ink shadow-sm"
+                              : "border-sand bg-cream text-ink hover:border-jade"
                           }`}
                         >
                           {label}
@@ -2623,7 +2524,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                         onClick={() => setNoteMode("text")}
                         aria-pressed={noteMode === "text"}
                         className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition ${
-                          noteMode === "text" ? "bg-warm-gradient text-white shadow" : "text-ink-soft hover:text-ink"
+                          noteMode === "text" ? "bg-jade text-white shadow" : "text-ink-soft hover:text-ink"
                         }`}
                       >
                         {t.generate.noteTabText}
@@ -2633,7 +2534,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                         onClick={() => setNoteMode("voice")}
                         aria-pressed={noteMode === "voice"}
                         className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition ${
-                          noteMode === "voice" ? "bg-warm-gradient text-white shadow" : "text-ink-soft hover:text-ink"
+                          noteMode === "voice" ? "bg-jade text-white shadow" : "text-ink-soft hover:text-ink"
                         }`}
                       >
                         {t.generate.noteTabVoice}
@@ -2702,8 +2603,8 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                           }}
                           className={`rounded-full border px-4 py-2.5 text-sm font-bold transition hover:-translate-y-0.5 ${
                             feeling === opt.value
-                              ? "border-transparent bg-warm-gradient text-white shadow-md"
-                              : "border-sand bg-cream text-ink hover:border-blush"
+                              ? "border-jade bg-jade/10 text-ink shadow-sm"
+                              : "border-sand bg-cream text-ink hover:border-jade"
                           }`}
                         >
                           {opt.label}
@@ -2728,8 +2629,8 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                           }}
                           className={`rounded-full border px-4 py-2.5 text-sm font-bold transition hover:-translate-y-0.5 ${
                             genre === item
-                              ? "border-transparent bg-warm-gradient text-white shadow-md"
-                              : "border-sand bg-cream text-ink hover:border-blush"
+                              ? "border-jade bg-jade/10 text-ink shadow-sm"
+                              : "border-sand bg-cream text-ink hover:border-jade"
                           }`}
                         >
                           {item}
@@ -2743,7 +2644,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                         }}
                         className={`rounded-full border border-dashed px-4 py-2.5 text-sm font-extrabold transition hover:-translate-y-0.5 ${
                           genre === "🎲 Surprise Me"
-                            ? "border-transparent bg-warm-gradient text-white shadow-md"
+                            ? "border-jade bg-jade/10 text-ink shadow-sm"
                             : "border-tan bg-cream text-ink hover:border-blush"
                         }`}
                       >
@@ -2768,8 +2669,8 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                           }}
                           className={`rounded-full border px-4 py-2.5 text-sm font-bold transition hover:-translate-y-0.5 ${
                             language === lang
-                              ? "border-transparent bg-warm-gradient text-white shadow-md"
-                              : "border-sand bg-cream text-ink hover:border-blush"
+                              ? "border-jade bg-jade/10 text-ink shadow-sm"
+                              : "border-sand bg-cream text-ink hover:border-jade"
                           }`}
                         >
                           {lang}
@@ -2840,8 +2741,8 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                             onClick={() => setAgeInput(String(milestone))}
                             className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${
                               ageInput === String(milestone)
-                                ? "border-transparent bg-warm-gradient text-white shadow-md"
-                                : "border-sand bg-cream text-ink hover:border-blush"
+                                ? "border-jade bg-jade/10 text-ink shadow-sm"
+                                : "border-sand bg-cream text-ink hover:border-jade"
                             }`}
                           >
                             {milestone}
@@ -2853,7 +2754,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                       <p className="mt-3 text-xs text-ink-soft">{t.generate.birthdayNeedAge}</p>
                     )}
                     {birthdayLabelText && (
-                      <p className="mt-3 text-xs text-gold">
+                      <p className="mt-3 text-xs font-semibold text-jade">
                         {t.generate.premiereOpensPrefix}
                         {birthdayLabelText}.
                       </p>
@@ -2877,7 +2778,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                   type="button"
                   onClick={advanceBeat}
                   disabled={!beatValid(beatIndex) || loadingLyrics}
-                  className="flex-1 min-h-[44px] rounded-full bg-warm-gradient py-4 text-base font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(255,80,150,0.6)] transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-sand disabled:bg-none disabled:text-ink-soft disabled:shadow-none disabled:hover:translate-y-0 sm:text-lg"
+                  className="flex-1 min-h-[44px] rounded-full bg-jade py-4 text-base font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(31,142,125,0.7)] transition hover:-translate-y-0.5 hover:bg-jade-deep active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:border disabled:border-sand disabled:bg-transparent disabled:text-ink-soft disabled:shadow-none disabled:hover:translate-y-0 sm:text-lg"
                 >
                   {beatIndex === BEAT_COUNT - 1
                     ? loadingLyrics
@@ -2887,12 +2788,14 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                 </button>
               </div>
 
-              {/* The call sheet — the dossier fills in as beats are answered */}
-              <div className="dossier mt-5 rounded-2xl border border-dashed border-sand p-3.5">
-                <div className="mb-2 text-[11px] font-extrabold uppercase tracking-[0.14em] text-ink-soft">
+              {/* The call sheet — tucked into progressive disclosure so it never
+                  competes with the active beat. Fills in as beats are answered. */}
+              <details className="dossier group mt-5">
+                <summary className="flex cursor-pointer list-none items-center justify-center gap-1.5 text-xs font-semibold text-ink-soft transition hover:text-ink [&::-webkit-details-marker]:hidden">
+                  <span className="transition group-open:rotate-90" aria-hidden>›</span>
                   {t.generate.callSheetHeading}
-                </div>
-                <ul className="flex flex-col gap-1.5 text-sm">
+                </summary>
+                <ul className="mt-3 flex flex-col gap-1.5 rounded-2xl border border-dashed border-sand p-4 text-sm">
                   {[
                     { k: t.generate.dossierStar, v: name.trim(), on: !!name.trim() },
                     { k: t.generate.dossierDirected, v: relationship ? dossierDirectedBy : "", on: !!relationship },
@@ -2924,7 +2827,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                     </li>
                   ))}
                 </ul>
-              </div>
+              </details>
             </>
           )}
         </section>
@@ -2933,10 +2836,9 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
       {/* ── STEP 2 · the studio: co-creation + the "open the curtain" gate ── */}
       {lyrics && !audioUrl && (
         <section className={`relative z-10 mx-auto max-w-xl rounded-[2rem] border ${theme.card} p-5 shadow-sm sm:p-8`}>
-          <StudioKicker>{t.generate.actStudio}</StudioKicker>
           <h2 className="font-display text-2xl font-black text-ink">
             {t.generate.studioRecordingPrefix}
-            <span className="bg-warm-gradient bg-clip-text text-transparent">
+            <span className="font-serif font-normal italic text-warm-gradient">
               {name.trim() || t.generate.marqueeYourStar}
             </span>
             {t.generate.studioRecordingSuffix}
@@ -2947,12 +2849,12 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
 
           {/* Live lyric reveal — the chorus coming to life (read-only). */}
           <div className="rounded-2xl border border-sand bg-cream-soft p-4">
-            <span className="inline-block rounded-lg border border-gold/30 bg-gold/10 px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wide text-gold">
+            <span className="inline-block rounded-lg border border-jade/30 bg-jade/10 px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wide text-jade">
               {t.generate.studioChorusTag}
             </span>
             <p className="mb-2 mt-3 text-sm font-bold text-ink">{t.generate.studioChorusLabel}</p>
             <div
-              className="max-h-52 overflow-y-auto whitespace-pre-wrap border-l-2 border-gold pl-3.5 text-sm leading-relaxed text-cream"
+              className="max-h-52 overflow-y-auto whitespace-pre-wrap border-l-2 border-jade pl-3.5 text-sm leading-relaxed text-ink"
               dir={language === "Arabic" ? "rtl" : "ltr"}
               style={
                 language === "Hindi"
@@ -3150,7 +3052,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                   type="button"
                   onClick={generateMusicHandler}
                   disabled={!canGenerateMusic || loadingLyrics || loadingMusic}
-                  className="mt-4 w-full min-h-[44px] rounded-full bg-warm-gradient py-4 text-base font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(255,80,150,0.6)] transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-sand disabled:bg-none disabled:text-ink-soft disabled:shadow-none disabled:hover:translate-y-0"
+                  className="mt-4 w-full min-h-[44px] rounded-full bg-jade py-4 text-base font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(31,142,125,0.7)] transition hover:-translate-y-0.5 hover:bg-jade-deep active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:border disabled:border-sand disabled:bg-transparent disabled:text-ink-soft disabled:shadow-none disabled:hover:translate-y-0"
                 >
                   {loadingMusic ? t.generate.openCurtainMixing : t.generate.openCurtain}
                 </button>
@@ -3194,8 +3096,8 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                             disabled={creatingShare}
                             className={`flex items-center justify-center gap-1.5 rounded-xl border px-2 py-2 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${
                               selected
-                                ? "border-transparent bg-warm-gradient text-white shadow-md"
-                                : "border-sand bg-cream text-ink hover:border-blush"
+                                ? "border-jade bg-jade/10 text-ink shadow-sm"
+                                : "border-sand bg-cream text-ink hover:border-jade"
                             }`}
                           >
                             <span
