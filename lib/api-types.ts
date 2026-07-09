@@ -1,3 +1,5 @@
+import type { Delivery } from "./delivery";
+
 export type LyricSectionTag = "Verse" | "Chorus" | "Bridge" | "Outro";
 
 export type LyricSection = {
@@ -49,6 +51,16 @@ export type GenerateSongRequest = {
    * Example: "Afro house like Palm Monkey, upbeat tribal, ~120 BPM".
    */
   style_notes?: string;
+  /**
+   * Emotional target chosen during casting ("goosebumps", "happy tears"…).
+   * Aims the lyric's emotional arc.
+   */
+  feeling?: string;
+  /**
+   * "Produced & directed by" credit — relationship role or sender name. Sets
+   * the point of view the lyrics are written from.
+   */
+  director_credit?: string;
 };
 
 export type GenerateLyricsResponse = {
@@ -215,6 +227,19 @@ export type SharedSong = {
    */
   birthdayDate?: string;
   /**
+   * Birthday countdown delivery (giver-sends model). When mode is "scheduled",
+   * the share page holds the premiere behind a locked countdown ticket until
+   * `deliverAt` (9am local on the recipient's next birthday) — an ADDITIONAL
+   * gate on top of the paywall, never a media leak. Absent/mode "now" = the
+   * current instant-reveal behavior. See lib/delivery.ts.
+   */
+  delivery?: Delivery;
+  /**
+   * Unguessable token that lets the GIVER preview their own premiere before
+   * `deliverAt` (via ?preview=<token>). Never included in the public share link.
+   */
+  previewToken?: string;
+  /**
    * "Make it Yours" personalization picked during the wait. cakeStyle and
    * candleColor are closed enums; personalNote is free text capped at
    * PERSONAL_NOTE_MAX_LEN. Used by lib/video.ts to add a caption under the
@@ -235,11 +260,12 @@ export type SharedSong = {
   unlocked?: boolean;
   unlockedAt?: number;
   /**
-   * Which plan the buyer purchased. "full" (Standard) is the base unlock;
-   * "deluxe" additionally entitles the photo-slideshow video. Missing on
-   * legacy/pre-Deluxe entries — treat absence as "full".
+   * Which plan the buyer purchased. "full" (Standard/Premiere) is the base
+   * unlock; "deluxe" adds the photo-slideshow video; "production" adds the AI
+   * character birthday call on top of Deluxe. Missing on legacy/pre-Deluxe
+   * entries — treat absence as "full".
    */
-  plan?: "full" | "deluxe";
+  plan?: "full" | "deluxe" | "production";
   /** Pricing tier resolved from geo/IP at creation; drives the unlock price. */
   tier?: "A" | "B" | "C";
   /**
@@ -309,6 +335,28 @@ export type SharedSong = {
     directorName?: string;
     closesAt?: number;
   };
+  /**
+   * v4 "Production Studio" fields. All additive/optional so legacy songs and
+   * existing readers are unaffected.
+   *
+   * directorCredit — how the giver is credited in the premiere titles
+   *   ("their partner", "their best friend"…). Distinct from senderName (the
+   *   giver's actual name) and from waitCapture.relationship; this is the
+   *   display credit shown on the premiere ("Produced by your partner").
+   * feeling — the emotional target chosen in casting ("goosebumps", "laughing
+   *   till they cry"…). Fed into lyric + Suno style so tone reflects intent.
+   * directorNote — a private message from the giver revealed as the CLOSING
+   *   beat of the premiere. `text` is shown on-screen; `voiceUrl` (Vercel Blob)
+   *   is an optional spoken recording played after the song ends
+   *   (voiceDurationSec is its rounded length). Either/both may be present.
+   */
+  directorCredit?: string;
+  feeling?: string;
+  directorNote?: {
+    text?: string;
+    voiceUrl?: string;
+    voiceDurationSec?: number;
+  };
 };
 
 export type ShareCreateRequest = {
@@ -346,6 +394,13 @@ export type ShareCreateRequest = {
    */
   birthday_date?: string;
   /**
+   * Countdown-delivery choice (giver-sends). mode "scheduled" holds the premiere
+   * behind a countdown until the recipient's next birthday at 9am in `timezone`
+   * (the giver's IANA browser zone); "now" reveals immediately. The server
+   * computes the concrete deliverAt from birthday_date + timezone.
+   */
+  delivery?: { mode: "now" | "scheduled"; timezone?: string };
+  /**
    * "Make it Yours" personalization. cake_style and candle_color must match
    * the closed enums; personal_note is free text and gets sanitized + capped
    * server-side.
@@ -360,6 +415,18 @@ export type ShareCreateRequest = {
    * creation. The slideshow itself is rendered later, after unlock.
    */
   photoUrls?: string[];
+  /**
+   * v4 "Production Studio" capture. All additive — never block share creation.
+   * director_credit: display credit ("their partner"…). feeling: casting vibe.
+   * director_note_text: typed closing message. director_note_voice_url: https
+   * Blob URL of the recorded closing message (validated server-side);
+   * director_note_voice_duration_sec its rounded length.
+   */
+  director_credit?: string;
+  feeling?: string;
+  director_note_text?: string;
+  director_note_voice_url?: string;
+  director_note_voice_duration_sec?: number;
 };
 
 export type ShareCreateResponse = {
@@ -373,6 +440,14 @@ export type ShareCreateResponse = {
    * rules. Always present.
    */
   tier: "A" | "B" | "C";
+  /**
+   * Countdown delivery, echoed back when the giver chose a scheduled premiere.
+   * `deliverAt` is the UTC ISO reveal instant; `previewUrl` is the giver-only
+   * link (carries the preview token) to see the premiere before then. Absent for
+   * instant ("now") delivery.
+   */
+  deliverAt?: string;
+  previewUrl?: string;
 };
 
 export type SongStatusResponse =

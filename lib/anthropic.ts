@@ -21,6 +21,17 @@ export type LyricsInput = {
   extras?: string;
   /** Free-text style descriptor — guides lyric tone/energy/vocabulary. */
   styleNotes?: string;
+  /**
+   * The emotional target chosen during casting ("goosebumps", "happy tears",
+   * "nostalgic"…). Aims the song's emotional arc — what the listener should
+   * feel by the final line.
+   */
+  feeling?: string;
+  /**
+   * The "produced & directed by" credit — the relationship role or the
+   * sender's name. Sets the point of view the song is written from.
+   */
+  directorCredit?: string;
 };
 
 let openaiClient: OpenAI | null = null;
@@ -83,12 +94,17 @@ function buildUserMessage(input: LyricsInput): string {
   const genreClean = stripEmojiPrefix(input.genre);
   const advancedLines: string[] = [];
   if (input.relationship?.trim()) advancedLines.push(`- Their relationship to the writer: ${input.relationship.trim()}`);
+  if (input.directorCredit?.trim()) advancedLines.push(`- Written from the point of view of: ${input.directorCredit.trim()} (use this voice — warm and personal, first person toward the birthday person; do not print the credit label verbatim in the lyrics)`);
   if (input.age?.trim()) advancedLines.push(`- Age they are turning: ${input.age.trim()}`);
   if (input.profession?.trim()) advancedLines.push(`- Their profession: ${input.profession.trim()}`);
   if (input.memory?.trim()) advancedLines.push(`- A special shared memory: ${input.memory.trim()}`);
   if (input.extras?.trim()) advancedLines.push(`- Anything else: ${input.extras.trim()}`);
 
   const advancedBlock = advancedLines.length > 0 ? `\n${advancedLines.join("\n")}` : "";
+
+  const feelingLine = input.feeling?.trim()
+    ? `\n- The feeling to leave them with: ${input.feeling.trim()} (aim the emotional arc at this — by the final line the listener should feel exactly this)`
+    : "";
 
   const styleNotesLine = input.styleNotes?.trim()
     ? `\n- Style notes: ${input.styleNotes.trim()} (let this guide the lyrics' tone, energy, and vocabulary — match the requested mood, and weave in any specific words/facts requested)`
@@ -104,7 +120,7 @@ function buildUserMessage(input: LyricsInput): string {
 
 - Name: ${input.name}
 - Language: ${input.language} (write all lyrics in this language)
-- Genre: ${genreClean}${styleNotesLine}${advancedBlock}
+- Genre: ${genreClean}${feelingLine}${styleNotesLine}${advancedBlock}
 
 Constraints:
 - Total length: A complete, full song of about 60 seconds — roughly 8 to 12 lines: a verse, a chorus that clearly wishes them a happy birthday and lands their name, and a short bridge or a repeat of the chorus to finish. Keep every line singable and tight — a real full song, not a 30-second snippet, but no long intros, outros, or filler.

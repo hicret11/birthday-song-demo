@@ -11,7 +11,11 @@
 // below — the rest of the application already passes `tier` through.
 
 import { getCountryCode } from "./geo";
-import { FULL_PRICE_LABEL, DELUXE_PRICE_LABEL } from "./pricing-display";
+import {
+  FULL_PRICE_LABEL,
+  DELUXE_PRICE_LABEL,
+  PRODUCTION_PRICE_LABEL,
+} from "./pricing-display";
 
 export type Tier = "A" | "B" | "C";
 
@@ -145,7 +149,7 @@ export function priceIdForTier(tier: Tier): string | undefined {
 // breaks before the Deluxe SKUs are configured — the buyer simply pays the
 // Standard price for the Deluxe selection until the prices are added.
 
-export type Plan = "full" | "deluxe";
+export type Plan = "full" | "deluxe" | "production";
 
 export const STRIPE_PRICE_IDS_DELUXE: Record<Tier, string | undefined> = {
   A: process.env.STRIPE_PRICE_ID_DELUXE_A,
@@ -160,15 +164,47 @@ export const TIER_PRICE_DISPLAY_DELUXE: Record<Tier, { label: string; amountCent
   C: { label: DELUXE_PRICE_LABEL.C, amountCents: 1199, currency: "usd" },
 };
 
+// ── Production tier (good-better-BEST) ────────────────────────────────────────
+//
+// "Full Production" is the top plan: everything in Deluxe PLUS an AI character
+// birthday phone call (lib/cast/*). The call path stays a no-op until the
+// ElevenLabs/Twilio env is configured, so shipping the tier is safe pre-go-live
+// (the buyer still gets the full Deluxe deliverable; the booking waits).
+//
+// SETUP: create THREE more one-time prices on the same product with _v3 lookup
+// keys and set the matching env vars:
+//     STRIPE_PRICE_ID_PRODUCTION_A → $44.99  (high-PPP)
+//     STRIPE_PRICE_ID_PRODUCTION_B → $29.99  (mid-PPP)
+//     STRIPE_PRICE_ID_PRODUCTION_C → $21.99  (low-PPP / unknown geo)
+//
+// As with Deluxe, an unset Production price FALLS BACK to the Standard "full"
+// price for that tier so checkout never breaks before the SKUs exist.
+
+export const STRIPE_PRICE_IDS_PRODUCTION: Record<Tier, string | undefined> = {
+  A: process.env.STRIPE_PRICE_ID_PRODUCTION_A,
+  B: process.env.STRIPE_PRICE_ID_PRODUCTION_B,
+  C: process.env.STRIPE_PRICE_ID_PRODUCTION_C,
+};
+
+/** Display-only Production amounts. Keep in sync with the Stripe Production prices. */
+export const TIER_PRICE_DISPLAY_PRODUCTION: Record<Tier, { label: string; amountCents: number; currency: string }> = {
+  A: { label: PRODUCTION_PRICE_LABEL.A, amountCents: 4499, currency: "usd" },
+  B: { label: PRODUCTION_PRICE_LABEL.B, amountCents: 2999, currency: "usd" },
+  C: { label: PRODUCTION_PRICE_LABEL.C, amountCents: 2199, currency: "usd" },
+};
+
 /**
  * Stripe price_id for a (plan, tier) pair.
  *
- * For plan="deluxe" returns the Deluxe price when configured; otherwise falls
- * back to the Standard "full" price for that tier (graceful degradation). For
- * plan="full" always returns the Standard price. May be undefined only if even
- * the Standard tier price is unconfigured.
+ * For plan="deluxe"/"production" returns that plan's price when configured;
+ * otherwise falls back to the Standard "full" price for the tier (graceful
+ * degradation). For plan="full" always returns the Standard price. May be
+ * undefined only if even the Standard tier price is unconfigured.
  */
 export function priceIdForPlanTier(plan: Plan, tier: Tier): string | undefined {
+  if (plan === "production") {
+    return STRIPE_PRICE_IDS_PRODUCTION[tier] ?? STRIPE_PRICE_IDS[tier];
+  }
   if (plan === "deluxe") {
     return STRIPE_PRICE_IDS_DELUXE[tier] ?? STRIPE_PRICE_IDS[tier];
   }

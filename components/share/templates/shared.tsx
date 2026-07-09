@@ -7,7 +7,7 @@ import { toAudioProxyUrl } from "@/lib/audio-proxy";
 import { logClientEvent } from "@/lib/client-events";
 import { greetingFor } from "@/lib/greetings";
 import UnlockableAudio from "@/components/share/UnlockableAudio";
-import { CrowdPremiere } from "@/components/share/CrowdPremiere";
+import { SharePremiere } from "@/components/share/SharePremiere";
 
 const MAX_RETRIES = 2;
 
@@ -250,45 +250,33 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
         </div>
       )}
 
-      {/* Audio: full playback + MP3 download when unlocked, 15s preview + unlock
-          CTA when locked. A merged crowd song gets the theatrical Premiere reveal
-          instead of the flat player — same locked/unlocked audioSrc, so the
-          paywall behaves identically (locked → gated preview clip). */}
-      {song.crowd?.status === "merged" ? (
-        <>
-          <CrowdPremiere
-            recipientName={song.name}
-            directorName={song.crowd.directorName}
-            songTitle={song.lyrics.title}
-            audioSrc={
-              unlocked ? toAudioProxyUrl(currentAudio) : `/api/share/${song.id}/preview`
-            }
-            language={song.language}
-          />
-          {/* Premiere is the player; UnlockableAudio still owns the paywall CTA
-              (locked) / MP3 download (unlocked) — same gate, no second player. */}
-          <UnlockableAudio
-            shareId={song.id}
-            audioSrc={
-              unlocked ? toAudioProxyUrl(currentAudio) : `/api/share/${song.id}/preview`
-            }
-            unlocked={unlocked}
-            recipientName={song.name}
-            tier={song.tier}
-            hidePlayer
-          />
-        </>
-      ) : (
-        <UnlockableAudio
-          shareId={song.id}
-          audioSrc={
-            unlocked ? toAudioProxyUrl(currentAudio) : `/api/share/${song.id}/preview`
-          }
-          unlocked={unlocked}
-          recipientName={song.name}
-          tier={song.tier}
-        />
-      )}
+      {/* Audio: EVERY song is delivered as the theatrical Premiere reveal (not
+          just crowd songs). The premiere is the player; UnlockableAudio still
+          owns the paywall CTA (locked) / MP3 download (unlocked) with its own
+          player hidden — same gate, one player. audioSrc is identical to the
+          flat player's (locked → gated 15s preview clip), so the paywall behaves
+          exactly as before. */}
+      <SharePremiere
+        recipientName={song.name}
+        directorName={song.directorCredit || song.crowd?.directorName || song.senderName}
+        songTitle={song.lyrics.title}
+        audioSrc={
+          unlocked ? toAudioProxyUrl(currentAudio) : `/api/share/${song.id}/preview`
+        }
+        language={song.language}
+        directorNote={song.directorNote}
+        isCrowd={song.crowd?.status === "merged"}
+      />
+      <UnlockableAudio
+        shareId={song.id}
+        audioSrc={
+          unlocked ? toAudioProxyUrl(currentAudio) : `/api/share/${song.id}/preview`
+        }
+        unlocked={unlocked}
+        recipientName={song.name}
+        tier={song.tier}
+        hidePlayer
+      />
 
       {/* Unlocked-only downloads: branded video + photo slideshow. */}
       {unlocked && currentVideo && (
@@ -358,7 +346,7 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
           onClick={openShareSheet}
           className="w-full rounded-full bg-jade px-5 py-4 text-base font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(31,142,125,0.7)] transition hover:-translate-y-0.5 hover:bg-jade-deep"
         >
-          📤 Send to a friend
+          💌 Send it to them
         </button>
 
         {showStyleEditor && retriesUsed < MAX_RETRIES && (
@@ -467,7 +455,7 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
       <div className="mt-12">
         <a
           href="/generate"
-          className="block w-full rounded-full bg-jade px-5 py-4 text-center text-base font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(31,142,125,0.7)] transition hover:-translate-y-0.5 hover:bg-jade-deep"
+          className="block w-full rounded-full border border-jade/50 bg-transparent px-5 py-3.5 text-center text-sm font-bold text-jade-deep transition hover:border-jade hover:bg-jade/5"
         >
           {unlocked ? "🎂 Make another birthday song →" : "🎂 Make your own birthday song →"}
         </a>
@@ -475,7 +463,7 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
 
       <footer className="mt-8 text-center text-xs text-ink-soft">
         <Link href="/" className="underline-offset-2 hover:underline">
-          Made with Birthday Song Generator
+          Made with love by Sing My Birthday
         </Link>
       </footer>
 

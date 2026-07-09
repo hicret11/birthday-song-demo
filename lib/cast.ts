@@ -40,6 +40,11 @@ export type CastBooking = {
   addressNote: string | null;
   contactPhone: string | null;
   contactEmail: string | null;
+  // Consent evidence (giver-attests model) + recipient timezone for quiet-hours.
+  consentIp: string | null;
+  consentAttestation: string | null;
+  consentAt: string | null;
+  recipientTimezone: string | null;
 };
 
 const TABLE = "cast_bookings";
@@ -65,6 +70,10 @@ type Row = {
   address_note: string | null;
   contact_phone: string | null;
   contact_email: string | null;
+  consent_ip: string | null;
+  consent_attestation: string | null;
+  consent_at: string | null;
+  recipient_timezone: string | null;
 };
 
 function toBooking(r: Row): CastBooking {
@@ -89,11 +98,15 @@ function toBooking(r: Row): CastBooking {
     addressNote: r.address_note,
     contactPhone: r.contact_phone,
     contactEmail: r.contact_email,
+    consentIp: r.consent_ip,
+    consentAttestation: r.consent_attestation,
+    consentAt: r.consent_at,
+    recipientTimezone: r.recipient_timezone,
   };
 }
 
 const COLS =
-  "id, gift_id, kind, character_id, recipient_name, recipient_phone, language, personal_note, scheduled_at, consent_confirmed, status, stripe_payment_id, booker_token, result_note, created_at, city, event_date, address_note, contact_phone, contact_email";
+  "id, gift_id, kind, character_id, recipient_name, recipient_phone, language, personal_note, scheduled_at, consent_confirmed, status, stripe_payment_id, booker_token, result_note, created_at, city, event_date, address_note, contact_phone, contact_email, consent_ip, consent_attestation, consent_at, recipient_timezone";
 
 export async function createBooking(input: {
   giftId?: string | null;
@@ -111,6 +124,10 @@ export async function createBooking(input: {
   addressNote?: string | null;
   contactPhone?: string | null;
   contactEmail?: string | null;
+  consentIp?: string | null;
+  consentAttestation?: string | null;
+  consentAt?: string | null;
+  recipientTimezone?: string | null;
 }): Promise<CastBooking | null> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
@@ -132,6 +149,10 @@ export async function createBooking(input: {
       address_note: input.addressNote ?? null,
       contact_phone: input.contactPhone ?? null,
       contact_email: input.contactEmail ?? null,
+      consent_ip: input.consentIp ?? null,
+      consent_attestation: input.consentAttestation ?? null,
+      consent_at: input.consentAt ?? null,
+      recipient_timezone: input.recipientTimezone ?? null,
     })
     .select(COLS)
     .single();
@@ -145,6 +166,26 @@ export async function createBooking(input: {
 export async function getBooking(id: string): Promise<CastBooking | null> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase.from(TABLE).select(COLS).eq("id", id).single();
+  if (error || !data) return null;
+  return toBooking(data as Row);
+}
+
+/**
+ * The most recent AI-call booking for a gift/share id, if any. Used to make the
+ * Production-purchase auto-booking idempotent: the Stripe webhook may deliver
+ * `checkout.session.completed` more than once, and one paid Production song must
+ * create exactly one call booking. Returns null when none exists.
+ */
+export async function getAiCallBookingForGift(giftId: string): Promise<CastBooking | null> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select(COLS)
+    .eq("gift_id", giftId)
+    .eq("kind", "ai_call")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
   if (error || !data) return null;
   return toBooking(data as Row);
 }

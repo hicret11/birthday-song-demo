@@ -5,6 +5,8 @@ import { ShareTemplateView } from "@/components/share/templates";
 import { requestPremiumRender } from "@/lib/render-video";
 import { loadSharedSong, markSharedSongUnlocked } from "@/lib/share";
 import { toPublicSong } from "@/lib/public-song";
+import { isDeliveredNow } from "@/lib/delivery";
+import PremiereCountdown from "@/components/share/PremiereCountdown";
 import { listApprovedContributions } from "@/lib/crowd";
 import { getStripe } from "@/lib/stripe";
 import JsonLd from "@/components/JsonLd";
@@ -13,6 +15,7 @@ import { CrowdCreditProvider, type CrowdCredit } from "@/components/share/CrowdC
 import CastAddOn from "@/components/cast/CastAddOn";
 import LiveCastAddOn from "@/components/cast/LiveCastAddOn";
 import { getLiveCities, isLiveCastEnabled, liveDepositUsd } from "@/lib/cast/live";
+import { isTelephonyConfigured } from "@/lib/cast/place-call";
 import { getDictionary, isRtl, type Locale } from "@/lib/i18n";
 
 const SITE_URL = "https://singmybirthday.com";
@@ -69,7 +72,11 @@ export default async function SharePage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const { id } = await params;
-  const { unlocked: unlockedParam, session_id: sessionIdParam } = await searchParams;
+  const {
+    unlocked: unlockedParam,
+    session_id: sessionIdParam,
+    preview: previewParam,
+  } = await searchParams;
   let song = await loadSharedSong(id);
   if (!song) notFound();
 
@@ -88,7 +95,14 @@ export default async function SharePage({
         session.metadata?.kind === "song_unlock" &&
         session.metadata?.share_id === id
       ) {
-        await markSharedSongUnlocked(id, session.metadata.plan === "deluxe" ? "deluxe" : "full");
+        await markSharedSongUnlocked(
+          id,
+          session.metadata.plan === "production"
+            ? "production"
+            : session.metadata.plan === "deluxe"
+              ? "deluxe"
+              : "full",
+        );
         song = (await loadSharedSong(id)) ?? song;
         // Kick the premium Remotion render on this verify-path unlock too, so a
         // buyer who lands here before the webhook fires still gets it started.
@@ -106,6 +120,25 @@ export default async function SharePage({
   }
 
   const justUnlocked = !!song.unlocked && unlockedParam === "1";
+
+  // Countdown delivery gate (giver-sends). If the premiere is scheduled and the
+  // reveal instant hasn't passed, hold it behind the locked countdown ticket —
+  // UNLESS the viewer is the giver (correct ?preview=<token>). This is an
+  // additional gate ON TOP of the paywall and renders NO media, so there's
+  // nothing to leak; it runs before ShareTemplateView/toPublicSong entirely.
+  const previewToken = Array.isArray(previewParam) ? previewParam[0] : previewParam;
+  const isGiverPreview =
+    !!song.previewToken && typeof previewToken === "string" && previewToken === song.previewToken;
+  if (!isGiverPreview && !isDeliveredNow(song.delivery) && song.delivery?.deliverAt) {
+    return (
+      <PremiereCountdown
+        recipientName={song.name}
+        deliverAt={song.delivery.deliverAt}
+        timezone={song.delivery.timezone}
+        locale={LANGUAGE_TO_LOCALE[song.language] ?? "en"}
+      />
+    );
+  }
 
   // Crowd-song credit: for a merged group song, fetch the approved contributions
   // (Postgres) so the template's Premiere can frame it as "a song from N people"
@@ -172,14 +205,19 @@ export default async function SharePage({
         <ShareTemplateView song={toPublicSong(song)} />
       )}
       {/* Add-on entry point — an independent upsell that never touches the song,
-          the paywall, or unlock state. */}
-      <CastAddOn
-        giftId={song.id}
-        recipientName={song.name}
-        language={song.language}
-        t={castDict}
-        dir={castDir}
-      />
+          the paywall, or unlock state. Hidden unless outbound telephony is
+          actually configured, so we never take payment for an AI birthday call
+          that can't be placed. Auto-returns once ELEVENLABS_* is added on
+          Production (post-legal sign-off) — no code change needed then. */}
+      {isTelephonyConfigured() && (
+        <CastAddOn
+          giftId={song.id}
+          recipientName={song.name}
+          language={song.language}
+          t={castDict}
+          dir={castDir}
+        />
+      )}
       {liveEnabled && (
         <LiveCastAddOn
           giftId={song.id}

@@ -24,6 +24,8 @@ import {
   updateBookingStatus,
 } from "@/lib/cast";
 import { placeCall, isTelephonyConfigured } from "@/lib/cast/place-call";
+import { isWithinCallingWindow, timezoneForPhone } from "@/lib/cast/quiet-hours";
+import { isCallAllowedForPhone } from "@/lib/cast/call-countries";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -49,6 +51,7 @@ export async function GET(request: Request): Promise<Response> {
   let placed = 0;
   let failed = 0;
   let skipped = 0;
+  let deferred = 0;
 
   for (const booking of due) {
     // Only the AI phone call is placeable here; other kinds are fulfilled
@@ -57,6 +60,28 @@ export async function GET(request: Request): Promise<Response> {
       skipped += 1;
       continue;
     }
+
+    // Country allowlist backstop. All booking paths gate on this at creation, so
+    // this only catches legacy/pre-gate bookings. Unlike quiet-hours (temporary),
+    // a disallowed country never becomes allowed — fail it permanently rather than
+    // deferring forever.
+    if (!isCallAllowedForPhone(booking.recipientPhone)) {
+      failed += 1;
+      await updateBookingStatus(booking.id, "failed", "recipient country not supported for calls");
+      continue;
+    }
+
+    // Quiet-hours guard (TCPA calling hours): only place a call when it's
+    // 8am–9pm in the recipient's local time. Outside the window we DEFER —
+    // leave the booking "scheduled" (never claim/fail it) so the next in-window
+    // run picks it up. Timezone is the stored recipient zone, else derived from
+    // the phone's country code; unknown zones are allowed (see quiet-hours.ts).
+    const tz = booking.recipientTimezone ?? timezoneForPhone(booking.recipientPhone);
+    if (!isWithinCallingWindow(nowIso, tz)) {
+      deferred += 1;
+      continue;
+    }
+
     try {
       // Atomic claim: only the winner proceeds. Losers (already "calling") skip.
       const won = await claimBookingForCalling(booking.id);
@@ -92,5 +117,5 @@ export async function GET(request: Request): Promise<Response> {
     }
   }
 
-  return Response.json({ due: due.length, placed, failed, skipped });
+  return Response.json({ due: due.length, placed, failed, skipped, deferred });
 }

@@ -117,16 +117,16 @@ export default function LiveCastAddOn({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="w-full rounded-3xl border border-sand bg-cream-soft p-5 text-center shadow-sm transition hover:-translate-y-0.5 hover:border-brand-pink"
+          className="w-full rounded-3xl border border-sand bg-cream-soft p-5 text-center shadow-sm transition hover:-translate-y-0.5 hover:border-jade"
         >
-          <span className="inline-block rounded-full bg-brand-pink/10 px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.14em] text-brand-pink">
+          <span className="inline-block rounded-full bg-jade/10 px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.14em] text-jade">
             {badge}
           </span>
           <span className="mt-2 block font-display text-lg font-black text-ink">{t.ctaTitle}</span>
           <span className="mt-1 block text-sm text-ink-soft">
             {fill(t.ctaSubtitle, { name: displayName })}
           </span>
-          <span className="mt-3 inline-block rounded-full bg-gradient-to-r from-brand-amber to-brand-pink px-5 py-2 text-sm font-extrabold text-white">
+          <span className="mt-3 inline-block rounded-full bg-jade hover:bg-jade-deep px-5 py-2 text-sm font-extrabold text-white">
             {t.open}
           </span>
         </button>
@@ -135,7 +135,7 @@ export default function LiveCastAddOn({
   }
 
   const inputCls =
-    "mt-1 w-full rounded-2xl border border-sand bg-cream px-4 py-3 text-base text-ink outline-none focus:border-brand-pink";
+    "mt-1 w-full rounded-2xl border border-sand bg-cream px-4 py-3 text-base text-ink outline-none focus:border-jade";
   const labelCls = "mt-3 block text-xs font-bold text-ink";
 
   return (
@@ -143,7 +143,7 @@ export default function LiveCastAddOn({
       <div className="rounded-3xl border border-sand bg-cream-soft p-5 shadow-sm">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <span className="inline-block rounded-full bg-brand-pink/10 px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.14em] text-brand-pink">
+            <span className="inline-block rounded-full bg-jade/10 px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.14em] text-jade">
               {badge}
             </span>
             <h2 className="mt-2 font-display text-xl font-black text-ink">{t.ctaTitle}</h2>
@@ -179,8 +179,8 @@ export default function LiveCastAddOn({
               aria-pressed={kind === k}
               className={`rounded-full px-4 py-2 text-sm font-bold transition ${
                 kind === k
-                  ? "bg-gradient-to-r from-brand-amber to-brand-pink text-white"
-                  : "border border-sand bg-cream text-ink hover:border-brand-pink"
+                  ? "bg-jade hover:bg-jade-deep text-white"
+                  : "border border-sand bg-cream text-ink hover:border-jade"
               }`}
             >
               {label}
@@ -268,20 +268,20 @@ export default function LiveCastAddOn({
             type="checkbox"
             checked={consent}
             onChange={(e) => setConsent(e.target.checked)}
-            className="mt-0.5 h-4 w-4 shrink-0 accent-brand-pink"
+            className="mt-0.5 h-4 w-4 shrink-0 accent-jade"
           />
           <span className="text-xs leading-relaxed text-ink">{t.consentLabel}</span>
         </label>
 
         <p className="mt-3 text-[11px] text-ink-soft">{fill(t.depositNote, { deposit: `$${depositUsd}` })}</p>
 
-        {error && <p className="mt-3 text-sm font-semibold text-brand-pink">{error}</p>}
+        {error && <p className="mt-3 text-sm font-semibold text-jade">{error}</p>}
 
         <button
           type="button"
           onClick={submit}
           disabled={submitting || !consent}
-          className="mt-4 w-full rounded-2xl bg-gradient-to-r from-brand-amber to-brand-pink px-6 py-4 text-base font-extrabold text-white shadow-lg transition hover:-translate-y-0.5 disabled:opacity-60"
+          className="mt-4 w-full rounded-2xl bg-jade hover:bg-jade-deep px-6 py-4 text-base font-extrabold text-white shadow-lg transition hover:-translate-y-0.5 disabled:opacity-60"
         >
           {submitting ? t.submitting : `${t.submit}  ·  $${depositUsd}`}
         </button>

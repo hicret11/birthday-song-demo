@@ -264,8 +264,8 @@ export default function CookieConsent() {
           aria-label="Cookie consent"
           className="fixed inset-x-0 bottom-0 z-[100] px-4 pb-4"
         >
-          <div className="mx-auto max-w-3xl rounded-2xl border border-white/15 bg-[#12062f]/95 p-5 text-white shadow-2xl backdrop-blur-xl sm:p-6">
-            <p className="text-sm leading-relaxed text-gray-200">{BANNER_COPY}</p>
+          <div className="mx-auto max-w-3xl rounded-2xl border border-sand bg-cream-soft/95 p-5 text-ink shadow-[0_24px_60px_-30px_rgba(60,40,30,0.5)] backdrop-blur-xl sm:p-6">
+            <p className="text-sm leading-relaxed text-ink-soft">{BANNER_COPY}</p>
             <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
               <button
                 type="button"
@@ -275,21 +275,21 @@ export default function CookieConsent() {
                   setDraft(ESSENTIAL_ONLY);
                   setShowPreferences(true);
                 }}
-                className="order-3 rounded-xl border border-white/20 bg-transparent px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10 sm:order-1"
+                className="order-3 rounded-xl border border-sand bg-transparent px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-cream sm:order-1"
               >
                 Manage preferences
               </button>
               <button
                 type="button"
                 onClick={rejectNonEssential}
-                className="order-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/20"
+                className="order-2 rounded-xl border border-sand bg-cream px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-jade"
               >
                 Reject non-essential
               </button>
               <button
                 type="button"
                 onClick={acceptAll}
-                className="order-1 rounded-xl bg-gradient-to-r from-purple-500 via-fuchsia-500 to-pink-500 px-5 py-2.5 text-sm font-extrabold text-white shadow-lg transition hover:-translate-y-0.5 sm:order-3"
+                className="order-1 rounded-xl bg-jade px-5 py-2.5 text-sm font-extrabold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-jade-deep sm:order-3"
               >
                 Accept all
               </button>
@@ -303,21 +303,21 @@ export default function CookieConsent() {
           role="dialog"
           aria-modal="true"
           aria-label="Cookie preferences"
-          className="fixed inset-0 z-[110] flex items-end justify-center bg-black/60 p-4 sm:items-center"
+          className="fixed inset-0 z-[110] flex items-end justify-center bg-ink/50 p-4 sm:items-center"
         >
-          <div className="w-full max-w-lg rounded-2xl border border-white/15 bg-[#12062f] p-6 text-white shadow-2xl">
+          <div className="w-full max-w-lg rounded-2xl border border-sand bg-cream-soft p-6 text-ink shadow-[0_40px_90px_-30px_rgba(60,40,30,0.6)]">
             <div className="flex items-start justify-between gap-4">
-              <h2 className="text-lg font-extrabold">Cookie preferences</h2>
+              <h2 className="font-display text-lg font-extrabold text-ink">Cookie preferences</h2>
               <button
                 type="button"
                 onClick={() => setShowPreferences(false)}
                 aria-label="Close cookie preferences"
-                className="rounded-lg px-2 py-1 text-gray-400 transition hover:text-white"
+                className="rounded-lg px-2 py-1 text-ink-soft transition hover:text-ink"
               >
                 ✕
               </button>
             </div>
-            <p className="mt-2 text-sm leading-relaxed text-gray-300">
+            <p className="mt-2 text-sm leading-relaxed text-ink-soft">
               {BANNER_COPY}
             </p>
 
@@ -327,7 +327,7 @@ export default function CookieConsent() {
                 return (
                   <label
                     key={cat.key}
-                    className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 p-4"
+                    className="flex items-start gap-3 rounded-xl border border-sand bg-cream p-4"
                   >
                     <input
                       type="checkbox"
@@ -339,18 +339,18 @@ export default function CookieConsent() {
                           [cat.key]: e.target.checked,
                         }))
                       }
-                      className="mt-1 h-4 w-4 shrink-0 rounded accent-fuchsia-500 disabled:opacity-60"
+                      className="mt-1 h-4 w-4 shrink-0 rounded accent-jade disabled:opacity-60"
                     />
                     <span>
                       <span className="block text-sm font-bold">
                         {cat.label}
                         {cat.locked && (
-                          <span className="ml-2 text-xs font-medium text-gray-400">
+                          <span className="ml-2 text-xs font-medium text-ink-soft">
                             Always on
                           </span>
                         )}
                       </span>
-                      <span className="mt-0.5 block text-xs text-gray-400">
+                      <span className="mt-0.5 block text-xs text-ink-soft">
                         {cat.description}
                       </span>
                     </span>
@@ -363,14 +363,14 @@ export default function CookieConsent() {
               <button
                 type="button"
                 onClick={rejectNonEssential}
-                className="rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/20"
+                className="rounded-xl border border-sand bg-cream px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-jade"
               >
                 Reject non-essential
               </button>
               <button
                 type="button"
                 onClick={savePreferences}
-                className="rounded-xl bg-gradient-to-r from-purple-500 via-fuchsia-500 to-pink-500 px-5 py-2.5 text-sm font-extrabold text-white shadow-lg transition hover:-translate-y-0.5"
+                className="rounded-xl bg-jade px-5 py-2.5 text-sm font-extrabold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-jade-deep"
               >
                 Save preferences
               </button>

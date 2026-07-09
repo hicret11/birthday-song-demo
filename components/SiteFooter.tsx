@@ -29,6 +29,12 @@ export default function SiteFooter() {
           Cookie Preferences
         </button>
       </nav>
+      <p className="mt-4 text-center text-xs text-ink-soft">
+        © 2026 Sing My Birthday · Questions?{" "}
+        <a href="mailto:info@singmybirthday.com" className="font-semibold hover:text-ink">
+          info@singmybirthday.com
+        </a>
+      </p>
     </footer>
   );
 }

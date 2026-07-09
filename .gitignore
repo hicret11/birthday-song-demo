@@ -40,6 +40,9 @@ yarn-error.log*
 # Stripe live setup scratch — holds secret keys; never commit
 stripe-live-env.txt
 
+# Go-live credentials scratch — holds real API keys once filled; never commit, delete after use
+GO-LIVE-KEYS.txt
+
 # vercel
 .vercel
 

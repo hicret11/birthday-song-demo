@@ -18,6 +18,9 @@ import { getClientIp, rateLimitFixedWindow } from "@/lib/rate-limit";
 import { moderateShareInput } from "@/lib/moderation";
 import { createBooking } from "@/lib/cast";
 import { getCharacter } from "@/lib/cast/characters";
+import { timezoneForPhone } from "@/lib/cast/quiet-hours";
+import { isCallAllowedForPhone } from "@/lib/cast/call-countries";
+import { isTelephonyConfigured } from "@/lib/cast/place-call";
 import {
   isLiveKind,
   isLiveCastEnabled,
@@ -174,8 +177,19 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   // ── AI character phone call (default) ────────────────────────────────────
+  // Hard gate: never accept an AI-call booking when outbound telephony is
+  // de-armed (ELEVENLABS_* absent). The call physically cannot be placed, so
+  // taking payment would be selling an undeliverable service. Defense in depth —
+  // the client add-on is already hidden in this state; this stops any stale or
+  // cached client from reaching checkout. Auto-clears when creds are added.
+  if (!isTelephonyConfigured()) {
+    return jsonError("NOT_AVAILABLE", "Birthday calls aren't available yet — check back soon.", 403);
+  }
+
   const character = getCharacter(typeof body.characterId === "string" ? body.characterId : "");
-  if (!character) return jsonError("INVALID_INPUT", "Pick a character for the call.", 400);
+  // Only characters currently offered to bookers can be booked (launch gate); the
+  // full library still resolves for already-scheduled bookings elsewhere.
+  if (!character || !character.active) return jsonError("INVALID_INPUT", "Pick a character for the call.", 400);
 
   const recipientName = str(body.recipientName, 80);
   if (!recipientName) return jsonError("INVALID_INPUT", "Who is the call for?", 400);
@@ -183,6 +197,11 @@ export async function POST(request: Request): Promise<Response> {
   const recipientPhone = typeof body.recipientPhone === "string" ? body.recipientPhone.trim() : "";
   if (!PHONE_RE.test(recipientPhone)) {
     return jsonError("INVALID_INPUT", "Enter a valid phone number in international format (e.g. +15551234567).", 400);
+  }
+  // Country allowlist — the AI call is only placed to recipients in supported
+  // countries (the rest of the product stays global).
+  if (!isCallAllowedForPhone(recipientPhone)) {
+    return jsonError("INVALID_INPUT", "The birthday call isn't available for that country's number yet.", 400);
   }
 
   const language =
@@ -202,6 +221,10 @@ export async function POST(request: Request): Promise<Response> {
     return jsonError("MODERATION", "That didn't pass our content check — try rephrasing.", 422);
   }
 
+  // Consent evidence (giver-attests model) — the exact wording the booker agreed
+  // to (client-supplied), their IP, and the time. Persisted as a burden-of-proof
+  // trail. recipient_timezone drives the quiet-hours guard in the scheduler.
+  const consentText = str(body.consentText, 300) || "Booker attested the recipient consents to the call.";
   const booking = await createBooking({
     giftId,
     kind: "ai_call",
@@ -213,6 +236,10 @@ export async function POST(request: Request): Promise<Response> {
     scheduledAt,
     consentConfirmed: true,
     bookerToken: token,
+    consentIp: ip.slice(0, 64),
+    consentAttestation: consentText,
+    consentAt: new Date().toISOString(),
+    recipientTimezone: timezoneForPhone(recipientPhone),
   });
   if (!booking) {
     return jsonError("INTERNAL", "Couldn't save the booking — please try again.", 502);

@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sing My Birthday — The Production Studio (flow v2)</title>
+<style>
+  :root{
+    --noir:#0f0819; --noir2:#1a0f2c; --plum:#2a1745;
+    --gold:#ffcf6b; --gold2:#ffb03a; --pink:#ff6fae; --pink2:#ff3d90;
+    --jade:#4be3b0; --cream:#fff7ec; --ink:#f4e9ff; --soft:#c9b8e6; --faint:#8f7fb0;
+    --line:rgba(255,255,255,.12); --glass:rgba(255,255,255,.055);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    font-family:"Segoe UI",-apple-system,Roboto,Helvetica,Arial,sans-serif;
+    background:
+      radial-gradient(900px 520px at 50% -8%, #3a1f5e 0%, var(--noir2) 46%, var(--noir) 100%) fixed;
+    color:var(--ink); min-height:100%; overflow-x:hidden; -webkit-font-smoothing:antialiased;
+  }
+  /* faint stage spotlights */
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background:
+      radial-gradient(360px 360px at 50% -6%, rgba(255,207,107,.16), transparent 62%),
+      radial-gradient(340px 340px at 88% 14%, rgba(255,111,174,.14), transparent 66%),
+      radial-gradient(340px 340px at 10% 30%, rgba(123,63,158,.20), transparent 66%);}
+  .stage{max-width:500px;margin:0 auto;padding:20px 18px 70px;position:relative;z-index:1}
+  .brandbar{display:flex;align-items:center;gap:9px;justify-content:center;margin:4px 0 18px;opacity:.92}
+  .brandbar .dot{width:9px;height:9px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--pink))}
+  .brandbar b{font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--soft);font-weight:800}
+
+  .screen{display:none;animation:rise .5s cubic-bezier(.2,.8,.2,1) both}
+  .screen.active{display:block}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+  h1{font-size:29px;line-height:1.13;margin:.15em 0 .3em;font-weight:800;letter-spacing:-.01em}
+  h1 .accent{background:linear-gradient(120deg,var(--gold),var(--pink) 55%,var(--pink2));
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  p.lead{font-size:15.5px;line-height:1.55;color:var(--soft);margin:0 0 20px}
+
+  .kicker{display:inline-block;font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);
+    font-weight:800;margin-bottom:8px}
+  .badge{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(255,207,107,.4);
+    background:linear-gradient(120deg,rgba(255,207,107,.16),rgba(255,111,174,.16));color:var(--gold);
+    padding:8px 15px;border-radius:999px;font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin-bottom:14px}
+
+  .card{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));
+    border:1px solid var(--line);border-radius:22px;padding:20px;margin:14px 0;backdrop-filter:blur(8px)}
+  label{display:block;font-size:13px;color:var(--soft);margin:0 0 7px;font-weight:600}
+  .opt{color:var(--faint);font-weight:500}
+  input,textarea{width:100%;background:rgba(0,0,0,.26);border:1px solid var(--line);border-radius:14px;
+    color:var(--cream);font-size:16px;padding:13px 14px;outline:none;font-family:inherit;transition:border-color .15s}
+  input:focus,textarea:focus{border-color:var(--pink)}
+  ::placeholder{color:#a596c4;opacity:1}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;width:100%;
+    border:none;border-radius:16px;padding:15px 20px;font-size:16px;font-weight:800;cursor:pointer;
+    background:linear-gradient(120deg,var(--gold2),var(--pink2));color:#2a0f22;
+    box-shadow:0 14px 34px -12px rgba(255,80,150,.6);transition:transform .12s ease,box-shadow .12s ease}
+  .btn:hover{transform:translateY(-2px);box-shadow:0 20px 44px -14px rgba(255,80,150,.7)}
+  .btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+  .btn.ghost{background:transparent;color:var(--soft);border:1px solid var(--line);box-shadow:none;font-weight:700}
+  .btn.ghost:hover{border-color:var(--pink);transform:none}
+  .btn.gold{background:linear-gradient(120deg,var(--gold),var(--gold2));color:#3a2400}
+  .row{display:flex;gap:10px;margin-top:10px}
+
+  .chips{display:flex;flex-wrap:wrap;gap:9px;margin:4px 0 2px}
+  .chip{border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--ink);
+    border-radius:999px;padding:10px 15px;font-size:14px;cursor:pointer;font-weight:600;transition:.15s}
+  .chip:hover{border-color:var(--pink);transform:translateY(-1px)}
+  .chip.sel{background:linear-gradient(120deg,var(--gold),var(--pink));color:#2a0f22;border-color:transparent}
+
+  /* producer */
+  .producer{display:flex;gap:13px;align-items:flex-start;margin:2px 0 16px}
+  .avatar{flex:0 0 auto;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-size:23px;
+    background:radial-gradient(circle at 30% 30%,#ffe6b0,#ff8ac0);box-shadow:0 8px 22px -8px rgba(255,120,180,.7)}
+  .bubble{background:rgba(255,255,255,.07);border:1px solid var(--line);border-radius:6px 18px 18px 18px;
+    padding:12px 15px;font-size:15px;line-height:1.5;color:var(--ink);min-height:22px}
+  .bubble b{color:var(--gold)}
+  .cursor{display:inline-block;width:8px;height:16px;background:var(--gold);margin-left:1px;vertical-align:-2px;
+    animation:blink .9s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+
+  /* act reel progress */
+  .reel{display:flex;gap:6px;justify-content:center;margin:0 0 16px}
+  .reel i{height:4px;width:22px;border-radius:3px;background:rgba(255,255,255,.14);transition:.3s}
+  .reel i.on{background:linear-gradient(120deg,var(--gold),var(--pink))}
+
+  /* the assembling production dossier */
+  .dossier{border:1px dashed var(--line);border-radius:16px;padding:12px 14px;margin:14px 0 0;background:rgba(255,255,255,.02)}
+  .dossier .dh{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:800;margin-bottom:8px}
+  .dossier ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+  .dossier li{font-size:13.5px;color:var(--soft);display:flex;gap:8px;opacity:.35;transition:.35s}
+  .dossier li.on{opacity:1;color:var(--ink)}
+  .dossier li b{color:var(--gold);font-weight:700}
+  .dossier li .k{color:var(--faint);min-width:78px;display:inline-block;font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+
+  .tag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.06em;padding:4px 9px;border-radius:8px;
+    background:rgba(75,227,176,.14);color:var(--jade);border:1px solid rgba(75,227,176,.3);margin-bottom:10px}
+  .tag.pink{background:rgba(255,111,174,.14);color:var(--pink);border-color:rgba(255,111,174,.3)}
+  .note{font-size:13px;color:var(--soft);line-height:1.5}
+  .ok{font-size:13px;color:var(--jade);font-weight:700}
+
+  /* live lyric reveal */
+  .lyric{font-family:"Segoe UI";font-size:15px;line-height:1.7;color:var(--cream);white-space:pre-wrap;min-height:88px;
+    border-left:2px solid var(--gold);padding-left:14px;margin:2px 0 4px}
+  .lyric .dim{color:var(--faint)}
+
+  /* PREMIERE theatre */
+  .theatre{position:relative;border-radius:24px;overflow:hidden;min-height:440px;
+    background:radial-gradient(600px 300px at 50% 0%,#3d2160,#160b26 70%);border:1px solid var(--line);
+    display:grid;place-items:center;text-align:center}
+  .curtain{position:absolute;top:0;bottom:0;width:52%;z-index:5;transition:transform 1.6s cubic-bezier(.7,0,.3,1);
+    background:repeating-linear-gradient(90deg,#7a1533,#7a1533 14px,#5e0f27 14px,#5e0f27 28px);
+    box-shadow:inset -20px 0 40px rgba(0,0,0,.4)}
+  .curtain.l{left:0}.curtain.r{right:0;transform:scaleX(-1)}
+  .theatre.open .curtain.l{transform:translateX(-102%)}
+  .theatre.open .curtain.r{transform:translateX(102%) scaleX(-1)}
+  .spot{position:absolute;top:-40px;left:50%;transform:translateX(-50%);width:300px;height:300px;
+    background:radial-gradient(circle,rgba(255,207,107,.28),transparent 62%);pointer-events:none}
+  .marquee{padding:26px 20px;z-index:2}
+  .marquee .small{font-size:12.5px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);font-weight:800}
+  .marquee .star{font-size:40px;font-weight:900;margin:10px 0 2px;line-height:1.05;
+    background:linear-gradient(120deg,#fff,#ffd98a 40%,var(--pink));-webkit-background-clip:text;background-clip:text;color:transparent;
+    text-shadow:0 0 30px rgba(255,150,190,.25)}
+  .marquee .sub2{font-size:12.5px;color:var(--soft);letter-spacing:.14em}
+  .eq{display:flex;gap:5px;justify-content:center;align-items:flex-end;height:50px;margin:16px 0 6px}
+  .eq span{width:6px;border-radius:3px;background:linear-gradient(var(--gold),var(--pink));animation:bounce 1s infinite ease-in-out}
+  @keyframes bounce{0%,100%{height:9px}50%{height:44px}}
+  .by{font-size:13px;color:var(--soft);margin-top:12px}.by b{color:var(--cream)}
+  .trailer{display:inline-flex;align-items:center;gap:8px;margin-top:8px;font-size:12.5px;color:var(--gold);
+    border:1px solid rgba(255,207,107,.3);border-radius:999px;padding:6px 13px;background:rgba(255,207,107,.08)}
+  .confetti{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:8}
+  .confetti i{position:absolute;top:-12px;width:9px;height:14px;opacity:.9;animation:fall linear forwards}
+  @keyframes fall{to{transform:translateY(540px) rotate(540deg);opacity:0}}
+
+  /* cast */
+  .castitem{display:flex;gap:13px;align-items:center;padding:14px;border:1px solid var(--line);
+    border-radius:18px;margin:11px 0;background:rgba(255,255,255,.04)}
+  .castitem .em{font-size:28px;flex:0 0 auto;width:50px;height:50px;display:grid;place-items:center;
+    border-radius:14px;background:rgba(255,255,255,.06)}
+  .castitem h3{margin:0 0 3px;font-size:15.5px}
+  .castitem .price{margin-left:auto;font-weight:800;color:var(--gold);white-space:nowrap;font-size:15px}
+  .castitem .sub{font-size:12.5px;color:var(--soft);line-height:1.45}
+  .pill{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.05em;padding:3px 8px;border-radius:7px;
+    background:rgba(255,207,107,.14);color:var(--gold);border:1px solid rgba(255,207,107,.3);margin-left:6px}
+  .legal{font-size:11px;color:var(--faint);margin-top:8px;line-height:1.5}
+
+  /* finale */
+  .finale{text-align:center}
+  .finale .halo{width:92px;height:92px;margin:6px auto 14px;border-radius:50%;display:grid;place-items:center;font-size:44px;
+    background:radial-gradient(circle at 40% 35%,#ffe6b0,#ff7ab6);box-shadow:0 0 60px -6px rgba(255,140,190,.7)}
+  .credit{font-size:17px;font-weight:800;color:var(--cream)}
+  .whisper{font-size:12.5px;color:var(--soft);margin-top:16px;text-align:center;line-height:1.55}
+  .foot{text-align:center;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:#6f5f92;margin-top:24px}
+
+  /* curtain-wipe transition overlay */
+  #wipe{position:fixed;inset:0;z-index:60;pointer-events:none;display:flex}
+  #wipe .half{width:50%;height:100%;background:linear-gradient(180deg,#2a1745,#0f0819);transform:scaleX(0);transition:transform .34s ease}
+  #wipe .half.l{transform-origin:left}#wipe .half.r{transform-origin:right}
+  #wipe.play .half{transform:scaleX(1)}
+</style>
+</head>
+<body>
+<div id="wipe"><div class="half l"></div><div class="half r"></div></div>
+
+<div class="stage">
+  <div class="brandbar"><span class="dot"></span><b>Sing My Birthday · The Production Studio</b></div>
+
+  <!-- 0 — OPENING: hand over the director's chair -->
+  <section class="screen active" id="s0">
+    <span class="badge">🎬 You're the director tonight</span>
+    <h1>Let's make someone the <span class="accent">main character</span> of their birthday.</h1>
+    <p class="lead">Not a form. Not a song generator. You're stepping into the director's chair — we'll build the whole show together, and end on a premiere made only for them.</p>
+    <div class="producer">
+      <div class="avatar">🎩</div>
+      <div class="bubble" id="b0">Hi, I'm <b>Milo</b>, your producer. First thing every show needs — a star. Who are we making the star tonight?</div>
+    </div>
+    <div class="card">
+      <label>🌟 Who's the birthday star?</label>
+      <input id="name" placeholder="Their name…" oninput="nm()" />
+      <div style="height:12px"></div>
+      <label>How do we say it? <span class="opt">(optional — so the song nails it)</span></label>
+      <input id="pron" placeholder="e.g. 'sha-VON' for Siobhan" />
+    </div>
+    <button class="btn" id="go0" onclick="wipeTo(1)" disabled>Start the production →</button>
+    <div class="foot">concept prototype · click through the whole flow</div>
+  </section>
+
+  <!-- 1 — CASTING: one beat at a time, dossier assembles -->
+  <section class="screen" id="s1">
+    <div class="reel" id="reel"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+    <span class="kicker" id="actlabel">Act 1 · Casting — the credit</span>
+    <div class="producer">
+      <div class="avatar" id="av1">🎩</div>
+      <div class="bubble" id="b1">—</div>
+    </div>
+
+    <div class="card" id="beatCard">
+      <!-- beat content injected by JS -->
+    </div>
+
+    <div class="row">
+      <button class="btn ghost" style="flex:0 0 34%" id="back1" onclick="prevBeat()">← Back</button>
+      <button class="btn" style="flex:1" id="next1" onclick="nextBeat()">Next →</button>
+    </div>
+
+    <div class="dossier">
+      <div class="dh">🎬 The production so far</div>
+      <ul>
+        <li id="d-star"><span class="k">Star</span><b id="v-star">—</b></li>
+        <li id="d-cred"><span class="k">Directed by</span><span id="v-cred">—</span></li>
+        <li id="d-moment"><span class="k">Opening scene</span><span id="v-moment">—</span></li>
+        <li id="d-feel"><span class="k">The feeling</span><span id="v-feel">—</span></li>
+        <li id="d-score"><span class="k">The score</span><span id="v-score">—</span></li>
+        <li id="d-lang"><span class="k">Language</span><span id="v-lang">—</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 2 — RECORDING: the magic wait becomes co-creation -->
+  <section class="screen" id="s2">
+    <div class="reel"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div>
+    <span class="kicker">Act 2 · In the studio</span>
+    <h1>Milo is recording <span class="accent" id="n2">their</span> song…</h1>
+    <div class="producer">
+      <div class="avatar">🎛️</div>
+      <div class="bubble">Give me ~a minute to mix the track. While I do — <b>don't just wait</b>. This is where a song becomes <b>their whole night</b>. Two things make it unforgettable:</div>
+    </div>
+
+    <div class="card">
+      <span class="tag">writing now</span>
+      <label>The chorus, coming to life</label>
+      <div class="lyric" id="lyric"><span class="dim">…</span></div>
+    </div>
+
+    <div class="card">
+      <span class="tag">Scene 1 · your footage</span>
+      <label>Add 3–5 photos of your moments — they become the scenes of the premiere</label>
+      <button class="btn gold" onclick="fakePhotos(this)">📷 Add photos</button>
+      <div class="ok" id="photoOk" style="margin-top:10px;display:none">✓ 4 photos added — they'll roll in the premiere.</div>
+    </div>
+
+    <div class="card">
+      <span class="tag pink">the crowd magic</span>
+      <label>Secretly cast their people</label>
+      <p class="note" style="margin:0 0 12px">Send one secret link to their friends and family. Each person adds a line, a voice note, or a photo — and Milo weaves <b>everyone</b> into the <b>one</b> song. The star feels loved by their whole circle, all at once.</p>
+      <button class="btn ghost" onclick="fakeInvite(this)">🔗 Copy the secret cast link</button>
+      <div class="ok" id="inviteOk" style="margin-top:10px;display:none">✓ Link copied · 3 people already added their lines 💫</div>
+    </div>
+
+    <button class="btn" id="toPrem" onclick="premiere()">✨ The premiere is ready — open the curtain</button>
+  </section>
+
+  <!-- 3 — THE PREMIERE: the peak -->
+  <section class="screen" id="s3">
+    <div class="reel"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div>
+    <span class="kicker" style="display:block;text-align:center">Act 3 · The Premiere</span>
+    <div class="theatre" id="theatre">
+      <div class="confetti" id="confetti"></div>
+      <div class="spot"></div>
+      <div class="curtain l"></div><div class="curtain r"></div>
+      <div class="marquee">
+        <div class="small">One night only · made only for them</div>
+        <div class="star" id="starName">THE STAR</div>
+        <div class="sub2">…and a song no one else in the world has</div>
+        <div class="eq" id="eq"></div>
+        <div class="by">Produced by <b id="byName">you</b> 🎬</div>
+        <div class="trailer">▶ Playing the 15-second trailer…</div>
+      </div>
+    </div>
+    <p class="note" style="text-align:center;margin:16px 6px 0">This is the one moment we deliberately build the whole flow toward — curtains, their name in lights, your credit in the titles. Not "a player appeared." A <b>premiere</b>.</p>
+    <button class="btn" style="margin-top:16px" onclick="wipeTo(4)">🎭 Release the full premiere</button>
+    <div style="height:10px"></div>
+    <button class="btn ghost" onclick="wipeTo(5)">Add the live cast first →</button>
+  </section>
+
+  <!-- 4 — unlock framing (paywall as "raise the curtain") -->
+  <section class="screen" id="s4">
+    <div class="reel"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div>
+    <span class="kicker">Act 3 · Raise the full curtain</span>
+    <h1>That was the <span class="accent">trailer</span>. Release the whole show.</h1>
+    <p class="lead">The full premiere for <b id="n4">them</b> — the complete song, a shareable premiere page with their name in lights, and your producer credit forever in the titles.</p>
+    <div class="card">
+      <div class="row" style="margin:0 0 4px"><b style="font-size:16px;color:var(--cream)">The Premiere</b><span class="price" style="margin-left:auto;color:var(--gold);font-weight:800">$14.99</span></div>
+      <p class="note">Full song · premiere reveal page · MP3 keepsake · your director credit.</p>
+    </div>
+    <div class="card" style="border-color:rgba(255,207,107,.35)">
+      <div class="row" style="margin:0 0 4px"><b style="font-size:16px;color:var(--cream)">The Deluxe Premiere <span class="pill">+ film</span></b><span class="price" style="margin-left:auto;color:var(--gold);font-weight:800">$24.99</span></div>
+      <p class="note">Everything above + a photo-scene video of the show, ready to project at the party.</p>
+    </div>
+    <button class="btn" onclick="wipeTo(5)">🎬 Release the premiere →</button>
+    <div style="height:10px"></div>
+    <button class="btn ghost" onclick="wipeTo(5)">Add the live cast →</button>
+  </section>
+
+  <!-- 5 — THE CAST: beyond digital -->
+  <section class="screen" id="s5">
+    <span class="kicker">Act 4 · The full house</span>
+    <h1>Bring the show <span class="accent">off the screen</span>.</h1>
+    <p class="lead">A director assembles a company. Book the cast and the wonder walks into their real day.</p>
+    <div class="castitem">
+      <div class="em">🧙</div>
+      <div><h3>A call from Zoltar the wizard <span class="pill">AI voice</span></h3>
+        <div class="sub">Our own character phones them by name and wishes them happy birthday, knowing details from your story.</div></div>
+      <div class="price">$19</div>
+    </div>
+    <div class="castitem">
+      <div class="em">🎸</div>
+      <div><h3>A live musician at the door</h3>
+        <div class="sub">A performer shows up and sings their song in person. Hand-arranged, one city at a time.</div></div>
+      <div class="price">from $120</div>
+    </div>
+    <div class="castitem">
+      <div class="em">🦸</div>
+      <div><h3>A costumed character visit <span class="pill">cast</span></h3>
+        <div class="sub">Our original archetype hero makes an entrance at the party.</div></div>
+      <div class="price">from $90</div>
+    </div>
+    <p class="legal">⚖️ Original characters and archetypes only, and every AI call is clearly disclosed as AI. We never clone celebrity voices or impersonate protected characters — out of respect for the law and for the person getting the surprise.</p>
+    <button class="btn" style="margin-top:14px" onclick="wipeTo(6)">Done — to the finale →</button>
+    <div style="height:10px"></div>
+    <button class="btn ghost" onclick="wipeTo(6)">Skip — just the premiere</button>
+  </section>
+
+  <!-- 6 — FINALE: and this one's about you too -->
+  <section class="screen" id="s6">
+    <div class="finale">
+      <div class="halo">🌟</div>
+      <span class="kicker">Finale · and this one's about you too</span>
+      <h1 style="text-align:center">You gave them something<br/>no one else could.</h1>
+      <p class="lead" style="text-align:center">Not "thanks for your order." The truth: only someone who really knows <b id="n6">them</b> could have produced this night. Today, <b>two</b> people became the main character — the star, and the director.</p>
+      <div class="card" style="text-align:left">
+        <label>Your director's credit — theirs to keep</label>
+        <div class="credit">"A show for <span id="cn">the star</span> — produced by <span id="cr">you</span>" 🎬</div>
+      </div>
+      <button class="btn" onclick="restart()">↺ Run the prototype again</button>
+      <p class="whisper">The emotion runs both ways: the star feels a whole circle's love, the director feels the pride of an author. Conversion is a side effect of that — never the goal.</p>
+    </div>
+    <div class="foot">end of prototype</div>
+  </section>
+</div>
+
+<script>
+  const S=(id)=>document.getElementById(id);
+  const state={name:"",pron:"",cred:"",moment:"",feel:"",score:"",lang:""};
+
+  function starUpper(){return (state.name.trim()||"the star").toUpperCase();}
+  function nameOr(w){return state.name.trim()||w;}
+  function credLabel(){return state.cred? ("your "+state.cred.replace(/^their\s|^a\s/,"")) : "you";}
+
+  function nm(){
+    state.name=S('name').value;
+    S('go0').disabled=!state.name.trim();
+    S('b0').innerHTML = state.name.trim()
+      ? `Hi, I'm <b>Milo</b>. <b>${state.name.trim()}</b> — great name for a marquee. Let's build their show.`
+      : `Hi, I'm <b>Milo</b>, your producer. First thing every show needs — a star. Who are we making the star tonight?`;
+  }
+
+  /* ---------- Act 1: guided one-beat casting ---------- */
+  const beats=[
+    {
+      label:"Act 1 · Casting — the credit", av:"🎬",
+      milo:()=>`Every director gets a credit. When ${nameOr('they')} see${state.name?'s':''} the titles — who put on this show?`,
+      render:()=>`<label>And who are you to them?</label>
+        <div class="chips" id="c-cred">
+          ${["their partner","their best friend","their mom","their dad","their sister","their brother","a friend who loves them"]
+            .map(x=>`<span class="chip${state.cred===x?' sel':''}" onclick="pick('cred','${x}',this)">${x}</span>`).join("")}</div>
+        <p class="note" style="margin:10px 0 0">This becomes your credit in the premiere titles.</p>`,
+      valid:()=>!!state.cred
+    },
+    {
+      label:"Act 1 · Casting — the heart", av:"🎩",
+      milo:()=>`Now the heart. Tell me <b>one</b> moment that's so <i>${nameOr('them')}</i> — I'll write it into the opening.`,
+      render:()=>`<label>A moment that makes them <i>them</i></label>
+        <textarea id="c-moment" rows="3" placeholder="the way she sings off-key in the car… how he always calls first…" oninput="typeMoment(this)">${state.moment}</textarea>
+        <p class="note" style="margin:10px 0 0">One real detail beats ten adjectives. This is the soul of the song.</p>`,
+      valid:()=>state.moment.trim().length>2
+    },
+    {
+      label:"Act 2 · Direction — the feeling", av:"🎭",
+      milo:()=>`Every great scene lands one feeling. When the song ends, how should ${nameOr('they')} feel?`,
+      render:()=>`<label>The feeling to leave them with</label>
+        <div class="chips" id="c-feel">
+          ${["goosebumps","laughing till they cry","warm and held","cinematic & epic","nostalgic","pure joy"]
+            .map(x=>`<span class="chip${state.feel===x?' sel':''}" onclick="pick('feel','${x}',this)">${x}</span>`).join("")}</div>`,
+      valid:()=>!!state.feel
+    },
+    {
+      label:"Act 2 · Direction — the score", av:"🎼",
+      milo:()=>`And the sound of their night — what's the score?`,
+      render:()=>`<label>Pick the soundtrack</label>
+        <div class="chips" id="c-score">
+          ${["🎤 Pop","🎷 R&B","🎸 Rock","🎹 Jazz","🎧 Hip-Hop","🎛️ Electronic","🪕 Acoustic","🎻 Cinematic"]
+            .map(x=>`<span class="chip${state.score===x?' sel':''}" onclick="pick('score','${x}',this)">${x}</span>`).join("")}</div>`,
+      valid:()=>!!state.score
+    },
+    {
+      label:"Act 2 · Direction — the language", av:"🌍",
+      milo:()=>`Last casting call — what language should ${nameOr('they')} hear their song in?`,
+      render:()=>`<label>Sing it in</label>
+        <div class="chips" id="c-lang">
+          ${["English","Spanish","Turkish","French","Arabic","Hindi","Russian"]
+            .map(x=>`<span class="chip${state.lang===x?' sel':''}" onclick="pick('lang','${x}',this)">${x}</span>`).join("")}</div>`,
+      valid:()=>!!state.lang
+    }
+  ];
+  let bi=0;
+
+  function pick(key,val,el){
+    state[key]=val;
+    el.parentNode.querySelectorAll('.chip').forEach(c=>c.classList.remove('sel'));
+    el.classList.add('sel');
+    syncDossier(); refreshBeatNav();
+  }
+  function typeMoment(el){ state.moment=el.value; syncDossier(); refreshBeatNav(); }
+
+  function renderBeat(){
+    const b=beats[bi];
+    S('actlabel').textContent=b.label;
+    S('av1').textContent=b.av;
+    document.querySelectorAll('#reel i').forEach((el,i)=>el.classList.toggle('on', i<=bi));
+    typeInto('b1', b.milo());
+    S('beatCard').innerHTML=b.render();
+    S('back1').style.visibility = bi===0 ? 'hidden':'visible';
+    S('next1').textContent = bi===beats.length-1 ? 'To the studio →' : 'Next →';
+    refreshBeatNav();
+  }
+  function refreshBeatNav(){ S('next1').disabled=!beats[bi].valid(); }
+  function nextBeat(){
+    if(!beats[bi].valid()) return;
+    if(bi<beats.length-1){ bi++; renderBeat(); window.scrollTo({top:0,behavior:'smooth'}); }
+    else { startRecording(); wipeTo(2); }
+  }
+  function prevBeat(){ if(bi>0){ bi--; renderBeat(); window.scrollTo({top:0,behavior:'smooth'}); } }
+
+  function syncDossier(){
+    const set=(id,val,liId)=>{ S(id).textContent=val||"—"; const li=S(liId); li.classList.toggle('on',!!val); };
+    S('v-star').textContent=state.name.trim()||"—"; S('d-star').classList.toggle('on',!!state.name.trim());
+    set('v-cred',state.cred,'d-cred');
+    set('v-moment', state.moment.trim()? '“'+state.moment.trim().slice(0,42)+(state.moment.trim().length>42?'…':'')+'”':'', 'd-moment');
+    set('v-feel',state.feel,'d-feel');
+    set('v-score',state.score,'d-score');
+    set('v-lang',state.lang,'d-lang');
+  }
+
+  /* ---------- Milo typewriter ---------- */
+  let typeTimer=null;
+  function typeInto(id,html){
+    const el=S(id); clearInterval(typeTimer);
+    // strip tags for typing, then set full html at end (keeps <b>/<i>)
+    const tmp=document.createElement('div'); tmp.innerHTML=html; const text=tmp.textContent;
+    el.innerHTML=''; let i=0;
+    const cur=document.createElement('span'); cur.className='cursor';
+    el.appendChild(cur);
+    typeTimer=setInterval(()=>{
+      i++; el.textContent=text.slice(0,i); el.appendChild(cur);
+      if(i>=text.length){ clearInterval(typeTimer); el.innerHTML=html; }
+    }, 16);
+  }
+
+  /* ---------- transitions ---------- */
+  function show(i){
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    S('s'+i).classList.add('active');
+    // sync per-screen dynamic bits
+    if(i===2){ S('n2').textContent=nameOr('their'); }
+    if(i===3){ S('starName').textContent=starUpper(); S('byName').textContent=credLabel(); }
+    if(i===4){ S('n4').textContent=nameOr('them'); }
+    if(i===6){ S('cn').textContent=nameOr('the star'); S('cr').textContent=credLabel(); }
+    window.scrollTo({top:0,behavior:'smooth'});
+    if(i===1 && S('b1').textContent==='—'){ renderBeat(); }
+  }
+  function wipeTo(i){
+    const w=S('wipe'); w.classList.add('play');
+    setTimeout(()=>{ show(i); }, 300);
+    setTimeout(()=>{ w.classList.remove('play'); }, 620);
+  }
+
+  /* ---------- Act 2 effects ---------- */
+  function fakePhotos(b){ b.textContent="✓ 4 photos added"; b.disabled=true; b.style.opacity=.6; S('photoOk').style.display='block'; }
+  function fakeInvite(b){ b.textContent="✓ Secret link copied"; S('inviteOk').style.display='block'; }
+
+  let lyricTimer=null;
+  function startRecording(){
+    const star=nameOr('you');
+    const feel=(state.feel||'joy');
+    const full=`Here's to ${star},\nthe one the whole room turns to see —\n${state.moment.trim()? 'the way '+state.moment.trim().replace(/\.$/,'')+',' : 'the light that fills a room,'}\ntonight the spotlight's yours to keep.`;
+    const el=S('lyric'); el.innerHTML='<span class="dim">Milo is writing…</span>';
+    let i=0; clearInterval(lyricTimer);
+    setTimeout(()=>{
+      lyricTimer=setInterval(()=>{
+        i++; el.textContent=full.slice(0,i);
+        if(i>=full.length){ clearInterval(lyricTimer); }
+      }, 32);
+    }, 500);
+  }
+
+  /* ---------- Premiere ---------- */
+  (function(){ const eq=S('eq'); for(let i=0;i<9;i++){const s=document.createElement('span'); s.style.animationDelay=(i*0.09)+'s'; eq.appendChild(s);} })();
+  function burstConfetti(){
+    const box=S('confetti'); box.innerHTML='';
+    const colors=['#ffcf6b','#ff6fae','#4be3b0','#fff','#ffb03a'];
+    for(let i=0;i<74;i++){ const c=document.createElement('i');
+      c.style.left=Math.random()*100+'%'; c.style.background=colors[i%colors.length];
+      c.style.animationDuration=(1.8+Math.random()*1.8)+'s'; c.style.animationDelay=(Math.random()*.6)+'s';
+      c.style.transform='rotate('+(Math.random()*360)+'deg)'; box.appendChild(c); }
+  }
+  function premiere(){
+    wipeTo(3);
+    setTimeout(()=>{ const t=S('theatre'); t.classList.remove('open');
+      setTimeout(()=>{ t.classList.add('open'); burstConfetti(); }, 500); }, 340);
+  }
+
+  function restart(){
+    Object.keys(state).forEach(k=>state[k]="");
+    bi=0; S('name').value=''; S('pron').value=''; S('go0').disabled=true; S('b1').textContent='—';
+    syncDossier(); nm(); wipeTo(0);
+  }
+
+  syncDossier();
+</script>
+</body>
+</html>

@@ -7,7 +7,7 @@ import { sendDunningEmail } from "@/lib/resend";
 import { getStripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { loadSharedSong, markSharedSongUnlocked } from "@/lib/share";
-import { markBookingPaid } from "@/lib/cast";
+import { markBookingPaid, createBooking, getAiCallBookingForGift } from "@/lib/cast";
 import { applyChipIn } from "@/lib/group-pay";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://singmybirthday.com";
@@ -128,7 +128,12 @@ async function handleEvent(event: Stripe.Event, stripe: Stripe): Promise<void> {
     const session = event.data.object as Stripe.Checkout.Session;
     if (session.mode === "payment" && session.metadata?.kind === "song_unlock") {
       const shareId = session.metadata.share_id || session.client_reference_id || "";
-      const plan: "full" | "deluxe" = session.metadata.plan === "deluxe" ? "deluxe" : "full";
+      const plan: "full" | "deluxe" | "production" =
+        session.metadata.plan === "production"
+          ? "production"
+          : session.metadata.plan === "deluxe"
+            ? "deluxe"
+            : "full";
       if (shareId) {
         const ok = await markSharedSongUnlocked(shareId, plan);
         if (!ok) console.error(`[stripe-webhook] song_unlock: share ${shareId} not found (KV expired?)`);
@@ -141,6 +146,40 @@ async function handleEvent(event: Stripe.Event, stripe: Stripe): Promise<void> {
             (async () => {
               const song = await loadSharedSong(shareId);
               if (song) await requestPremiumRender(song);
+              // Production tier bundles the AI character call: create the booking
+              // now (idempotent — one ai_call booking per share) and mark it paid
+              // so the scheduler places it once telephony is configured. The call
+              // path stays a clean no-op until then, so this never fires a call
+              // prematurely. Best-effort; a booking failure never blocks unlock.
+              if (plan === "production" && song) {
+                try {
+                  const existing = await getAiCallBookingForGift(shareId);
+                  if (!existing) {
+                    const paymentId =
+                      typeof session.payment_intent === "string"
+                        ? session.payment_intent
+                        : session.payment_intent?.id || session.id;
+                    const booking = await createBooking({
+                      giftId: shareId,
+                      kind: "ai_call",
+                      characterId: session.metadata?.call_character || "zoltar",
+                      recipientName: song.name,
+                      recipientPhone: session.metadata?.call_phone || null,
+                      language: song.language,
+                      personalNote: song.directorNote?.text ?? null,
+                      scheduledAt: session.metadata?.call_when || null,
+                      consentConfirmed: session.metadata?.call_consent === "1",
+                      consentIp: session.metadata?.consent_ip ?? null,
+                      consentAttestation: session.metadata?.consent_text ?? null,
+                      consentAt: session.metadata?.accepted_at ?? null,
+                      recipientTimezone: session.metadata?.call_tz ?? null,
+                    });
+                    if (booking) await markBookingPaid(booking.id, paymentId);
+                  }
+                } catch (err) {
+                  console.error("[stripe-webhook] production call booking failed:", err);
+                }
+              }
             })().catch(() => undefined),
           );
         }

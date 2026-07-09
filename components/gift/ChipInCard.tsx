@@ -114,7 +114,7 @@ export default function ChipInCard({
           </div>
           <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-sand">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-brand-amber to-brand-pink transition-[width]"
+              className="h-full rounded-full bg-jade hover:bg-jade-deep transition-[width]"
               style={{ width: `${pct}%` }}
             />
           </div>
@@ -132,7 +132,7 @@ export default function ChipInCard({
               <button
                 type="button"
                 onClick={() => setOpen(true)}
-                className="mt-4 w-full rounded-2xl bg-gradient-to-r from-brand-amber to-brand-pink px-6 py-3 text-base font-extrabold text-white shadow-lg transition hover:-translate-y-0.5"
+                className="mt-4 w-full rounded-2xl bg-jade hover:bg-jade-deep px-6 py-3 text-base font-extrabold text-white shadow-lg transition hover:-translate-y-0.5"
               >
                 {t.open}
               </button>
@@ -145,26 +145,26 @@ export default function ChipInCard({
                     value={amount}
                     onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, "").slice(0, 8))}
                     inputMode="decimal"
-                    className="w-full rounded-2xl border border-sand bg-cream px-4 py-3 text-base text-ink outline-none focus:border-brand-pink"
+                    className="w-full rounded-2xl border border-sand bg-cream px-4 py-3 text-base text-ink outline-none focus:border-jade"
                   />
                   {remainingCents >= minCents && (
                     <button
                       type="button"
                       onClick={() => setAmount((remainingCents / 100).toFixed(2))}
-                      className="shrink-0 rounded-full border border-sand bg-cream px-3 py-2 text-xs font-bold text-ink hover:border-brand-pink"
+                      className="shrink-0 rounded-full border border-sand bg-cream px-3 py-2 text-xs font-bold text-ink hover:border-jade"
                     >
                       {fill(t.coverRest, { amount: fmtUsd(remainingCents) })}
                     </button>
                   )}
                 </div>
 
-                {error && <p className="mt-3 text-sm font-semibold text-brand-pink">{error}</p>}
+                {error && <p className="mt-3 text-sm font-semibold text-jade">{error}</p>}
 
                 <button
                   type="button"
                   onClick={submit}
                   disabled={submitting || !amountValid}
-                  className="mt-4 w-full rounded-2xl bg-gradient-to-r from-brand-amber to-brand-pink px-6 py-4 text-base font-extrabold text-white shadow-lg transition hover:-translate-y-0.5 disabled:opacity-60"
+                  className="mt-4 w-full rounded-2xl bg-jade hover:bg-jade-deep px-6 py-4 text-base font-extrabold text-white shadow-lg transition hover:-translate-y-0.5 disabled:opacity-60"
                 >
                   {submitting
                     ? t.submitting

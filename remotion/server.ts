@@ -20,10 +20,16 @@ import express, { type Request, type Response } from "express";
 import { bundle } from "@remotion/bundler";
 import { renderMedia, selectComposition } from "@remotion/renderer";
 import { put } from "@vercel/blob";
-import { birthdaySongSchema, type BirthdaySongProps } from "./src/schema";
+import {
+  birthdaySongSchema,
+  premiereVideoSchema,
+  type BirthdaySongProps,
+  type PremiereVideoProps,
+} from "./src/schema";
 
 const PORT = Number(process.env.PORT ?? 8080);
-const COMPOSITION_ID = "BirthdaySong";
+const LEGACY_COMPOSITION_ID = "BirthdaySong";
+const PREMIERE_COMPOSITION_ID = "PremiereVideo";
 
 // --- Vercel Blob upload -----------------------------------------------------
 // Storage matches the Next app (lib/r2.ts is itself a thin alias over
@@ -78,7 +84,12 @@ function buildProps(song: Record<string, unknown>, captions: unknown): BirthdayS
 }
 
 async function handleRender(req: Request, res: Response): Promise<void> {
-  const body = req.body as { song?: Record<string, unknown>; captions?: unknown };
+  const body = req.body as {
+    song?: Record<string, unknown>;
+    captions?: unknown;
+    composition?: unknown;
+    inputProps?: unknown;
+  };
   const song = body?.song;
   if (!song || typeof song !== "object") {
     res.status(400).json({ error: "missing song" });
@@ -86,9 +97,21 @@ async function handleRender(req: Request, res: Response): Promise<void> {
   }
 
   const shareId = typeof song.id === "string" ? song.id : randomUUID().slice(0, 8);
-  let props: BirthdaySongProps;
+
+  // Two render modes:
+  //  - PRIMARY: the app sends { composition: "PremiereVideo", inputProps } —
+  //    the fully-resolved premiere props (identical to the Lambda path). We
+  //    render the same premiere here, just without the per-render lambda cap.
+  //  - LEGACY: only { song, captions } — render the older BirthdaySong slideshow
+  //    (kept for backward compatibility).
+  const wantsPremiere = body.composition === PREMIERE_COMPOSITION_ID && !!body.inputProps;
+  const compositionId = wantsPremiere ? PREMIERE_COMPOSITION_ID : LEGACY_COMPOSITION_ID;
+
+  let props: BirthdaySongProps | PremiereVideoProps;
   try {
-    props = buildProps(song, body.captions);
+    props = wantsPremiere
+      ? premiereVideoSchema.parse(body.inputProps)
+      : buildProps(song, body.captions);
   } catch (err) {
     console.error(`[worker] invalid props for ${shareId}:`, err);
     res.status(400).json({ error: "invalid props" });
@@ -103,7 +126,7 @@ async function handleRender(req: Request, res: Response): Promise<void> {
     const serveUrl = await getBundle();
     const composition = await selectComposition({
       serveUrl,
-      id: COMPOSITION_ID,
+      id: compositionId,
       inputProps: props,
     });
 
@@ -120,7 +143,7 @@ async function handleRender(req: Request, res: Response): Promise<void> {
     const info = await stat(outPath);
     const buffer = await streamToBuffer(outPath);
     console.log(
-      `[worker] rendered ${shareId} in ${Date.now() - started}ms bytes=${info.size}`,
+      `[worker] rendered ${shareId} (${compositionId}) in ${Date.now() - started}ms bytes=${info.size}`,
     );
 
     const url = await uploadToBlob(`premium/${shareId}.mp4`, buffer, "video/mp4");

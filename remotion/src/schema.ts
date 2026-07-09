@@ -35,3 +35,38 @@ export const birthdaySongSchema = z.object({
 export type BirthdaySongProps = z.infer<typeof birthdaySongSchema>;
 export type Caption = z.infer<typeof captionSchema>;
 export type ShareTemplate = z.infer<typeof shareTemplateSchema>;
+
+// ── The Premiere video (Phase D) — the deliverable IS the premiere ─────────────
+// Aspect: "16:9" (default, projectable/YouTube) or "9:16" (stories/reels). The
+// composition reflows per aspect via useVideoConfig, so one component serves both.
+export const premiereAspectSchema = z.enum(["16:9", "9:16"]);
+
+export const premiereVideoSchema = z.object({
+  name: z.string(),
+  /** "Produced & directed by" credit — a name or a relationship ("their partner"). */
+  directorName: z.string().optional(),
+  // https URL — Remotion fetches it in headless Chromium.
+  audioSrc: z.string(),
+  /** Director's voice note, appended after the song when present. */
+  noteAudioSrc: z.string().optional(),
+  /** Director's written note, shown on the closing card. */
+  directorNoteText: z.string().optional(),
+  theme: shareTemplateSchema.default("classic"),
+  photoUrls: z.array(z.string()).optional(),
+  /** Crowd contributor names for the credits roll. */
+  contributors: z.array(z.string()).default([]),
+  watermark: z.string().default("singmybirthday.com"),
+  language: z.string().default("English"),
+  aspect: premiereAspectSchema.default("16:9"),
+  // Localized credit/labels (fed from the Next app dictionary at render time).
+  starringLabel: z.string().default("Starring"),
+  producedByLabel: z.string().default("Produced & directed by"),
+  withLoveLabel: z.string().default("With love from"),
+  noteLabel: z.string().default("A message from the director"),
+  // Resolved by calculateMetadata (probed audio lengths) — not sent by callers.
+  songDurationSec: z.number().default(0),
+  noteDurationSec: z.number().default(0),
+});
+
+export type PremiereVideoProps = z.infer<typeof premiereVideoSchema>;
+export type PremiereAspect = z.infer<typeof premiereAspectSchema>;

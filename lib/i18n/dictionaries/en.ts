@@ -118,20 +118,197 @@ export const en = {
     relationshipFamily: "Their family",
     relationshipColleague: "Their colleague",
     relationshipOther: "Someone who loves them",
+    // Reimagined intake — "production studio" framing. Presentation only: these
+    // strings restyle the same fields as a guided conversation with a producer
+    // persona. {name}/{producer} are interpolated by the component.
+    studioBadge: "🎬 Not a song generator",
+    studioBrandbar: "Sing My Birthday · The Production Studio",
+    studioHook: "Let’s make {name} the main character of their birthday.",
+    studioHookThem: "them",
+    studioHookSub:
+      "You’re not filling out a form — you’re the director casting the star. Let’s build the show.",
+    producerName: "Milo",
+    producerIntro:
+      "Hi, I’m {producer}, your producer. I’m not a form — tell me the story and I’ll write it into the song.",
+    actCasting: "Act 1 · Casting",
+    personHeading: "Who are we making the star tonight?",
+    actFeeling: "Act 1 · The feeling",
+    vibeHeading: "What feeling should the song leave?",
+    producerVibe: "Before I roll tape — what should this song make them feel?",
+    producerWait:
+      "Give me about a minute to mix the track. While I do — make the gift even more theirs.",
+    coauthorTag: "co-authorship",
+    coauthorPhotoLabel:
+      "Add a few photos of your moments — they become scenes in the premiere.",
+    coauthorPhotoCta: "📷 Add photos",
+    coauthorPhotoAdding: "Adding photos…",
+    coauthorPhotoDone: "{count} added — they’ll appear in the show.",
+    // Feeling chips — the emotional target the song should leave (v4 casting).
+    feelingLabel: "The feeling to leave them with",
+    feelingGoosebumps: "Goosebumps",
+    feelingLaughing: "Laughing",
+    feelingHappyCry: "Happy tears",
+    feelingNostalgic: "Nostalgic",
+    feelingHyped: "Hyped up",
+    feelingLoved: "Deeply loved",
+    // The director’s private note — revealed as the closing beat of the premiere.
+    noteHeading: "A private note from the director",
+    noteSubtext:
+      "Revealed at the very end of their premiere — after the song. Optional.",
+    noteTabText: "✍️ Write it",
+    noteTabVoice: "🎙️ Record it",
+    notePlaceholder: "Say the thing you’d say if the room went quiet…",
+    noteRecordCta: "● Record a voice note",
+    noteRecordingLabel: "Recording… tap to stop",
+    noteStopCta: "■ Stop",
+    noteUploadingLabel: "Saving your voice note…",
+    noteVoiceReady: "✓ Voice note saved ({seconds}s)",
+    noteReRecord: "Re-record",
+    noteErrNoMic: "Your browser can’t record audio — write the note instead.",
+    noteErrNoAudio: "No audio captured. Try again.",
+    noteErrUpload: "Couldn’t save that voice note — try again.",
+    // Countdown delivery choice (shown once a birthday is set).
+    deliveryHeading: "When should they see it?",
+    deliveryOnBirthday: "🎬 Open on their birthday",
+    deliveryNow: "Available now",
+    deliveryHint: "We’ll hold the premiere behind a countdown until 9am their time on the day. You can always preview it yourself first.",
+    deliveryPreviewLink: "Preview your premiere (only you can see it early) →",
+    // ── Reimagined intake v4 — the marquee opening + beat engine + studio. ──
+    // Opening (name-in-lights marquee)
+    openingBadge: "🎬 You’re the director tonight",
+    openingLead:
+      "Not a form. Not a song generator. Step into the director’s chair — we build the whole show together and end on a premiere made only for them.",
+    marqueeNowCasting: "Now casting · one night only",
+    marqueeYourStar: "your star",
+    marqueeBottom: "★ the birthday premiere ★",
+    miloOpeningEmpty:
+      "Hi, I’m {producer}, your producer. Every show needs a star. Type their name — watch it hit the marquee.",
+    miloOpeningNamed: "{name} — that belongs in lights. Let’s build their show.",
+    pronLabel: "How do we say it?",
+    pronOptional: "(optional — so the song nails it)",
+    pronPlaceholder: "e.g. ‘sha-VON’ for Siobhan",
+    senderNameLabel: "And your name?",
+    senderNameOptional: "(optional — for the director credit)",
+    senderNamePlaceholder: "Optional",
+    startProduction: "Start the production →",
+    startProductionHint: "Add their name to continue.",
+    // Beat engine — nav + call-sheet dossier
+    beatBack: "← Back",
+    beatNext: "Next →",
+    beatToStudio: "To the studio →",
+    callSheetHeading: "🎬 The call sheet",
+    dossierStar: "Star",
+    dossierDirected: "Directed by",
+    dossierScene: "Opening scene",
+    dossierNote: "Director’s note",
+    dossierFeeling: "The feeling",
+    dossierScore: "The score",
+    dossierLanguage: "Language",
+    dossierCurtain: "Curtain rises",
+    dossierWritten: "written ✓",
+    dossierRecorded: "recorded 🎙️",
+    dossierDirectedYou: "you",
+    // Beat: credit (relationship)
+    actCredit: "Act 1 · Casting",
+    miloCredit:
+      "Every director gets a credit. When they see the titles — who put on this show?",
+    // Beat: the moment (memory)
+    actMoment: "Act 1 · Casting",
+    miloMoment:
+      "Now the heart. Tell me one moment that’s so them — I’ll write it into the opening.",
+    miloMomentFriend:
+      "Best-friend energy. Tell me the most them thing they do that you’d never trade.",
+    miloMomentPartner:
+      "This one’s a love story. Give me the moment you knew.",
+    miloMomentFamily:
+      "For family. Give me a small thing they always do — the kind that means home.",
+    miloMomentColleague:
+      "Give me the one work moment that’s so them everyone would recognize it.",
+    miloMomentOther:
+      "Tell me one moment that’s so them it could only be them.",
+    momentLabel: "A moment that makes them them",
+    momentPlaceholder:
+      "the way she sings off-key in the car… how he always calls first…",
+    sparkPrefix: "need a spark? ",
+    sparkLink: "tap for an example",
+    moreDetailsOpen: "＋ more details (optional)",
+    moreDetailsClose: "− fewer details",
+    professionPlaceholder: "What do they do? (optional)",
+    extrasPlaceholder: "A favorite band, an inside joke, anything else to weave in…",
+    styleNotesPlaceholder: "A music style or an artist reference (optional)",
+    miloMomentReactFun: "Ha — that’s the opening scene right there. 🎬",
+    miloMomentReactKind: "Oof. That’s the kind of line that lands. Keeping it.",
+    miloMomentReactDefault:
+      "Perfect — one real detail beats ten adjectives. That’s the soul of it.",
+    // Beat: private note
+    actNote: "Act 2 · Direction",
+    miloNote:
+      "One thing only you can give: a message just for them. Write it, or say it in your own voice — I’ll hold it back as the closing moment of the premiere.",
+    noteBeatFootnote:
+      "This is the moment that makes them tear up — the reason it could only come from you.",
+    // Beat: feeling
+    actFeelingBeat: "Act 2 · Direction",
+    miloFeeling:
+      "Every great scene lands one feeling. When the song ends, how should they feel?",
+    // Beat: score (genre)
+    actScore: "Act 2 · Direction",
+    miloScore: "And the sound of their night — what’s the score?",
+    scoreLabel: "Pick the soundtrack",
+    scoreSurprise: "🎲 Surprise Me",
+    // Beat: language
+    actLanguage: "Act 2 · Direction",
+    miloLanguage: "What language should they hear their song in?",
+    languageSing: "Sing it in",
+    // Beat: birthday
+    actBirthday: "Act 2 · Direction",
+    miloBirthday:
+      "Last call. When does their birthday land? I’ll hold the premiere and release it right on the day.",
+    birthdayLabel: "Their birthday",
+    birthdayOptional: "(just the day — we find the next one)",
+    monthPlaceholder: "Month",
+    dayPlaceholder: "Day",
+    ageBeatLabel: "How old are they turning?",
+    ageBeatHint: "Milo can weave it in",
+    birthdayNeedAge: "Add their age to open the studio.",
+    premiereOpensPrefix: "🎭 Their premiere opens ",
+    months: [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December",
+    ],
+    // Act 3 — the studio / co-creation + wait
+    actStudio: "Act 3 · In the studio",
+    studioRecordingPrefix: "Milo is recording ",
+    studioRecordingSuffix: "’s song…",
+    miloStudio:
+      "Give me about a minute to mix. While I do — don’t just wait. This is where a song becomes their whole night:",
+    studioChorusTag: "writing now",
+    studioChorusLabel: "The chorus, coming to life",
+    studioCastTag: "the crowd magic",
+    studioCastHeading: "Secretly cast their people",
+    studioCastBody:
+      "Send one secret link to their friends and family. Each adds a line, a voice note, or a photo — Milo weaves everyone into the one song.",
+    studioGateHeading: "Where should we send the premiere?",
+    openCurtain: "✨ Open the curtain",
+    openCurtainMixing: "🎬 Mixing the track…",
+    studioMixingHeadline: "Mixing their premiere…",
+    studioRewrite: "Not quite the words? Rewrite the lyrics",
   },
   paywall: {
     // Preview label — the 15s cap framed as the trailer/opening of the show
     // (prefix + suffix rendered together; the second is the invitation).
     previewLabelPrefix: "🎬 The opening of their premiere — ",
-    previewLabelSuffix: "unlock to raise the curtain",
+    previewLabelSuffix: "unlock the full song",
     // Unlock headline ({name} interpolated by caller)
-    unlockHeadlinePrefix: "Raise the curtain on ",
-    unlockHeadlineSuffix: "’s full premiere 🎬",
+    unlockHeadlinePrefix: "Unlock ",
+    unlockHeadlineSuffix: "’s full premiere",
     unlockHeadlineLovedPrefix: "That was just the opening. ",
     // Plan names
     standard: "Standard",
     deluxe: "Deluxe",
+    production: "Full Production",
     bestValue: "Best value",
+    mostChosen: "Most chosen",
+    comingSoon: "Coming soon",
     // Value-stack bullets
     bulletCompleteSong: "The full premiere — the complete song",
     bulletMp3: "MP3 download — keep it forever",
@@ -139,13 +316,32 @@ export const en = {
     bulletReplay: "Replay & re-send to family anytime",
     bulletEverythingStandard: "Everything in Standard",
     bulletSlideshow: "A photo slideshow video — their favorite moments set to the song",
+    bulletEverythingDeluxe: "Everything in Deluxe",
+    bulletCall:
+      "An AI character phones them on their birthday — a wizard, fairy godmother, or pirate captain, in the character’s voice",
     // CTAs ({price} interpolated by caller)
     unlockDeluxePrefix: "Raise the curtain · Deluxe",
     unlockStandardPrefix: "Raise the curtain · Standard",
+    unlockProductionPrefix: "Raise the curtain · Full Production",
     openingCheckout: "Opening secure checkout…",
     preparingSong: "Preparing the premiere…",
-    moneyBack: "Love it or your money back",
+    moneyBack: "Love it, or it’s free",
     secureCheckout: "One-time payment · instant unlock · secure checkout by Stripe",
+    // Live-musician anchor row ({price} interpolated by caller)
+    liveAnchorLabel: "Prefer a real musician in person? Live performances from",
+    // Production tier — AI character call setup ({name} interpolated by caller)
+    callHeading: "Set up the birthday call 🎬",
+    callSubtext: "An AI character will phone {name} to wish them a happy birthday, in the character’s voice.",
+    callCharacterLabel: "Who should call?",
+    callPhoneLabel: "{name}’s phone number",
+    callPhonePlaceholder: "+1 555 123 4567",
+    callPhoneHint: "International format, starting with +",
+    callCountryUnavailable:
+      "The birthday call isn't available for that country's number yet — the rest of the gift still works.",
+    callDateLabel: "When should we call? (optional)",
+    callDateHint: "Leave blank to call as soon as it’s ready. We only ever call between 8am–9pm their local time.",
+    callConsentLabel: "I have {name}’s permission for them to receive this call.",
+    callConsentMicrocopy: "This is a personal birthday greeting, not a marketing call. You’re responsible for having their consent; we record this attestation with your order.",
   },
   // The Premiere — the theatrical reveal of the finished song.
   premiere: {
@@ -160,6 +356,26 @@ export const en = {
     replay: "▶ Play again",
     director: "Produced by",
     continueLabel: "Send it to them 💌",
+    // Closing beat — the director's private note + the credits roll.
+    noteLabel: "A message from the director",
+    notePlay: "▶ Play their message",
+    notePause: "⏸ Pause",
+    starringLabel: "Starring",
+    producedByLabel: "Produced & directed by",
+    withLoveLabel: "With love from",
+  },
+  // The locked premiere ticket + countdown (giver-sends scheduled delivery).
+  countdown: {
+    admission: "Now casting · one night only",
+    title: "{name}’s premiere",
+    theStar: "the star",
+    premieresOn: "Premieres {date}",
+    opensIn: "The curtain rises in",
+    days: "days",
+    hrs: "hrs",
+    mins: "min",
+    secs: "sec",
+    footer: "Made only for them — check back when the curtain rises.",
   },
   // Crowd-magic — invite the recipient's circle to co-write one song.
   crowd: {
@@ -258,7 +474,7 @@ export const en = {
   cast: {
     ctaTitle: "Send them a magical birthday call 📞",
     ctaSubtitle:
-      "Book an original character to phone {name} and wish them a happy birthday — in their own voice.",
+      "Book an original character to phone {name} and wish them a happy birthday — in the character’s voice.",
     open: "Book a character call",
     close: "Maybe later",
     pickCharacter: "Choose your character",
@@ -291,7 +507,8 @@ export const en = {
     errNetwork: "Network hiccup — try again.",
     characters: {
       zoltar: {
-        tagline: "A warm, whimsical wizard who calls to cast a birthday spell of good fortune.",
+        tagline:
+          "A smooth FM radio host who sends a live on-air birthday dedication out just for them.",
       },
       pearl: {
         tagline: "A kind, sparkly fairy godmother who rings to grant a birthday wish.",
@@ -309,6 +526,7 @@ export const en = {
     greet: "Happy birthday, {name}!",
     noteIntro: "Someone who loves you wanted me to say: {note}",
     speak: "Speak entirely in English, warmly and naturally, and stay in character.",
+    callback: "If you'd like to reach the person who arranged this call, you can call {number}.",
   },
   // The Live cast — request a real, in-person performer (concierge pilot). Not
   // AI. {city}/{deposit}/{name} are filled at render time.

@@ -162,7 +162,7 @@ export function Playful({ song }: { song: SharedSong }) {
 
         <div className="mb-6 flex justify-center">
           <div className="rounded-full border border-sand bg-cream-soft px-5 py-2 text-sm font-bold text-blush shadow-sm">
-            🎉 It&apos;s Your Special Day!
+            🎬 Tonight&apos;s premiere
           </div>
         </div>
 

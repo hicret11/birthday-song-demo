@@ -117,7 +117,7 @@ export default function OnboardingForm({ sessionId, defaultName }: Props) {
       <button
         type="submit"
         disabled={!canSubmit}
-        className="w-full rounded-2xl bg-warm-gradient py-4 text-base font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(255,111,145,0.7)] transition hover:-translate-y-1 active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-sand disabled:text-ink-soft disabled:shadow-none disabled:hover:translate-y-0"
+        className="w-full rounded-2xl bg-jade hover:bg-jade-deep py-4 text-base font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(31,142,125,0.7)] transition hover:-translate-y-1 active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-sand disabled:text-ink-soft disabled:shadow-none disabled:hover:translate-y-0"
       >
         {status === "submitting" ? "Saving…" : "Generate my branded link"}
       </button>

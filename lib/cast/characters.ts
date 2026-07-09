@@ -22,19 +22,35 @@ export type CastCharacter = {
   persona: string;
   /** Env var holding this character's ElevenLabs voice id. */
   voiceEnvKey: string;
-  /** One-time price in USD (whole dollars). */
+  /**
+   * Whether this character is offered to bookers right now. Only characters with
+   * a real ElevenLabs voice + finished persona are active; the rest stay in the
+   * library (so getCharacter still resolves old bookings) but are hidden from
+   * every picker until they're launch-ready.
+   */
+  active: boolean;
+  /**
+   * À-la-carte standalone price (USD, whole dollars) for booking JUST this call
+   * via /api/cast/{book,checkout}. NOTE: the $44.99 "Full Production" song tier
+   * BUNDLES one call at no extra charge — that path creates the booking from the
+   * Stripe webhook (see app/api/stripe/webhook), not from this price.
+   */
   priceUsd: number;
 };
 
 export const CAST_CHARACTERS: CastCharacter[] = [
   {
+    // id kept as "zoltar" so existing bookings + the ELEVENLABS_VOICE_ZOLTAR env
+    // key keep resolving; the launch persona is an original FM radio host.
     id: "zoltar",
-    name: "Zoltar the Birthday Wizard",
-    emoji: "🧙",
-    tagline: "A warm, whimsical wizard who calls to cast a birthday spell of good fortune.",
+    name: "DJ Marco Vega",
+    emoji: "📻",
+    tagline:
+      "A smooth FM radio host who sends a live on-air birthday dedication out just for them.",
     persona:
-      "You are Zoltar, an original, friendly birthday wizard character (not based on any existing character). You are warm, whimsical, and grandfatherly, with gentle theatrical flair — you speak of 'birthday magic', 'a year of good fortune', and 'spells of joy'. Keep it wholesome and age-appropriate. The call is short (about a minute): greet them by name, make them feel special and celebrated, reference the personal note if given, and end with a warm birthday blessing.",
+      "You are DJ Marco Vega, an original late-night FM radio host on a fictional radio station (you are NOT based on any real DJ, station, or person, and must never claim to be one). You're warm, smooth, and upbeat with easy on-air energy — you 'send this one out across the airwaves', tee up 'tonight's birthday dedication', and 'cue up their song'. Keep it wholesome and age-appropriate. The call is short (about a minute): open like a radio host introducing a birthday dedication, greet them by name, make them feel like the star of the hour, work in the personal note if one is given, and sign off with a warm on-air birthday wish.",
     voiceEnvKey: "ELEVENLABS_VOICE_ZOLTAR",
+    active: true,
     priceUsd: 19,
   },
   {
@@ -45,6 +61,7 @@ export const CAST_CHARACTERS: CastCharacter[] = [
     persona:
       "You are Pearl, an original, kindly fairy-godmother character (not based on any existing character). You are gentle, sparkly, and encouraging — you talk of 'birthday wishes', 'a little sprinkle of magic', and how special the birthday person is. Keep it wholesome and warm. The call is short (about a minute): greet them by name, celebrate them, weave in the personal note if given, and grant them a heartfelt birthday wish.",
     voiceEnvKey: "ELEVENLABS_VOICE_PEARL",
+    active: false,
     priceUsd: 19,
   },
   {
@@ -55,12 +72,48 @@ export const CAST_CHARACTERS: CastCharacter[] = [
     persona:
       "You are Captain Vero, an original, good-natured pirate-captain character (not based on any existing character). You are playful and boisterous but kind — 'ahoy', 'a fine treasure of a birthday', 'the best crewmate a captain could ask for'. Keep it fun, wholesome, and age-appropriate. The call is short (about a minute): greet them by name, celebrate them warmly, reference the personal note if given, and wish them a grand year ahead.",
     voiceEnvKey: "ELEVENLABS_VOICE_CAPTAIN_VERO",
+    active: false,
     priceUsd: 19,
   },
 ];
 
+/**
+ * Characters offered to bookers right now (launch gate). Every picker renders
+ * from this list; the full CAST_CHARACTERS stays available to getCharacter so
+ * previously-booked characters still resolve.
+ */
+export const ACTIVE_CAST_CHARACTERS: CastCharacter[] = CAST_CHARACTERS.filter(
+  (c) => c.active,
+);
+
 export function getCharacter(id: string): CastCharacter | undefined {
   return CAST_CHARACTERS.find((c) => c.id === id);
+}
+
+/** Client-safe subset for the character picker — no persona/system prompt. */
+export type CastCharacterChoice = {
+  id: string;
+  name: string;
+  emoji: string;
+  tagline: string;
+};
+
+export const CAST_CHARACTER_CHOICES: CastCharacterChoice[] =
+  ACTIVE_CAST_CHARACTERS.map(({ id, name, emoji, tagline }) => ({
+    id,
+    name,
+    emoji,
+    tagline,
+  }));
+
+/** Whether an id names a real character in the library (active or retired). */
+export function isCastCharacterId(id: string): boolean {
+  return CAST_CHARACTERS.some((c) => c.id === id);
+}
+
+/** Whether an id names a character that is currently offered to bookers. */
+export function isActiveCastCharacterId(id: string): boolean {
+  return ACTIVE_CAST_CHARACTERS.some((c) => c.id === id);
 }
 
 // Booking language (full name) → dictionary locale. Unknown languages fall back
@@ -97,7 +150,11 @@ export function composeGreeting(args: {
   const disclosure = fill(t.disclosure, { character: character.name });
   const greet = fill(t.greet, { name: recipientName });
   const note = personalNote?.trim() ? ` ${fill(t.noteIntro, { note: personalNote.trim() })}` : "";
-  return `${disclosure} ${greet}${note}`;
+  // Caller identity + callback number (47 CFR 64.1200(b)). Only appended when a
+  // callback number is configured; server-only env, never bundled to the client.
+  const callbackNumber = process.env.CAST_CALLBACK_NUMBER?.trim();
+  const callback = callbackNumber ? ` ${fill(t.callback, { number: callbackNumber })}` : "";
+  return `${disclosure} ${greet}${note}${callback}`;
 }
 
 /**

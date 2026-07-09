@@ -16,8 +16,63 @@
 import type { SharedSong } from "./api-types";
 import { loadSharedSong, updateSharedSong } from "./share";
 import { transcribeWordTimings } from "./transcribe";
+import {
+  isLambdaConfigured,
+  renderPremiereOnLambda,
+  premiereInputProps,
+} from "./render-lambda";
 
 const REQUEST_TIMEOUT_MS = 5 * 60 * 1000; // rendering can take a couple minutes
+
+/**
+ * Render the premiere on the Railway worker (a container with no per-render
+ * concurrency cap — see remotion/server.ts). Returns the MP4 URL or null.
+ *
+ * This is the PRIMARY render path on the current AWS-quota-capped account: the
+ * Lambda invoke-burst ceiling (~3 concurrent lambdas) can't fan a 1080p
+ * premiere out fast enough (~120s+), whereas one beefy Railway container renders
+ * it straight through. The worker renders the SAME "PremiereVideo" composition
+ * with the SAME props the Lambda path builds, so the output is identical.
+ *
+ * Never throws.
+ */
+async function renderPremiereOnWorker(song: SharedSong): Promise<string | null> {
+  const workerUrl = process.env.RENDER_WORKER_URL;
+  if (!workerUrl) return null;
+  const secret = process.env.RENDER_WORKER_SECRET ?? "";
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${workerUrl.replace(/\/$/, "")}/render`, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        ...(secret ? { Authorization: `Bearer ${secret}` } : {}),
+      },
+      // Send resolved premiere props so the worker renders the exact same video
+      // as Lambda. `song`/`captions` are kept for the worker's legacy
+      // BirthdaySong path (backward-compatible).
+      body: JSON.stringify({
+        composition: "PremiereVideo",
+        inputProps: premiereInputProps(song, "16:9"),
+        song,
+        captions: song.captions ?? [],
+      }),
+    });
+    if (!res.ok) throw new Error(`worker responded ${res.status}`);
+    const data = (await res.json().catch(() => ({}))) as { url?: unknown };
+    return typeof data.url === "string" && data.url ? data.url : null;
+  } catch (err) {
+    console.error(
+      "[render-video] worker premiere render failed:",
+      err instanceof Error ? err.message : err,
+    );
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 /**
  * Ensure premium captions + kick off (and await) the worker render for an
@@ -34,64 +89,59 @@ const REQUEST_TIMEOUT_MS = 5 * 60 * 1000; // rendering can take a couple minutes
  */
 export async function requestPremiumRender(song: SharedSong): Promise<void> {
   try {
-    const workerUrl = process.env.RENDER_WORKER_URL;
-    if (!workerUrl) {
-      // Worker not configured — the ffmpeg video remains the shown video.
-      return;
-    }
     if (!song.unlocked) return;
 
-    // 1) Ensure captions. Reuse persisted captions if we already have them.
-    let captions = song.captions ?? null;
-    if (!captions || captions.length === 0) {
-      const knownLyrics = song.lyrics?.raw ?? "";
-      // Transcribe the SAME audio the video renders from — the highlight cut
-      // when present — so word timings line up with the audiogram/karaoke.
+    const workerConfigured = !!process.env.RENDER_WORKER_URL;
+    const lambdaConfigured = isLambdaConfigured();
+    if (!workerConfigured && !lambdaConfigured) {
+      // Nothing configured — the ffmpeg video remains the shown video. Clean
+      // no-op, don't even mark pending.
+      return;
+    }
+
+    await updateSharedSong(song.id, { videoStatus: "pending" });
+
+    // 1) PRIMARY: the Railway worker (no per-render concurrency cap). On the
+    // quota-capped AWS account this beats Lambda, whose invoke-burst ceiling
+    // (~3 lambdas) can't fan a 1080p premiere out under a minute. Renders the
+    // same "PremiereVideo" composition/props, so output is identical.
+    if (workerConfigured) {
+      const freshForWorker = (await loadSharedSong(song.id)) ?? song;
+      const workerUrl = await renderPremiereOnWorker(freshForWorker);
+      if (workerUrl) {
+        await updateSharedSong(song.id, { premiumVideoUrl: workerUrl, videoStatus: "ready" });
+        console.log(`[render-video] worker premiere ready for ${song.id}`);
+        return;
+      }
+      console.error(`[render-video] worker render failed for ${song.id}; trying Lambda`);
+    }
+
+    // 2) FALLBACK: Remotion Lambda. Renders the full premiere and needs no
+    // captions. Slow on the capped account but a valid last automated path
+    // before ffmpeg. Tune fan-out via REMOTION_FRAMES_PER_LAMBDA (render-lambda).
+    if (lambdaConfigured) {
+      const freshForLambda = (await loadSharedSong(song.id)) ?? song;
+      const lambdaUrl = await renderPremiereOnLambda(freshForLambda);
+      if (lambdaUrl) {
+        await updateSharedSong(song.id, { premiumVideoUrl: lambdaUrl, videoStatus: "ready" });
+        console.log(`[render-video] Lambda premiere ready for ${song.id}`);
+        return;
+      }
+      console.error(`[render-video] Lambda render failed for ${song.id}`);
+    }
+
+    // 3) Both automated premiere paths failed → mark failed; the ffmpeg video
+    // (rendered earlier) stays as the last-resort shown video. Transcribe +
+    // persist captions best-effort so a manual/legacy worker retry has them.
+    if (!song.captions || song.captions.length === 0) {
       const captionAudioUrl = song.highlightAudioUrl ?? song.audioUrl;
-      captions = await transcribeWordTimings(captionAudioUrl, knownLyrics);
+      const captions = await transcribeWordTimings(captionAudioUrl, song.lyrics?.raw ?? "");
       if (captions && captions.length > 0) {
-        // Persist so a re-trigger (webhook + verify-path both fire) doesn't
-        // re-transcribe, and so the worker always has them.
         await updateSharedSong(song.id, { captions });
       }
     }
-
-    // Mark pending before dispatch so the share page can reflect progress.
-    await updateSharedSong(song.id, { videoStatus: "pending" });
-
-    // 2) POST the render job to the worker. The worker renders + uploads to R2.
-    const secret = process.env.RENDER_WORKER_SECRET ?? "";
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-    let url: string | null = null;
-    try {
-      // Re-load the freshest song so the worker gets any captions we just wrote.
-      const fresh = (await loadSharedSong(song.id)) ?? song;
-      const res = await fetch(`${workerUrl.replace(/\/$/, "")}/render`, {
-        method: "POST",
-        signal: controller.signal,
-        headers: {
-          "Content-Type": "application/json",
-          ...(secret ? { Authorization: `Bearer ${secret}` } : {}),
-        },
-        body: JSON.stringify({ song: fresh, captions: captions ?? fresh.captions ?? [] }),
-      });
-      if (!res.ok) {
-        throw new Error(`worker responded ${res.status}`);
-      }
-      const data = (await res.json().catch(() => ({}))) as { url?: unknown };
-      if (typeof data.url === "string" && data.url) url = data.url;
-    } finally {
-      clearTimeout(timeout);
-    }
-
-    if (url) {
-      await updateSharedSong(song.id, { premiumVideoUrl: url, videoStatus: "ready" });
-      console.log(`[render-video] premium render ready for ${song.id}`);
-    } else {
-      await updateSharedSong(song.id, { videoStatus: "failed" });
-      console.error(`[render-video] worker returned no url for ${song.id}`);
-    }
+    await updateSharedSong(song.id, { videoStatus: "failed" });
+    console.error(`[render-video] all premiere render paths failed for ${song.id}`);
   } catch (err) {
     console.error(
       "[render-video] requestPremiumRender failed:",

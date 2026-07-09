@@ -164,7 +164,7 @@ export default function Home() {
       {/* ── HERO ─────────────────────────────────────────────────────────── */}
       <section className="relative z-10 mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-14 px-5 pb-20 pt-6 lg:grid-cols-2 lg:gap-10 lg:pt-12">
         <div className="animate-rise text-center lg:text-left">
-          <p className="text-sm font-bold uppercase tracking-[0.2em] text-jade">
+          <p className="text-sm font-bold uppercase tracking-[0.2em] text-jade-deep">
             Personalized birthday songs
           </p>
 
@@ -187,7 +187,11 @@ export default function Home() {
             <LandingCta label="Create their song →" />
           </div>
 
-          <ul className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm font-medium text-ink-soft lg:justify-start">
+          <p className="mt-4 text-sm font-semibold text-ink-soft">
+            Love it, or it’s free — hear a preview before you pay a cent.
+          </p>
+
+          <ul className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm font-medium text-ink-soft lg:justify-start">
             <li className="inline-flex items-center gap-1.5">
               <Sparkles size={15} className="text-jade" /> Free 15-second preview
             </li>
@@ -203,8 +207,8 @@ export default function Home() {
         {/* Hero artifact — the product as a beautiful, slightly-tilted player card. */}
         <div className="animate-rise [animation-delay:120ms]">
           <div className="relative mx-auto max-w-sm rotate-1">
-            <div className="absolute -inset-4 -z-10 rounded-[2.25rem] bg-warm-gradient opacity-35 blur-2xl" />
-            <div className="grain relative overflow-hidden rounded-[1.9rem] border border-white/70 bg-cream-soft p-6 shadow-[0_40px_90px_-28px_rgba(255,111,145,0.55)]">
+            <div className="absolute -inset-6 -z-10 rounded-[2.5rem] bg-warm-gradient opacity-20 blur-3xl" />
+            <div className="grain relative overflow-hidden rounded-[1.9rem] border border-sand bg-cream-soft p-6 shadow-[0_30px_70px_-34px_rgba(60,40,30,0.45)]">
               <div className="flex items-center gap-4">
                 <div className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-warm-gradient text-white shadow-lg">
                   <Music size={26} />
@@ -235,19 +239,19 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── STYLES (tinted band, pill row — honest: these are the styles offered) */}
-      <section className="relative z-10 border-y border-sand bg-warm-soft">
-        <div className="mx-auto w-full max-w-5xl px-5 py-12">
-          <p className="text-center font-serif text-2xl italic text-ink">
+      {/* ── STYLES (calm raised band, pill row — honest: these are the styles offered) */}
+      <section className="relative z-10 border-y border-sand bg-cream-soft">
+        <div className="mx-auto w-full max-w-5xl px-5 py-14">
+          <p className="text-center font-serif text-2xl italic text-ink-soft">
             Any voice, any style
           </p>
-          <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-2.5">
             {STYLES.map((s) => (
               <span
                 key={s.name}
-                className="inline-flex items-center gap-2.5 rounded-full border border-white/70 bg-cream-soft/90 py-2 pl-2 pr-5 shadow-sm backdrop-blur"
+                className="inline-flex items-center gap-2.5 rounded-full border border-sand bg-cream py-2 pl-2 pr-5"
               >
-                <span className={`h-8 w-8 rounded-full bg-gradient-to-br ${s.tint} shadow`} />
+                <span className={`h-7 w-7 rounded-full bg-gradient-to-br ${s.tint}`} />
                 <span className="font-display text-sm font-bold text-ink">{s.name}</span>
               </span>
             ))}

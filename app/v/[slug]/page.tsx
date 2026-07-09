@@ -12,7 +12,7 @@ type PageProps = {
   params: Promise<{ slug: string }>;
 };
 
-const FALLBACK_COLOR = "#a855f7";
+const FALLBACK_COLOR = "#1f8e7d"; // jade — warm-system default when a venue has no valid brand color
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;

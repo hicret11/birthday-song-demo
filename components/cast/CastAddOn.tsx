@@ -13,7 +13,7 @@
 // both here and server-side.
 
 import { useMemo, useState } from "react";
-import { CAST_CHARACTERS } from "@/lib/cast/characters";
+import { ACTIVE_CAST_CHARACTERS } from "@/lib/cast/characters";
 import type { Dict } from "@/lib/i18n";
 
 type CastDict = Dict["cast"];
@@ -39,7 +39,7 @@ export default function CastAddOn({
   dir: "ltr" | "rtl";
 }) {
   const [open, setOpen] = useState(false);
-  const [characterId, setCharacterId] = useState<string>(CAST_CHARACTERS[0]?.id ?? "");
+  const [characterId, setCharacterId] = useState<string>(ACTIVE_CAST_CHARACTERS[0]?.id ?? "");
   const [name, setName] = useState(recipientName ?? "");
   const [phone, setPhone] = useState("");
   const [note, setNote] = useState("");
@@ -49,14 +49,14 @@ export default function CastAddOn({
   const [error, setError] = useState<string | null>(null);
 
   const character = useMemo(
-    () => CAST_CHARACTERS.find((c) => c.id === characterId),
+    () => ACTIVE_CAST_CHARACTERS.find((c) => c.id === characterId),
     [characterId],
   );
   // Per-character tagline is localized in the dict, with a fallback to the
   // data-file copy for any character not yet translated.
   const taglineFor = (id: string): string => {
     const map = t.characters as Record<string, { tagline: string } | undefined>;
-    return map[id]?.tagline ?? CAST_CHARACTERS.find((c) => c.id === id)?.tagline ?? "";
+    return map[id]?.tagline ?? ACTIVE_CAST_CHARACTERS.find((c) => c.id === id)?.tagline ?? "";
   };
 
   const displayName = name.trim() || recipientName || "";
@@ -142,13 +142,13 @@ export default function CastAddOn({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="w-full rounded-3xl border border-sand bg-cream-soft p-5 text-center shadow-sm transition hover:-translate-y-0.5 hover:border-brand-pink"
+          className="w-full rounded-3xl border border-sand bg-cream-soft p-5 text-center shadow-sm transition hover:-translate-y-0.5 hover:border-jade"
         >
           <span className="block font-display text-lg font-black text-ink">{t.ctaTitle}</span>
           <span className="mt-1 block text-sm text-ink-soft">
             {fill(t.ctaSubtitle, { name: displayName })}
           </span>
-          <span className="mt-3 inline-block rounded-full bg-gradient-to-r from-brand-amber to-brand-pink px-5 py-2 text-sm font-extrabold text-white">
+          <span className="mt-3 inline-block rounded-full bg-jade hover:bg-jade-deep px-5 py-2 text-sm font-extrabold text-white">
             {t.open}
           </span>
         </button>
@@ -175,7 +175,7 @@ export default function CastAddOn({
           {t.pickCharacter}
         </p>
         <div className="mt-2 grid gap-2">
-          {CAST_CHARACTERS.map((c) => {
+          {ACTIVE_CAST_CHARACTERS.map((c) => {
             const sel = c.id === characterId;
             return (
               <button
@@ -185,8 +185,8 @@ export default function CastAddOn({
                 aria-pressed={sel}
                 className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-start transition ${
                   sel
-                    ? "border-brand-pink bg-cream ring-2 ring-brand-pink/40"
-                    : "border-sand bg-cream hover:border-brand-pink"
+                    ? "border-jade bg-cream ring-2 ring-jade/40"
+                    : "border-sand bg-cream hover:border-jade"
                 }`}
               >
                 <span className="text-2xl">{c.emoji}</span>
@@ -206,7 +206,7 @@ export default function CastAddOn({
           value={name}
           onChange={(e) => setName(e.target.value.slice(0, 80))}
           placeholder={t.recipientNamePlaceholder}
-          className="mt-1 w-full rounded-2xl border border-sand bg-cream px-4 py-3 text-base text-ink outline-none focus:border-brand-pink"
+          className="mt-1 w-full rounded-2xl border border-sand bg-cream px-4 py-3 text-base text-ink outline-none focus:border-jade"
         />
 
         <label className="mt-3 block text-xs font-bold text-ink">{t.phoneLabel}</label>
@@ -215,7 +215,7 @@ export default function CastAddOn({
           onChange={(e) => setPhone(e.target.value.slice(0, 20))}
           inputMode="tel"
           placeholder={t.phonePlaceholder}
-          className="mt-1 w-full rounded-2xl border border-sand bg-cream px-4 py-3 text-base text-ink outline-none focus:border-brand-pink"
+          className="mt-1 w-full rounded-2xl border border-sand bg-cream px-4 py-3 text-base text-ink outline-none focus:border-jade"
         />
         <p className="mt-1 text-[11px] text-ink-soft">{t.phoneHint}</p>
 
@@ -225,7 +225,7 @@ export default function CastAddOn({
           onChange={(e) => setNote(e.target.value.slice(0, 400))}
           rows={2}
           placeholder={t.notePlaceholder}
-          className="mt-1 w-full rounded-2xl border border-sand bg-cream px-4 py-3 text-sm text-ink outline-none focus:border-brand-pink"
+          className="mt-1 w-full rounded-2xl border border-sand bg-cream px-4 py-3 text-sm text-ink outline-none focus:border-jade"
         />
 
         <label className="mt-3 block text-xs font-bold text-ink">{t.scheduleLabel}</label>
@@ -233,7 +233,7 @@ export default function CastAddOn({
           type="datetime-local"
           value={schedule}
           onChange={(e) => setSchedule(e.target.value)}
-          className="mt-1 w-full rounded-2xl border border-sand bg-cream px-4 py-3 text-sm text-ink outline-none focus:border-brand-pink"
+          className="mt-1 w-full rounded-2xl border border-sand bg-cream px-4 py-3 text-sm text-ink outline-none focus:border-jade"
         />
         <p className="mt-1 text-[11px] text-ink-soft">{t.scheduleHint}</p>
 
@@ -251,20 +251,20 @@ export default function CastAddOn({
             type="checkbox"
             checked={consent}
             onChange={(e) => setConsent(e.target.checked)}
-            className="mt-0.5 h-4 w-4 shrink-0 accent-brand-pink"
+            className="mt-0.5 h-4 w-4 shrink-0 accent-jade"
           />
           <span className="text-xs leading-relaxed text-ink">
             {fill(t.consentLabel, { name: displayName })}
           </span>
         </label>
 
-        {error && <p className="mt-3 text-sm font-semibold text-brand-pink">{error}</p>}
+        {error && <p className="mt-3 text-sm font-semibold text-jade">{error}</p>}
 
         <button
           type="button"
           onClick={submit}
           disabled={submitting || !consent}
-          className="mt-4 w-full rounded-2xl bg-gradient-to-r from-brand-amber to-brand-pink px-6 py-4 text-base font-extrabold text-white shadow-lg transition hover:-translate-y-0.5 disabled:opacity-60"
+          className="mt-4 w-full rounded-2xl bg-jade hover:bg-jade-deep px-6 py-4 text-base font-extrabold text-white shadow-lg transition hover:-translate-y-0.5 disabled:opacity-60"
         >
           {submitting
             ? t.submitting
