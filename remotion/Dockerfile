@@ -12,9 +12,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Install deps first for better layer caching.
+# Install deps first for better layer caching. Include devDeps: the container
+# entrypoint runs the TS server via `tsx` (a devDependency), so an --omit=dev
+# install would leave `npx tsx` to fetch it at runtime (flaky / offline-fragile).
 COPY package.json package-lock.json* ./
-RUN npm install --omit=dev
+RUN npm install
 
 # App source.
 COPY . .

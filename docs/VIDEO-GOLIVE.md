@@ -72,6 +72,38 @@ Re-verify after the quota increase by simply unlocking a Deluxe song and
 confirming the Lambda premiere (not the ffmpeg fallback) appears on the share
 page.
 
+## 3c. Railway render worker — PRIMARY host on the capped account (2026-07-09)
+Because the Lambda invoke-burst ceiling on this new account tops out at ~3
+concurrent render lambdas (and 3008 MB → only 2 vCPU, so `concurrencyPerLambda`
+≤ 2), Lambda can't fan a 1080p premiere out under a minute. Empirically:
+
+| Config (960-frame / 32s premiere)      | Result                        |
+| -------------------------------------- | ----------------------------- |
+| Lambda, default fan-out                | ❌ "Rate Exceeded" (0 lambdas) |
+| Lambda, `FPL=120` (8 lambdas)          | ❌ "Rate Exceeded" after 3     |
+| Lambda, `FPL=320` (3 lambdas, C=1)     | ✅ **323.8s** (too slow)       |
+| **Railway worker (1 container)**       | ✅ **41.4s** end-to-end        |
+
+So the render chain is now **Railway worker → Lambda → ffmpeg** (see
+`lib/render-video.ts`). The worker renders the SAME `PremiereVideo` composition
+with the SAME props the Lambda path builds, so output is identical
+(verified: 1920×1080 h264 + aac, 32.0s, plays from Vercel Blob).
+
+- **Live worker:** `https://singmy-render-worker-production.up.railway.app`
+  (Railway project `singmy-render-worker`, lotirium's workspace). Renders the
+  premiere and uploads to the same Vercel Blob store the app reads from.
+- **Worker env (on Railway):** `RENDER_WORKER_SECRET`, `BLOB_READ_WRITE_TOKEN`.
+- **App env (Vercel PREVIEW + `.env.local`):** `RENDER_WORKER_URL`,
+  `RENDER_WORKER_SECRET` (must match the worker), plus the Lambda-fallback tuning
+  `REMOTION_FRAMES_PER_LAMBDA=600` / `REMOTION_CONCURRENCY_PER_LAMBDA=2` (keeps
+  the Lambda fallback under the burst cap instead of Rate-Exceeding).
+  - **Not set on Production** yet — `main` doesn't have the worker-primary
+    reorder. Set these on Production only after `feat/deliverable-rebuild` merges.
+- **Once the AWS quota is approved:** you can either keep Railway as primary, or
+  LOWER `REMOTION_FRAMES_PER_LAMBDA` (e.g. 20–40) to fan Lambda across many
+  lambdas — no code change, just the env. Redeploy the worker with
+  `cd remotion && railway up` after any worker code change.
+
 ## 4. How it runs once live
 - On unlock (Deluxe/Production), `requestPremiumRender` renders the `PremiereVideo`
   composition on Lambda, polls to completion, copies the MP4 from Lambda's S3 to
