@@ -19,7 +19,6 @@ import type {
   WaitCaptureLocation,
   WaitCaptureRelationship,
 } from "@/lib/api-types";
-import Image from "next/image";
 import {
   CAKE_STYLES,
   CANDLE_COLORS,
@@ -31,7 +30,6 @@ import {
 import { toAudioProxyUrl } from "@/lib/audio-proxy";
 import Confetti from "@/components/Confetti";
 import PremiereReveal from "@/components/premiere/PremiereReveal";
-import ThemeToggle from "@/components/ThemeToggle";
 import {
   FULL_PRICE_LABEL as TIER_PRICE_LABEL,
   DELUXE_PRICE_LABEL,
@@ -1423,11 +1421,6 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
   //                          music-rendering wait, which lives on step 2).
   //   Step 3 "The song"    → audio is ready (reveal + preview + paywall).
   const step: 1 | 2 | 3 = audioUrl ? 3 : lyrics ? 2 : 1;
-  const stepLabels: [string, string, string] = [
-    t.generate.stepDetails,
-    t.generate.stepLyrics,
-    t.generate.stepSong,
-  ];
 
   // Smooth-scroll to the top of the flow whenever the step advances. SSR-guarded
   // and best-effort — never throws into the UI.
@@ -2223,7 +2216,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
 
   return (
     <main
-      className={`gen-stage grain relative min-h-screen overflow-x-hidden bg-cream ${theme.text} px-4 py-6 sm:py-8 transition-all duration-700`}
+      className={`gen-stage grain relative min-h-screen overflow-x-hidden ${theme.text} px-4 py-6 sm:py-8`}
     >
       <style>{`
         * { scrollbar-width: none; }
@@ -2243,8 +2236,17 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
           --color-blush: #ff6fae;
           --warm-gradient: linear-gradient(120deg,#ffb03a 0%,#ff6fae 55%,#ff3d90 100%);
           --warm-gradient-soft: linear-gradient(120deg,rgba(255,207,107,0.16),rgba(255,111,174,0.16));
-          background: radial-gradient(1200px 720px at 50% -12%, #3a1f5e 0%, #1c1030 46%, #120a1e 100%) fixed;
+          /* Solid near-black base + a plum glow at the top. NOT fixed, so it
+             covers the full scroll height edge-to-edge (no cream leak below). */
+          background-color: #120a1e;
+          background-image: radial-gradient(1100px 680px at 50% -10%, #3a1f5e 0%, rgba(28,16,48,0.5) 46%, transparent 100%);
         }
+        /* The page body + global site chrome are cream in light mode; paint the
+           whole viewport noir and hide the site footer so the stage is immersive
+           edge-to-edge (matches the prototype). Scoped to while this route is
+           mounted via :has — reverts on navigation. */
+        body:has(.gen-stage) { background: #120a1e; }
+        body:has(.gen-stage) > footer { display: none; }
         .gen-stage input, .gen-stage textarea { background: rgba(0,0,0,0.26); }
         .gen-stage ::placeholder { color: #a596c4; opacity: 1; }
         .gen-stage .grain { color: #f4e9ff; }
@@ -2317,11 +2319,6 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
 
       <canvas ref={canvasRef} className="fixed inset-0 z-[1] pointer-events-none select-none" />
 
-      {/* Light/dark switch — floats top-right above the centered header. */}
-      <div className="absolute right-4 top-6 z-30 sm:right-6">
-        <ThemeToggle />
-      </div>
-
       {venue && (
         <div
           className="relative z-20 mx-auto mb-4 flex max-w-5xl items-center gap-2 rounded-r-xl border-l-2 bg-cream-soft px-4 py-2 text-sm font-semibold text-ink shadow-sm"
@@ -2337,94 +2334,40 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
         </div>
       )}
 
-      <header className="relative z-20 mx-auto mb-6 max-w-5xl text-center">
-        <Image
-          src="/brand/logo-mark-tight.png"
-          alt="Sing My Birthday"
-          width={104}
-          height={104}
-          priority
-          className="mx-auto mb-4 h-[104px] w-[104px] drop-shadow-sm"
+      {/* Brandbar — a small theatrical wordmark. The immersive noir stage
+          replaces the usual cream logo header + step nav (matches the v4
+          prototype: opening screen carries the hook, the reel carries progress). */}
+      <div className="relative z-20 mx-auto mb-5 flex max-w-xl items-center justify-center gap-2">
+        <span
+          aria-hidden
+          className="h-2.5 w-2.5 rounded-full"
+          style={{ background: "linear-gradient(135deg,#ffcf6b,#ff6fae)" }}
         />
-        <div className="mb-3 flex items-center justify-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-warm-soft px-4 py-2 text-xs font-bold uppercase tracking-[0.14em] text-gold shadow-sm sm:text-sm">
-            {t.generate.studioBadge}
-          </div>
-        </div>
-
-        <h1
-          className={`bg-gradient-to-r ${theme.title} bg-clip-text pb-3 font-display text-3xl font-extrabold leading-[1.08] tracking-tight text-transparent sm:text-4xl lg:text-5xl`}
-        >
-          {t.generate.studioHook.replace(
-            "{name}",
-            name.trim() || t.generate.studioHookThem,
-          )}
-        </h1>
-
-        <p className={`text-base sm:text-lg ${theme.sub}`}>
-          {t.generate.studioHookSub}
-        </p>
-      </header>
+        <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-ink-soft sm:text-xs">
+          {t.generate.studioBrandbar}
+        </span>
+      </div>
 
       {/* Scroll anchor — the step-change effect scrolls this into view so each
           new step lands at the top of the flow. */}
       <div ref={flowTopRef} className="relative z-20 mx-auto max-w-xl scroll-mt-4" />
 
-      {/* Guided-flow progress header — three labeled segments, current step in
-          the brand gradient, completed steps marked done. Purely presentational;
-          `step` is derived from existing state (see above), so this never gates
-          or drives any logic. */}
-      <nav
-        aria-label="Progress"
-        className="relative z-20 mx-auto mb-6 max-w-xl px-1"
-      >
-        <ol className="flex items-center gap-2 sm:gap-3">
-          {stepLabels.map((label, i) => {
-            const n = (i + 1) as 1 | 2 | 3;
-            const isCurrent = step === n;
-            const isDone = step > n;
-            return (
-              <li key={label} className="flex flex-1 items-center gap-2 sm:gap-3">
-                <div
-                  className={`flex min-w-0 flex-1 items-center gap-2 rounded-2xl border px-3 py-2 transition ${
-                    isCurrent
-                      ? "border-transparent bg-warm-gradient text-white shadow-md"
-                      : isDone
-                        ? "border-jade/40 bg-warm-soft text-jade"
-                        : "border-sand bg-cream-soft text-ink-soft"
-                  }`}
-                >
-                  <span
-                    aria-hidden
-                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-extrabold ${
-                      isCurrent
-                        ? "bg-white/25 text-white"
-                        : isDone
-                          ? "bg-jade/20 text-jade"
-                          : "bg-sand text-ink-soft"
-                    }`}
-                  >
-                    {isDone ? "✓" : n}
-                  </span>
-                  <span className="truncate text-xs font-bold">
-                    {label}
-                  </span>
-                </div>
-              </li>
-            );
-          })}
-        </ol>
-      </nav>
-
       {/* ── STEP 1 · the intake: opening marquee, then the beat engine ── */}
       {step === 1 && (
-        <section className={`relative z-10 mx-auto max-w-xl rounded-[2rem] border ${theme.card} p-5 shadow-sm sm:p-8`}>
+        <section className="relative z-10 mx-auto max-w-xl">
           {intakeStage === "opening" ? (
             <>
               <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-gold/40 bg-warm-soft px-4 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-gold">
                 {t.generate.openingBadge}
               </span>
-              <p className="mb-4 text-sm leading-relaxed text-ink-soft">{t.generate.openingLead}</p>
+              <h1 className="mb-3 mt-3 font-display text-[26px] font-extrabold leading-[1.12] tracking-tight text-ink sm:text-[32px]">
+                {t.generate.studioHook.split("{name}")[0]}
+                <span className="bg-gradient-to-r from-[#ffcf6b] via-[#ff8ac0] to-[#ff3d90] bg-clip-text text-transparent">
+                  {name.trim() || t.generate.studioHookThem}
+                </span>
+                {t.generate.studioHook.split("{name}")[1]}
+              </h1>
+              <p className="mb-5 text-[15px] leading-relaxed text-ink-soft">{t.generate.openingLead}</p>
 
               {/* The marquee — the star's name lights up as you type it. */}
               <div className="marquee-sign">
@@ -2447,7 +2390,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                 </ProducerBubble>
               </div>
 
-              <div className="space-y-4">
+              <div className="mt-5 space-y-4 rounded-[1.25rem] border border-sand bg-cream-soft p-5">
                 <div>
                   <label htmlFor="recipient-name" className="mb-2 block font-display text-lg font-bold text-ink">
                     {t.generate.nameLabel}

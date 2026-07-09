@@ -117,6 +117,7 @@ export const ar: Dict = {
     relationshipColleague: "زميله",
     relationshipOther: "شخص يحبّه",
     studioBadge: "🎬 ليس مولّد أغاني",
+    studioBrandbar: "Sing My Birthday · استوديو الإنتاج",
     studioHook: "لنجعل {name} بطل يوم ميلاده.",
     studioHookThem: "هذا الشخص",
     studioHookSub:

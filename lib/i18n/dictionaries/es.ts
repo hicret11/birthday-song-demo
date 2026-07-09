@@ -112,6 +112,7 @@ export const es: Dict = {
     relationshipColleague: "Su colega",
     relationshipOther: "Alguien que le quiere",
     studioBadge: "🎬 No es un generador de canciones",
+    studioBrandbar: "Sing My Birthday · El Estudio de Producción",
     studioHook: "Hagamos de {name} el personaje principal de su cumpleaños.",
     studioHookThem: "esa persona",
     studioHookSub:

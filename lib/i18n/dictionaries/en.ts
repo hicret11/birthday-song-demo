@@ -122,6 +122,7 @@ export const en = {
     // strings restyle the same fields as a guided conversation with a producer
     // persona. {name}/{producer} are interpolated by the component.
     studioBadge: "🎬 Not a song generator",
+    studioBrandbar: "Sing My Birthday · The Production Studio",
     studioHook: "Let’s make {name} the main character of their birthday.",
     studioHookThem: "them",
     studioHookSub:

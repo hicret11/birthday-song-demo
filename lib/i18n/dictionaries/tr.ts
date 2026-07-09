@@ -112,6 +112,7 @@ export const tr: Dict = {
     relationshipColleague: "İş arkadaşı",
     relationshipOther: "Onu seven biri",
     studioBadge: "🎬 Şarkı üreticisi değil",
+    studioBrandbar: "Sing My Birthday · Prodüksiyon Stüdyosu",
     studioHook: "{name} doğum gününün baş kahramanı olsun.",
     studioHookThem: "onu",
     studioHookSub:
