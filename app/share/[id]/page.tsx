@@ -15,6 +15,7 @@ import { CrowdCreditProvider, type CrowdCredit } from "@/components/share/CrowdC
 import CastAddOn from "@/components/cast/CastAddOn";
 import LiveCastAddOn from "@/components/cast/LiveCastAddOn";
 import { getLiveCities, isLiveCastEnabled, liveDepositUsd } from "@/lib/cast/live";
+import { isTelephonyConfigured } from "@/lib/cast/place-call";
 import { getDictionary, isRtl, type Locale } from "@/lib/i18n";
 
 const SITE_URL = "https://singmybirthday.com";
@@ -204,14 +205,19 @@ export default async function SharePage({
         <ShareTemplateView song={toPublicSong(song)} />
       )}
       {/* Add-on entry point — an independent upsell that never touches the song,
-          the paywall, or unlock state. */}
-      <CastAddOn
-        giftId={song.id}
-        recipientName={song.name}
-        language={song.language}
-        t={castDict}
-        dir={castDir}
-      />
+          the paywall, or unlock state. Hidden unless outbound telephony is
+          actually configured, so we never take payment for an AI birthday call
+          that can't be placed. Auto-returns once ELEVENLABS_* is added on
+          Production (post-legal sign-off) — no code change needed then. */}
+      {isTelephonyConfigured() && (
+        <CastAddOn
+          giftId={song.id}
+          recipientName={song.name}
+          language={song.language}
+          t={castDict}
+          dir={castDir}
+        />
+      )}
       {liveEnabled && (
         <LiveCastAddOn
           giftId={song.id}

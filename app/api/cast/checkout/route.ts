@@ -19,6 +19,7 @@ import { getStripe } from "@/lib/stripe";
 import { getBooking } from "@/lib/cast";
 import { getCharacter } from "@/lib/cast/characters";
 import { isLiveKind, liveDepositUsd, liveKindLabel } from "@/lib/cast/live";
+import { isTelephonyConfigured } from "@/lib/cast/place-call";
 
 export const runtime = "nodejs";
 
@@ -63,6 +64,13 @@ export async function POST(request: Request): Promise<Response> {
     unitAmountCents = liveDepositUsd() * 100;
     metadata.cast_kind = booking.kind;
   } else {
+    // Hard gate (defense in depth): never open checkout for an AI call when
+    // outbound telephony is de-armed — the call can't be placed, so we must not
+    // take payment. Mirrors the /api/cast/book guard and the hidden client
+    // add-on. Auto-clears once ELEVENLABS_* is configured on Production.
+    if (!isTelephonyConfigured()) {
+      return jsonError("Birthday calls aren't available yet — check back soon.", 403);
+    }
     const character = getCharacter(booking.characterId);
     if (!character) return jsonError("Unknown character on this booking.", 400);
     lineName = `${character.name} — AI birthday call`;

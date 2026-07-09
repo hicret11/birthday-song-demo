@@ -20,6 +20,7 @@ import { createBooking } from "@/lib/cast";
 import { getCharacter } from "@/lib/cast/characters";
 import { timezoneForPhone } from "@/lib/cast/quiet-hours";
 import { isCallAllowedForPhone } from "@/lib/cast/call-countries";
+import { isTelephonyConfigured } from "@/lib/cast/place-call";
 import {
   isLiveKind,
   isLiveCastEnabled,
@@ -176,6 +177,15 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   // ── AI character phone call (default) ────────────────────────────────────
+  // Hard gate: never accept an AI-call booking when outbound telephony is
+  // de-armed (ELEVENLABS_* absent). The call physically cannot be placed, so
+  // taking payment would be selling an undeliverable service. Defense in depth —
+  // the client add-on is already hidden in this state; this stops any stale or
+  // cached client from reaching checkout. Auto-clears when creds are added.
+  if (!isTelephonyConfigured()) {
+    return jsonError("NOT_AVAILABLE", "Birthday calls aren't available yet — check back soon.", 403);
+  }
+
   const character = getCharacter(typeof body.characterId === "string" ? body.characterId : "");
   // Only characters currently offered to bookers can be booked (launch gate); the
   // full library still resolves for already-scheduled bookings elsewhere.
