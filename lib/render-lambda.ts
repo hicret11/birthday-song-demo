@@ -27,6 +27,43 @@ const LANGUAGE_TO_LOCALE: Record<string, Locale> = {
 const POLL_INTERVAL_MS = 3000;
 const MAX_POLLS = 120; // ~6 minutes ceiling
 
+/**
+ * Render fan-out tuning — env-overridable so we can re-parallelise the instant
+ * the AWS concurrency quota is raised, with NO code change or redeploy.
+ *
+ * Why the conservative defaults: this AWS account is brand-new and heavily
+ * quota-limited. Its Lambda invoke-burst ceiling tops out around ~3 concurrent
+ * render lambdas — beyond that `renderMediaOnLambda` throws "AWS Concurrency
+ * limit reached (Rate Exceeded)". The deployed function is 3008 MB → 2 vCPU, so
+ * `concurrencyPerLambda` (per-lambda internal parallelism) can be at most 2.
+ * Empirically, 3 lambdas × 1 = ~324s and even 3-4 × 2 lands ~120-160s for a
+ * ~960-frame (32s) 1080p premiere — so on the capped account the Railway worker
+ * is the primary path (see render-video.ts) and Lambda is the fallback.
+ *
+ * `REMOTION_FRAMES_PER_LAMBDA` sets frames per lambda; lambda count =
+ * ceil(totalFrames / framesPerLambda). A high value keeps the count low enough
+ * to avoid Rate-Exceeded on the capped account. Once the quota is approved,
+ * LOWER this (e.g. 20-40) to fan out across many lambdas and drop render time
+ * well under a minute.
+ *
+ * `REMOTION_CONCURRENCY_PER_LAMBDA` sets internal parallelism (≤ vCPU count).
+ * Unset → Remotion's memory-derived default. Raise to 2 on the current 2-vCPU
+ * function; raise further only if the function is redeployed with more memory.
+ */
+function framesPerLambdaOverride(): number | undefined {
+  const raw = process.env.REMOTION_FRAMES_PER_LAMBDA;
+  if (!raw) return undefined;
+  const n = Number.parseInt(raw, 10);
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+}
+
+function concurrencyPerLambdaOverride(): number | undefined {
+  const raw = process.env.REMOTION_CONCURRENCY_PER_LAMBDA;
+  if (!raw) return undefined;
+  const n = Number.parseInt(raw, 10);
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+}
+
 type LambdaEnv = {
   region: string;
   functionName: string;
@@ -49,6 +86,16 @@ function lambdaEnv(): LambdaEnv | null {
 /** Whether the Remotion Lambda render path is configured. */
 export function isLambdaConfigured(): boolean {
   return lambdaEnv() !== null;
+}
+
+/**
+ * Build the PremiereVideo input props from a song. Exported so the Railway
+ * worker path (render-video.ts) renders the IDENTICAL premiere the Lambda path
+ * would — same composition, same props, same output — just on a host without a
+ * per-render concurrency cap.
+ */
+export function premiereInputProps(song: SharedSong, aspect: "16:9" | "9:16" = "16:9") {
+  return inputPropsFor(song, aspect);
 }
 
 /** Build the PremiereVideo input props from a song. */
@@ -87,6 +134,8 @@ export async function renderPremiereOnLambda(
   const env = lambdaEnv();
   if (!env) return null;
   try {
+    const framesPerLambda = framesPerLambdaOverride();
+    const concurrencyPerLambda = concurrencyPerLambdaOverride();
     const { renderId, bucketName } = await renderMediaOnLambda({
       region: env.region as Parameters<typeof renderMediaOnLambda>[0]["region"],
       functionName: env.functionName,
@@ -96,6 +145,10 @@ export async function renderPremiereOnLambda(
       codec: "h264",
       audioCodec: "mp3",
       privacy: "public",
+      // Fan-out tuning — see framesPerLambdaOverride() above. Omitted keys use
+      // Remotion's defaults, so unset env == stock behaviour.
+      ...(framesPerLambda ? { framesPerLambda } : {}),
+      ...(concurrencyPerLambda ? { concurrencyPerLambda } : {}),
       downloadBehavior: { type: "download", fileName: `premiere-${song.id}.mp4` },
     });
 
