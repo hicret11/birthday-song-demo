@@ -11,7 +11,7 @@ import { applyPronunciationHint, refineStyleForSuno } from "@/lib/anthropic";
 import { renderShareVideo } from "@/lib/video";
 import { uploadToR2 } from "@/lib/r2";
 import { loadSharedSong, saveSharedSong } from "@/lib/share";
-import { submitGeneration, checkStatus } from "@/lib/suno";
+import { submitGeneration, checkStatus, sunoStyleLimit } from "@/lib/suno";
 import { recordSpendCents } from "@/lib/spend-cap";
 import type { SharedSong } from "@/lib/api-types";
 
@@ -25,7 +25,10 @@ const MAX_REGEN_RETRIES = 2;
 const POLL_INTERVAL_MS = 4_000;
 const SUNO_TIMEOUT_MS = 50_000;
 const MAX_STYLE_NOTES_LEN = 2000;
-const MAX_STYLE_TOTAL_LEN = 600;
+// Birthday-song boilerplate that must always survive on the end of the Suno
+// style regardless of how much descriptor we trim to fit the model's field.
+const SUNO_STYLE_SUFFIX =
+  "full, cheerful birthday song with a clear verse and chorus, about 60 seconds, natural ending";
 
 const ID_RE = /^[a-zA-Z0-9]{1,32}$/;
 
@@ -43,26 +46,36 @@ function stripControlChars(s: string): string {
   return out;
 }
 
+// Mirrors generate-music's fitSunoStyle — compose the descriptive head with the
+// required birthday-song suffix, keeping the whole string within the active Suno
+// model's style ceiling. The suffix is always kept; only the head is trimmed
+// (at a word boundary) to fit, so any-length style notes never bounce back as
+// Suno's "shorten it to 200 characters" error. Kept inline rather than shared
+// so each route owns its own Suno-prompt assembly.
+function fitSunoStyle(head: string): string {
+  const limit = sunoStyleLimit();
+  const cleanHead = head.trim().replace(/[\s,]+$/, "");
+  if (!cleanHead) return SUNO_STYLE_SUFFIX.slice(0, limit);
+
+  const room = limit - SUNO_STYLE_SUFFIX.length - 2;
+  if (room <= 0) return cleanHead.slice(0, limit);
+  if (cleanHead.length <= room) return `${cleanHead}, ${SUNO_STYLE_SUFFIX}`;
+
+  let trimmed = cleanHead.slice(0, room);
+  const lastBreak = Math.max(trimmed.lastIndexOf(" "), trimmed.lastIndexOf(","));
+  if (lastBreak > room * 0.6) trimmed = trimmed.slice(0, lastBreak);
+  trimmed = trimmed.replace(/[\s,]+$/, "");
+  return `${trimmed}, ${SUNO_STYLE_SUFFIX}`;
+}
+
 function buildSunoStyle(genre: string, styleNotes?: string | null): string {
   const cleanGenre = stripEmojiPrefix(genre);
   const notes = stripControlChars(styleNotes ?? "").trim().slice(0, MAX_STYLE_NOTES_LEN);
-  const parts = [cleanGenre];
-  if (notes) parts.push(notes);
-  parts.push("full, cheerful birthday song with a clear verse and chorus", "about 60 seconds", "natural ending");
-  return parts.join(", ").slice(0, MAX_STYLE_TOTAL_LEN);
+  return fitSunoStyle(notes ? `${cleanGenre}, ${notes}` : cleanGenre);
 }
 
-// Mirrors generate-music's variant — refined descriptor + birthday-song
-// boilerplate. Kept inline rather than shared so each route owns its own
-// Suno-prompt assembly and we don't grow a cross-route module.
 function buildRefinedSunoStyle(refined: string): string {
-  const parts = [
-    refined,
-    "full, cheerful birthday song with a clear verse and chorus",
-    "about 60 seconds",
-    "natural ending",
-  ];
-  return parts.join(", ").slice(0, MAX_STYLE_TOTAL_LEN);
+  return fitSunoStyle(refined);
 }
 
 function errResponse(message: string, status: number): Response {

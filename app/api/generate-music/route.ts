@@ -21,14 +21,17 @@ import {
 } from "@/lib/music-provider";
 import { getClientIp, rateLimitFixedWindow } from "@/lib/rate-limit";
 import { recordSpendCents } from "@/lib/spend-cap";
+import { sunoStyleLimit } from "@/lib/suno";
 
 // Generous cap on the user's free-text style notes — effectively "any length"
 // for real use. It's not a hard product limit; the notes are refined by Claude
 // into a compact Suno descriptor anyway, so a long note never reaches Suno raw.
 const MAX_STYLE_NOTES_LEN = 2000;
-// The final Suno-bound style string still gets a sane ceiling (Suno's own field
-// is short), independent of how long the user's raw notes were.
-const MAX_STYLE_TOTAL_LEN = 600;
+// The birthday-song boilerplate that must always survive on the end of the
+// Suno style so we still get a short cut with a proper ending, regardless of
+// how much of the descriptor we had to trim to fit the model's field.
+const SUNO_STYLE_SUFFIX =
+  "full, cheerful birthday song with a clear verse and chorus, about 60 seconds, natural ending";
 // Haiku-refined descriptor costs roughly $0.0001/call; track 1 cent
 // (rounded up) against the same daily anthropic budget that gates lyrics.
 const ANTHROPIC_STYLE_REFINE_COST_CENTS = 1;
@@ -47,30 +50,42 @@ function stripControlChars(s: string): string {
   return out;
 }
 
+// Compose the descriptive "head" (genre + notes, or a refined descriptor) with
+// the required birthday-song suffix so the whole string fits the active Suno
+// model's style ceiling. The suffix is always kept; only the head is trimmed
+// (at a word boundary) to make room. This is why the giver can enter style
+// notes of any length without ever hitting Suno's "shorten to 200 chars" error.
+function fitSunoStyle(head: string): string {
+  const limit = sunoStyleLimit();
+  const cleanHead = head.trim().replace(/[\s,]+$/, "");
+  if (!cleanHead) return SUNO_STYLE_SUFFIX.slice(0, limit);
+
+  // Reserve room for ", " + the suffix. If the suffix alone already fills the
+  // field (tiny/misconfigured limit), the head wins and boilerplate is dropped.
+  const room = limit - SUNO_STYLE_SUFFIX.length - 2;
+  if (room <= 0) return cleanHead.slice(0, limit);
+  if (cleanHead.length <= room) return `${cleanHead}, ${SUNO_STYLE_SUFFIX}`;
+
+  let trimmed = cleanHead.slice(0, room);
+  const lastBreak = Math.max(trimmed.lastIndexOf(" "), trimmed.lastIndexOf(","));
+  if (lastBreak > room * 0.6) trimmed = trimmed.slice(0, lastBreak);
+  trimmed = trimmed.replace(/[\s,]+$/, "");
+  return `${trimmed}, ${SUNO_STYLE_SUFFIX}`;
+}
+
 function buildSunoStyle(genre: string, styleNotes?: string | null): string {
   const cleanGenre = stripEmojiPrefix(genre);
   const notes = stripControlChars(styleNotes ?? "")
     .trim()
     .slice(0, MAX_STYLE_NOTES_LEN);
-  const parts = [cleanGenre];
-  if (notes) parts.push(notes);
-  parts.push("full, cheerful birthday song with a clear verse and chorus");
-  parts.push("about 60 seconds");
-  parts.push("natural ending");
-  return parts.join(", ").slice(0, MAX_STYLE_TOTAL_LEN);
+  return fitSunoStyle(notes ? `${cleanGenre}, ${notes}` : cleanGenre);
 }
 
 // When the user-supplied style notes have been passed through Claude, the
 // refined descriptor already encodes subgenre/BPM/instrumentation. We just
 // append the birthday-song boilerplate so Suno still produces a short cut.
 function buildRefinedSunoStyle(refined: string): string {
-  const parts = [
-    refined,
-    "full, cheerful birthday song with a clear verse and chorus",
-    "about 60 seconds",
-    "natural ending",
-  ];
-  return parts.join(", ").slice(0, MAX_STYLE_TOTAL_LEN);
+  return fitSunoStyle(refined);
 }
 
 export const runtime = "nodejs";

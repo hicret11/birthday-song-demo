@@ -44,6 +44,24 @@ function authHeaders(): HeadersInit {
   };
 }
 
+// Suno caps the `style` field per model — V3.5/V4 reject anything over 200
+// chars, while V4.5+ allow up to 1000. We fit the outgoing style to the active
+// model's ceiling so a long style request is silently trimmed to fit instead of
+// bouncing back to the user as "shorten it to 200 characters or fewer". Callers
+// can therefore accept style notes of any length; this is the single choke
+// point every generation passes through, so nothing overflows Suno's field.
+const STYLE_LIMIT_BY_MODEL: Record<string, number> = {
+  V3_5: 200,
+  V4: 200,
+  V4_5: 1000,
+  V4_5PLUS: 1000,
+  V5: 1000,
+};
+
+export function sunoStyleLimit(): number {
+  return STYLE_LIMIT_BY_MODEL[env.sunoModel.toUpperCase()] ?? 200;
+}
+
 const CALLBACK_PLACEHOLDER = "https://example.com/callback";
 
 export async function submitGeneration(input: SunoSubmitInput): Promise<string> {
@@ -51,7 +69,9 @@ export async function submitGeneration(input: SunoSubmitInput): Promise<string> 
     customMode: true,
     instrumental: false,
     prompt: input.lyrics,
-    style: input.style,
+    // Final defensive clamp: even if a caller hands us an over-long style, fit
+    // it to the model's ceiling so Suno never rejects the submission.
+    style: input.style.slice(0, sunoStyleLimit()),
     title: input.title,
     model: env.sunoModel,
     callBackUrl: env.sunoCallbackUrl || CALLBACK_PLACEHOLDER,
