@@ -1107,11 +1107,12 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
       track("paywall_viewed", {
         venue_slug: venue?.slug ?? "none",
         tier: shareTier ?? "unknown",
+        launch_percent: launchPct,
       });
     } catch {
       // Analytics is non-critical; swallow.
     }
-  }, [audioUrl, shareTier, venue?.slug]);
+  }, [audioUrl, shareTier, venue?.slug, launchPct]);
   // Second confetti burst when the share artifact finally lands — gives the
   // "Open share page" button its own reveal moment after the audio reveal.
   useEffect(() => {
@@ -1284,6 +1285,16 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
   const canGenerateMusic = missingForMusic === null;
   const musicLocked = loadingMusic || jobId !== null || audioUrl !== null;
   const audioProxyUrl = audioUrl ? toAudioProxyUrl(audioUrl) : null;
+  // The reveal's locked preview. Once the share exists we play the gated,
+  // name-anchored preview clip (/api/share/[id]/preview) so the creator hears
+  // the run-up into the recipient's name — the same teaser the buyer gets on the
+  // share page — instead of the full song from its (often instrumental) 0:00.
+  // Same-origin, so the audio-reactive visualizer still works. Falls back to the
+  // proxied full song until the share (and its preview) is ready.
+  const revealShareId = shareUrl ? shareUrl.split("/").pop() ?? null : null;
+  const previewAudioSrc = revealShareId
+    ? `/api/share/${revealShareId}/preview`
+    : audioProxyUrl ?? audioUrl ?? undefined;
 
   // Sender recognition (Phase 1): the relationship answer is localized for
   // display and for the premiere's producer credit, but the value stored in
@@ -1865,7 +1876,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
     setUnlocking(true);
     setShareError(null);
     try {
-      track("unlock_click", { share_id: shareId, tier: shareTier ?? "unknown", plan: unlockPlan });
+      track("unlock_click", { share_id: shareId, tier: shareTier ?? "unknown", plan: unlockPlan, launch_percent: launchPct });
       const callBody =
         unlockPlan === "production"
           ? {
@@ -3218,7 +3229,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
               <PremiereReveal
                 recipientName={name.trim()}
                 directorName={directorName}
-                audioSrc={audioProxyUrl ?? audioUrl}
+                audioSrc={previewAudioSrc}
                 songTitle={lyrics.title}
                 previewSeconds={PREVIEW_SECONDS}
                 onPreviewLimit={() => {

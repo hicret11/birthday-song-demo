@@ -256,7 +256,7 @@ export const ar: Dict = {
     studioRewrite: "الكلمات ليست تمامًا كما تريد؟ أعد كتابة كلمات الأغنية",
   },
   paywall: {
-    // Preview label — the 15s cap framed as the opening/trailer of the show.
+    // Preview label — the 24s cap framed as the opening/trailer of the show.
     previewLabelPrefix: "🎬 هذه بداية عرضه الأول — ",
     previewLabelSuffix: "افتح القفل لرفع الستار عن العرض كاملًا",
     // Unlock headline ({name} interpolated by caller)

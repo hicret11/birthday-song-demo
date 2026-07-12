@@ -30,7 +30,7 @@ export async function GET(
   if (!song) return new Response("Not found", { status: 404 });
 
   // Paywall enforcement: downloads (full song + video) are a paid entitlement.
-  // A locked song exposes only the gated 15s preview route, never this endpoint.
+  // A locked song exposes only the gated 24s preview route, never this endpoint.
   // 402 Payment Required is the honest status.
   if (!song.unlocked) {
     return new Response("Unlock required", { status: 402 });

@@ -302,7 +302,7 @@ export default function PremiereReveal({
     if (!audio) return;
     if (audio.paused) {
       // Replaying a consumed preview: restart the clip from the top so the
-      // 15s preview stays repeatable instead of dead-ending at the cap.
+      // 24s preview stays repeatable instead of dead-ending at the cap.
       if (previewSeconds != null && audio.currentTime >= previewSeconds) {
         audio.currentTime = 0;
       }

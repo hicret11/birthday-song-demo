@@ -42,10 +42,10 @@ type Props = {
  * Audio player that gates playback behind the consumer paywall.
  *
  * - Unlocked: full playback + a "Download MP3" link.
- * - Locked: plays only the first PREVIEW_SECONDS (20s). Playback is clamped via
- *   onTimeUpdate (pause + snap currentTime back to 20) and onSeeking (any scrub
- *   past 20s is pulled back). A prominent unlock card POSTs to the Stripe
- *   checkout endpoint and redirects to the returned Checkout URL.
+ * - Locked: plays only the first PREVIEW_SECONDS. Playback is clamped via
+ *   onTimeUpdate (pause + snap currentTime back to the limit) and onSeeking (any
+ *   scrub past the limit is pulled back). A prominent unlock card POSTs to the
+ *   Stripe checkout endpoint and redirects to the returned Checkout URL.
  */
 export default function UnlockableAudio({
   shareId,

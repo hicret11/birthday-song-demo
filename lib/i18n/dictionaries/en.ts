@@ -294,7 +294,7 @@ export const en = {
     studioRewrite: "Not quite the words? Rewrite the lyrics",
   },
   paywall: {
-    // Preview label — the 15s cap framed as the trailer/opening of the show
+    // Preview label — the 24s cap framed as the trailer/opening of the show
     // (prefix + suffix rendered together; the second is the invitation).
     previewLabelPrefix: "🎬 The opening of their premiere — ",
     previewLabelSuffix: "unlock the full song",

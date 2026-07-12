@@ -7,7 +7,7 @@
 //
 // Paywall: audioSrc is passed in already resolved with the SAME locked/unlocked
 // rule the flat player uses — locked → the gated /api/share/[id]/preview clip
-// (self-caps ~15s, so no previewSeconds cap here), unlocked → the full proxied
+// (self-caps ~24s, so no previewSeconds cap here), unlocked → the full proxied
 // track. This component never sees a full-media URL for a locked song.
 
 import PremiereReveal from "@/components/premiere/PremiereReveal";

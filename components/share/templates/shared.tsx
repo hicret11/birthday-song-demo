@@ -46,7 +46,7 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
 
   // Unlocked playback = the full-length song (persisted to R2 so it doesn't
   // expire), falling back to the raw Suno track. The highlight cut is only used
-  // for the 15s preview + the video, not as the Standard deliverable.
+  // for the 24s preview + the video, not as the Standard deliverable.
   // NOTE: on a LOCKED song the server (toPublicSong) strips these URLs, so this
   // is "" and the player uses the gated preview route instead (see below).
   const [currentAudio, setCurrentAudio] = useState<string>(
@@ -254,7 +254,7 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
           just crowd songs). The premiere is the player; UnlockableAudio still
           owns the paywall CTA (locked) / MP3 download (unlocked) with its own
           player hidden — same gate, one player. audioSrc is identical to the
-          flat player's (locked → gated 15s preview clip), so the paywall behaves
+          flat player's (locked → gated 24s preview clip), so the paywall behaves
           exactly as before. */}
       <SharePremiere
         recipientName={song.name}

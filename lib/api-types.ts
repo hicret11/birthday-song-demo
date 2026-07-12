@@ -272,7 +272,7 @@ export type SharedSong = {
    * Audio highlight-cut (lib/audio-cut.ts). Suno always returns a full ~2–3
    * min repetitive track; at share-create we carve a tight ~55s highlight
    * (`highlightAudioUrl`) used ONLY as the video/audiogram + karaoke source and
-   * as the basis for the 15s preview — NOT as the buyer's song. The buyer's
+   * as the basis for the 24s preview — NOT as the buyer's song. The buyer's
    * deliverable is the complete track: `fullAudioUrl` is our persisted R2 copy
    * of the untouched full-length recording (Suno tempfiles expire), and it is
    * what Standard playback + MP3 download serve. Both absent when the cut failed
@@ -283,7 +283,7 @@ export type SharedSong = {
   /** Duration (seconds, rounded) of highlightAudioUrl when present. */
   highlightDurationSec?: number;
   /**
-   * ~15s free preview clip (R2). This is the ONLY audio a locked visitor can
+   * ~24s free preview clip (R2). This is the ONLY audio a locked visitor can
    * fetch — the gated /api/share/[id]/preview route serves it, and the server
    * strips all full-media URLs from the locked client payload (see
    * lib/public-song.ts). Absent on legacy locked songs, in which case the

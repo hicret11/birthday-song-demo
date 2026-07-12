@@ -62,11 +62,19 @@ async function ensureLaunchCoupon(
     });
     return created.id;
   } catch (err) {
-    console.error(
-      "[checkout-song] launch coupon ensure failed:",
-      err instanceof Error ? err.message : err,
-    );
-    return null;
+    // A concurrent request may have created it between our retrieve and create
+    // (id collision) — one more retrieve resolves the race so we don't drop this
+    // buyer to full price.
+    try {
+      const raced = await stripe.coupons.retrieve(id);
+      return raced.id;
+    } catch {
+      console.error(
+        "[checkout-song] launch coupon ensure failed:",
+        err instanceof Error ? err.message : err,
+      );
+      return null;
+    }
   }
 }
 

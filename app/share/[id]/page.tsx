@@ -11,6 +11,8 @@ import { listApprovedContributions } from "@/lib/crowd";
 import { getStripe } from "@/lib/stripe";
 import JsonLd from "@/components/JsonLd";
 import TrackShareView from "./TrackShareView";
+import TrackUnlock from "@/components/share/TrackUnlock";
+import { launchDiscountPercent } from "@/lib/launch-pricing";
 import { CrowdCreditProvider, type CrowdCredit } from "@/components/share/CrowdCreditContext";
 import CastAddOn from "@/components/cast/CastAddOn";
 import LiveCastAddOn from "@/components/cast/LiveCastAddOn";
@@ -194,9 +196,18 @@ export default async function SharePage({
           🎉 Unlocked! The full song is yours.
         </div>
       )}
+      {/* Conversion event — only on the post-Stripe redirect (session_id present),
+          so it counts real purchases, not refreshes or comped admin unlocks. */}
+      {justUnlocked && typeof sessionId === "string" && /^cs_[A-Za-z0-9_]+$/.test(sessionId) && (
+        <TrackUnlock
+          plan={song.plan ?? "full"}
+          tier={song.tier ?? "unknown"}
+          launchPercent={launchDiscountPercent()}
+        />
+      )}
       {/* Paywall enforcement: a locked song's client payload is stripped of all
           full-media URLs. A non-paying visitor only ever receives lyrics +
-          metadata; audio comes solely from the gated 15s preview route. */}
+          metadata; audio comes solely from the gated 24s preview route. */}
       {crowdCredit ? (
         <CrowdCreditProvider value={crowdCredit}>
           <ShareTemplateView song={toPublicSong(song)} />

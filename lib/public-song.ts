@@ -10,7 +10,7 @@ import type { SharedSong } from "./api-types";
 //
 // toPublicSong is the gate: for a locked song it strips every full-media URL
 // before the payload leaves the server, leaving only what a non-paying visitor
-// is allowed to have — lyrics, metadata, and (implicitly) the gated 15s preview
+// is allowed to have — lyrics, metadata, and (implicitly) the gated 24s preview
 // served by /api/share/[id]/preview. Unlocked songs pass through untouched.
 
 /** Fields that must never reach a locked song's client payload. */
