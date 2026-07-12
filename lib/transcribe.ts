@@ -230,3 +230,24 @@ export async function transcribeWordTimings(
   const lines = groupIntoLines(reconciled);
   return lines.length > 0 ? lines : null;
 }
+
+/**
+ * Find where the recipient's name is first sung, in milliseconds, by scanning
+ * reconciled caption lines for the name token. Returns the onset of the caption
+ * line that first contains the name (a small, deliberate lead-in, since the name
+ * may sit a word or two into that line), or `null` when the name never surfaces
+ * in the transcript. Used to anchor the free preview on the "that's my name!"
+ * moment. Best-effort and side-effect-free.
+ */
+export function findNameOnsetMs(captions: Caption[] | null, name: string): number | null {
+  const target = normalizeToken(name);
+  if (!captions || !target) return null;
+  for (const line of captions) {
+    const tokens = line.text.split(/\s+/).map(normalizeToken).filter(Boolean);
+    // Exact token match, or a fuzzy match to absorb ASR spelling drift on the
+    // sung name (e.g. "Siobhan" heard as "Shevaun") even after reconciliation.
+    const hit = tokens.some((t) => t === target || similarity(t, target) >= 0.8);
+    if (hit) return Math.max(0, line.startMs);
+  }
+  return null;
+}

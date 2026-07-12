@@ -1,20 +1,20 @@
-// Gated 15s preview stream.
+// Gated preview stream (~24s — see PREVIEW_SEC in lib/audio-cut).
 //
 // This is the ONLY audio surface a locked (un-paid) share exposes. It can never
-// return more than ~15 seconds, so it's safe to serve without an unlock check —
+// return more than PREVIEW_SEC, so it's safe to serve without an unlock check —
 // even if someone hits it directly they only ever get the teaser.
 //
 // Fast path: a share created after the highlight-cut pipeline shipped already
 // has `previewAudioUrl` on R2 — we just proxy those bytes. Legacy path: older
-// shares get their preview lazily generated (download source → ffmpeg-trim 15s)
-// and persisted back so the next hit is on the fast path.
+// shares get their preview lazily generated (download source → ffmpeg-trim) and
+// persisted back so the next hit is on the fast path.
 
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { loadSharedSong, updateSharedSong } from "@/lib/share";
-import { renderPreviewFromFile } from "@/lib/audio-cut";
+import { renderPreviewFromFile, PREVIEW_SEC } from "@/lib/audio-cut";
 import { uploadToR2 } from "@/lib/r2";
 
 export const runtime = "nodejs";
@@ -55,7 +55,7 @@ export async function GET(
   }
 
   // Legacy path: generate the preview from whatever source we have. Never the
-  // full song — renderPreviewFromFile caps output at 15s.
+  // full song — renderPreviewFromFile caps output at PREVIEW_SEC.
   const sourceUrl = song.highlightAudioUrl ?? song.audioUrl ?? song.fullAudioUrl;
   if (!sourceUrl) return new Response("No audio", { status: 404 });
 
@@ -75,7 +75,7 @@ export async function GET(
       clearTimeout(timeout);
     }
 
-    const previewBuf = await renderPreviewFromFile(srcPath, 0, 15);
+    const previewBuf = await renderPreviewFromFile(srcPath, 0, PREVIEW_SEC);
     if (!previewBuf) return new Response("Preview render failed", { status: 500 });
 
     // Best-effort persist so subsequent hits take the fast path.

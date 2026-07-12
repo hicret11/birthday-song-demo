@@ -14,7 +14,9 @@ import ProductionCallFields, {
   type ProductionCallValue,
 } from "@/components/share/ProductionCallFields";
 
-const PREVIEW_SECONDS = 15;
+import { PREVIEW_SECONDS } from "@/lib/preview-config";
+import { launchView, launchDiscountPercent } from "@/lib/launch-pricing";
+import PriceLabel from "@/components/pricing/PriceLabel";
 
 type Plan = "full" | "deluxe" | "production";
 
@@ -73,6 +75,13 @@ export default function UnlockableAudio({
   const fullLabel = FULL_PRICE_LABEL[t];
   const deluxeLabel = DELUXE_PRICE_LABEL[t];
   const productionLabel = PRODUCTION_PRICE_LABEL[t];
+  // Launch discount: the CTA shows the price the buyer will actually pay, and
+  // the plan rows strike through the original (see PriceLabel). Both no-op when
+  // no launch is active.
+  const launchPct = launchDiscountPercent();
+  const fullCta = launchView(fullLabel).discounted;
+  const deluxeCta = launchView(deluxeLabel).discounted;
+  const productionCta = launchView(productionLabel).discounted;
 
   function handleTimeUpdate(): void {
     if (unlocked) return;
@@ -178,6 +187,12 @@ export default function UnlockableAudio({
             : `${tr.paywall.unlockHeadlinePrefix}${recipientName}${tr.paywall.unlockHeadlineSuffix}`}
         </p>
 
+        {launchPct > 0 && (
+          <p className="mx-auto mt-3 inline-flex items-center gap-1.5 rounded-full bg-gold/15 px-3 py-1 text-xs font-extrabold text-ink">
+            <span aria-hidden>🎉</span> Launch offer · {launchPct}% off today
+          </p>
+        )}
+
         {/* Good-better-best: pick Standard or Deluxe. */}
         <div className="mt-4 space-y-3 text-left">
           <button
@@ -192,7 +207,7 @@ export default function UnlockableAudio({
           >
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-extrabold text-ink">{tr.paywall.standard}</span>
-              <span className="text-sm font-extrabold text-ink">{fullLabel}</span>
+              <PriceLabel label={fullLabel} className="text-sm font-extrabold text-ink" />
             </div>
             <ul className="mt-2 space-y-1.5 text-sm text-ink">
               <li className="flex items-start gap-2"><span className="text-jade">✓</span><span>{tr.paywall.bulletCompleteSong}</span></li>
@@ -219,7 +234,7 @@ export default function UnlockableAudio({
             </span>
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-extrabold text-ink">{tr.paywall.deluxe}</span>
-              <span className="text-sm font-extrabold text-ink">{deluxeLabel}</span>
+              <PriceLabel label={deluxeLabel} className="text-sm font-extrabold text-ink" />
             </div>
             <ul className="mt-2 space-y-1.5 text-sm text-ink">
               <li className="flex items-start gap-2"><span className="text-gold">★</span><span className="font-semibold">{tr.paywall.bulletSlideshow}</span></li>
@@ -244,7 +259,7 @@ export default function UnlockableAudio({
                   {tr.paywall.comingSoon}
                 </span>
               </span>
-              <span className="text-sm font-extrabold text-ink-soft">{productionLabel}</span>
+              <PriceLabel label={productionLabel} className="text-sm font-extrabold text-ink-soft" />
             </div>
             <ul className="mt-2 space-y-1.5 text-sm text-ink-soft">
               <li className="flex items-start gap-2"><span>✓</span><span>{tr.paywall.bulletEverythingDeluxe}</span></li>
@@ -283,11 +298,11 @@ export default function UnlockableAudio({
               {tr.paywall.openingCheckout}
             </>
           ) : plan === "production" ? (
-            `${tr.paywall.unlockProductionPrefix} · ${productionLabel} →`
+            `${tr.paywall.unlockProductionPrefix} · ${productionCta} →`
           ) : plan === "deluxe" ? (
-            `${tr.paywall.unlockDeluxePrefix} · ${deluxeLabel} →`
+            `${tr.paywall.unlockDeluxePrefix} · ${deluxeCta} →`
           ) : (
-            `${tr.paywall.unlockStandardPrefix} · ${fullLabel} →`
+            `${tr.paywall.unlockStandardPrefix} · ${fullCta} →`
           )}
         </button>
         <p className="mt-3 flex items-center justify-center gap-1.5 text-xs font-bold text-jade-deep">

@@ -5,7 +5,7 @@
 // AND a weak Standard deliverable. This module carves a tight, energetic
 // HIGHLIGHT (~55s: post-intro hook → verse → chorus) with clean fades, which
 // becomes:
-//   • the 15s preview (now sampled from the strong part, not a slow intro),
+//   • the free preview (~24s, anchored on the name/hook — see PREVIEW_SEC),
 //   • the Standard "complete song" audio, and the audiogram/karaoke video
 //     source (so the video is dense and repeat-free),
 // while the untouched full-length track is preserved separately as the
@@ -22,6 +22,7 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
 import ffmpeg from "fluent-ffmpeg";
+import { PREVIEW_SECONDS } from "./preview-config";
 
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 ffmpeg.setFfprobePath(ffmpegInstaller.path.replace(/ffmpeg$/, "ffprobe"));
@@ -39,8 +40,23 @@ const FADE_OUT_SEC = 2;
 
 // Free preview length. The locked share plays ONLY this clip (served through a
 // gated route), so it is the sole thing an un-paid visitor can ever fetch.
-const PREVIEW_SEC = 15;
-const PREVIEW_FADE_OUT_SEC = 1.5;
+//
+// Longer than the original 15s: a 15s teaser rarely reaches the vocal / the
+// recipient's name, so it sounds like a generic backing track and doesn't
+// convince the buyer. ~24s comfortably carries the run-up into the first sung
+// line (and, when we know where the name lands, the name itself) while still
+// stopping well short of the full song. Sourced from the shared preview-config
+// constant so the server cut and the client playback clamps can't drift apart.
+// Re-exported so existing importers (the gated preview route) are unchanged.
+export const PREVIEW_SEC = PREVIEW_SECONDS;
+const PREVIEW_FADE_OUT_SEC = 2.5;
+// Don't start the free preview later than this into the track — past it we'd be
+// deep in the song and away from the strong opening hook, so we fall back to the
+// post-intro heuristic start even if the name is first sung later.
+const PREVIEW_NAME_START_CAP_SEC = 70;
+// Keep at least this much audio after the preview start so a name found near the
+// very end never yields a near-empty clip (falls back to the heuristic instead).
+const PREVIEW_MIN_TAIL_SEC = 8;
 
 export type HighlightCut = {
   /** The trimmed ~55s highlight (mp3), with clean in/out fades. */
@@ -49,15 +65,16 @@ export type HighlightCut = {
   /** The full-length source re-encoded to a stable mp3 (for Deluxe download). */
   fullMp3: Buffer;
   fullDurationSec: number;
-  /** A ~15s preview (mp3) sampled from the hook — the only clip locked. */
+  /** The free preview (mp3, up to PREVIEW_SEC) — the only clip locked. */
   previewMp3: Buffer;
   previewDurationSec: number;
 };
 
 /**
- * Trim just the free preview from a source mp3 (already on disk) — the first
- * ~15s of the highlight window, with a soft tail fade. Exported so the gated
- * preview route can lazily generate it for legacy songs that predate the cut.
+ * Trim just the free preview from a source mp3 (already on disk) — up to
+ * PREVIEW_SEC starting at `startSec`, with a soft tail fade. Exported so the
+ * gated preview route can lazily generate it for legacy songs that predate the
+ * cut.
  */
 export async function renderPreviewFromFile(
   inputPath: string,
@@ -163,6 +180,27 @@ function pickStartSec(sourceDurationSec: number): number {
   return 0;
 }
 
+// Decide where the free preview begins. Use the caller-supplied name-aware
+// position when it is finite, non-negative, not so late we'd miss the opening
+// hook (PREVIEW_NAME_START_CAP_SEC), and leaves enough tail for a real clip
+// (PREVIEW_MIN_TAIL_SEC). Otherwise fall back to the post-intro heuristic start.
+function resolvePreviewStart(
+  requested: number | undefined,
+  heuristicStartSec: number,
+  fullDurationSec: number,
+): number {
+  if (
+    typeof requested === "number" &&
+    Number.isFinite(requested) &&
+    requested >= 0 &&
+    requested <= PREVIEW_NAME_START_CAP_SEC &&
+    requested <= fullDurationSec - PREVIEW_MIN_TAIL_SEC
+  ) {
+    return requested;
+  }
+  return heuristicStartSec;
+}
+
 function renderCut(
   inputPath: string,
   outputPath: string,
@@ -195,7 +233,18 @@ function renderCut(
  * of the full track. Returns null when the source is already short, unusable,
  * or ffmpeg fails — callers then keep the raw Suno audioUrl.
  */
-export async function renderHighlightCut(audioUrl: string): Promise<HighlightCut | null> {
+export async function renderHighlightCut(
+  audioUrl: string,
+  opts?: {
+    /**
+     * Absolute position (seconds, in full-track coordinates) where the free
+     * preview should begin — typically ~2s before the recipient's name is first
+     * sung, so the un-paid listener hears the run-up into their name. When
+     * omitted or out of bounds we fall back to the post-intro heuristic start.
+     */
+    previewStartSec?: number;
+  },
+): Promise<HighlightCut | null> {
   let workDir: string | null = null;
   try {
     workDir = await mkdtemp(path.join(tmpdir(), "smb-cut-"));
@@ -222,9 +271,14 @@ export async function renderHighlightCut(audioUrl: string): Promise<HighlightCut
     const cutPath = path.join(workDir, `cut-${randomUUID()}.mp3`);
     await renderCut(inputPath, cutPath, startSec, cutDurationSec);
 
-    // Free preview — the only clip a locked visitor can fetch. Sampled from the
-    // same hook window as the highlight so the teaser is the strong part.
-    const previewMp3 = await renderPreviewFromFile(inputPath, startSec, cutDurationSec);
+    // Free preview — the only clip a locked visitor can fetch. Prefer the
+    // name-aware start (a couple seconds before the recipient's name is sung) so
+    // the teaser lands on the "whoa, that's my name" moment; otherwise sample
+    // the same post-intro hook window as the highlight. Either way we cap the
+    // length by whatever audio remains after the chosen start.
+    const previewStartSec = resolvePreviewStart(opts?.previewStartSec, startSec, fullDurationSec);
+    const previewMaxLen = Math.max(0, fullDurationSec - previewStartSec);
+    const previewMp3 = await renderPreviewFromFile(inputPath, previewStartSec, previewMaxLen);
 
     // The full track is already an mp3 (Suno serves .mp3). Suno tempfiles
     // expire within hours, so we persist the downloaded bytes as-is — no need
@@ -238,7 +292,7 @@ export async function renderHighlightCut(audioUrl: string): Promise<HighlightCut
       fullMp3,
       fullDurationSec,
       previewMp3,
-      previewDurationSec: Math.min(PREVIEW_SEC, cutDurationSec),
+      previewDurationSec: Math.min(PREVIEW_SEC, previewMaxLen),
     };
   } catch (err) {
     console.error(

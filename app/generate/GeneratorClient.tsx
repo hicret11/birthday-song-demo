@@ -38,6 +38,9 @@ import {
   PRODUCTION_PRICE_LABEL,
   LIVE_ANCHOR_PRICE_LABEL,
 } from "@/lib/pricing-display";
+import { PREVIEW_SECONDS as FREE_PREVIEW_SECONDS } from "@/lib/preview-config";
+import { launchView, launchDiscountPercent } from "@/lib/launch-pricing";
+import PriceLabel from "@/components/pricing/PriceLabel";
 import ProductionCallFields, {
   isProductionCallReady,
   consentAttestationText,
@@ -1058,7 +1061,8 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
     date: "",
     consent: false,
   });
-  const PREVIEW_SECONDS = 15;
+  const PREVIEW_SECONDS = FREE_PREVIEW_SECONDS;
+  const launchPct = launchDiscountPercent();
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const cleanupRef = useRef<null | (() => void)>(null);
@@ -3276,6 +3280,12 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                     : `${t.paywall.unlockHeadlinePrefix}${name}${t.paywall.unlockHeadlineSuffix}`}
                 </p>
 
+                {launchPct > 0 && (
+                  <p className="mx-auto mt-2 inline-flex items-center gap-1.5 rounded-full bg-gold/15 px-3 py-1 text-xs font-extrabold text-ink">
+                    <span aria-hidden>🎉</span> Launch offer · {launchPct}% off today
+                  </p>
+                )}
+
                 {/* Good-better-best: Standard vs Deluxe. Default = Standard. */}
                 <div className="mt-3 space-y-2.5 text-left">
                   <button
@@ -3297,7 +3307,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-sm font-extrabold text-ink">{t.paywall.standard}</span>
-                      <span className="text-sm font-extrabold text-ink">{shareTier ? TIER_PRICE_LABEL[shareTier] : ""}</span>
+                      <span className="text-sm font-extrabold text-ink">{shareTier ? <PriceLabel label={TIER_PRICE_LABEL[shareTier]} /> : ""}</span>
                     </div>
                     <ul className="mt-1.5 space-y-1 text-xs text-ink-soft">
                       <li className="flex items-start gap-2"><span className="text-jade">✓</span><span>{t.paywall.bulletCompleteSong}</span></li>
@@ -3329,7 +3339,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                     </span>
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-sm font-extrabold text-ink">{t.paywall.deluxe}</span>
-                      <span className="text-sm font-extrabold text-ink">{shareTier ? DELUXE_PRICE_LABEL[shareTier] : ""}</span>
+                      <span className="text-sm font-extrabold text-ink">{shareTier ? <PriceLabel label={DELUXE_PRICE_LABEL[shareTier]} /> : ""}</span>
                     </div>
                     <ul className="mt-1.5 space-y-1 text-xs text-ink-soft">
                       <li className="flex items-start gap-2"><span className="text-gold">★</span><span className="font-semibold text-ink">{t.paywall.bulletSlideshow}</span></li>
@@ -3353,7 +3363,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                           {t.paywall.comingSoon}
                         </span>
                       </span>
-                      <span className="text-sm font-extrabold text-ink-soft">{shareTier ? PRODUCTION_PRICE_LABEL[shareTier] : ""}</span>
+                      <span className="text-sm font-extrabold text-ink-soft">{shareTier ? <PriceLabel label={PRODUCTION_PRICE_LABEL[shareTier]} /> : ""}</span>
                     </div>
                     <ul className="mt-1.5 space-y-1 text-xs text-ink-soft">
                       <li className="flex items-start gap-2"><span>✓</span><span>{t.paywall.bulletEverythingDeluxe}</span></li>
@@ -3392,10 +3402,10 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
                     : !shareUrl
                       ? t.paywall.preparingSong
                       : unlockPlan === "production"
-                        ? `${t.paywall.unlockProductionPrefix}${shareTier ? ` · ${PRODUCTION_PRICE_LABEL[shareTier]}` : ""} →`
+                        ? `${t.paywall.unlockProductionPrefix}${shareTier ? ` · ${launchView(PRODUCTION_PRICE_LABEL[shareTier]).discounted}` : ""} →`
                         : unlockPlan === "deluxe"
-                          ? `${t.paywall.unlockDeluxePrefix}${shareTier ? ` · ${DELUXE_PRICE_LABEL[shareTier]}` : ""} →`
-                          : `${t.paywall.unlockStandardPrefix}${shareTier ? ` · ${TIER_PRICE_LABEL[shareTier]}` : ""} →`}
+                          ? `${t.paywall.unlockDeluxePrefix}${shareTier ? ` · ${launchView(DELUXE_PRICE_LABEL[shareTier]).discounted}` : ""} →`
+                          : `${t.paywall.unlockStandardPrefix}${shareTier ? ` · ${launchView(TIER_PRICE_LABEL[shareTier]).discounted}` : ""} →`}
                 </button>
                 <p className="mt-3 flex items-center justify-center gap-1.5 text-xs font-bold text-jade">
                   <span aria-hidden>✓</span>{" "}

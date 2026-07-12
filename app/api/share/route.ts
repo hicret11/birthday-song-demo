@@ -32,6 +32,7 @@ import { enrollBirthdayReminder } from "@/lib/birthday-reminders";
 import { addSongToUser } from "@/lib/user-songs";
 import { renderShareVideo } from "@/lib/video";
 import { renderHighlightCut } from "@/lib/audio-cut";
+import { transcribeWordTimings, findNameOnsetMs, type Caption } from "@/lib/transcribe";
 import { moderateShareInput } from "@/lib/moderation";
 import { loadActiveVenue } from "@/lib/venues";
 
@@ -452,8 +453,34 @@ export async function POST(request: Request): Promise<Response> {
   let fullAudioUrl: string | undefined;
   let previewAudioUrl: string | undefined;
   let highlightDurationSec: number | undefined;
+
+  // Word-timed transcription of the generated track, reconciled against the
+  // lyrics we wrote. Two payoffs: (1) locate where the recipient's name is first
+  // sung so the free preview can open on that hook, and (2) persist the captions
+  // so the premium video render reuses them instead of transcribing again on
+  // unlock. Best-effort — a null result just means a heuristic preview + a
+  // transcribe-on-render later, so it never blocks generation.
+  let captions: Caption[] | undefined;
+  let previewStartSec: number | undefined;
   try {
-    const cut = await renderHighlightCut(body.audioUrl);
+    const timed = await transcribeWordTimings(body.audioUrl, lyrics.raw ?? "");
+    if (timed && timed.length > 0) {
+      captions = timed;
+      const nameOnsetMs = findNameOnsetMs(timed, name);
+      if (nameOnsetMs != null) {
+        // Start ~2s before the name so the listener hears the run-up into it.
+        previewStartSec = Math.max(0, nameOnsetMs / 1000 - 2);
+        console.log(
+          `[share-create:name-onset] id=${id} nameAt=${(nameOnsetMs / 1000).toFixed(1)}s previewStart=${previewStartSec.toFixed(1)}s`,
+        );
+      }
+    }
+  } catch (err) {
+    console.error(`[share-create:transcribe-failed] id=${id}`, err);
+  }
+
+  try {
+    const cut = await renderHighlightCut(body.audioUrl, { previewStartSec });
     if (cut) {
       const [hUrl, fUrl, pUrl] = await Promise.all([
         uploadToR2(`audio/${id}-highlight.mp3`, cut.cutMp3, "audio/mpeg"),
@@ -529,6 +556,7 @@ export async function POST(request: Request): Promise<Response> {
     ...(fullAudioUrl ? { fullAudioUrl } : {}),
     ...(previewAudioUrl ? { previewAudioUrl } : {}),
     ...(highlightDurationSec ? { highlightDurationSec } : {}),
+    ...(captions && captions.length > 0 ? { captions } : {}),
     ...(senderName ? { senderName } : {}),
     ...(styleNotes ? { styleNotes } : {}),
     ...(refinedStyle ? { refinedStyle } : {}),

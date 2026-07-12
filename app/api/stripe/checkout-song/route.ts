@@ -1,10 +1,16 @@
+import { after } from "next/server";
 import { getStripe } from "@/lib/stripe";
 import { resolveTier, priceIdForPlanTier, type Plan } from "@/lib/pricing-tiers";
-import { loadSharedSong } from "@/lib/share";
+import { loadSharedSong, markSharedSongUnlocked } from "@/lib/share";
 import { isActiveCastCharacterId } from "@/lib/cast/characters";
 import { isCallAllowedForPhone } from "@/lib/cast/call-countries";
 import { timezoneForPhone } from "@/lib/cast/quiet-hours";
 import { getClientIp } from "@/lib/rate-limit";
+import { getUserEmail } from "@/lib/user-session";
+import { isCompEmail } from "@/lib/comp-emails";
+import { launchDiscountPercent, launchCouponId } from "@/lib/launch-pricing";
+import { requestPremiumRender } from "@/lib/render-video";
+import { createBooking, getAiCallBookingForGift, markBookingPaid } from "@/lib/cast";
 import {
   LEGAL_VERSION,
   LEGAL_ACCEPTANCE_SURFACE,
@@ -28,6 +34,41 @@ export const runtime = "nodejs";
  */
 // Loose E.164: leading +, 7–15 digits, first digit non-zero (matches /api/cast/book).
 const PHONE_RE = /^\+[1-9]\d{6,14}$/;
+
+/**
+ * Retrieve-or-create the deterministic launch coupon for `percent` (id
+ * "launch-<pct>pct"). Idempotent: the fixed id means concurrent checkouts reuse
+ * the same coupon instead of piling up duplicates. Returns null on any Stripe
+ * error so a coupon hiccup degrades to full-price checkout rather than blocking
+ * the sale.
+ */
+async function ensureLaunchCoupon(
+  stripe: ReturnType<typeof getStripe>,
+  percent: number,
+): Promise<string | null> {
+  const id = launchCouponId(percent);
+  try {
+    const existing = await stripe.coupons.retrieve(id);
+    return existing.id;
+  } catch {
+    // Not found (or transient) — try to create it below.
+  }
+  try {
+    const created = await stripe.coupons.create({
+      id,
+      percent_off: percent,
+      duration: "once",
+      name: `Launch ${percent}% off`,
+    });
+    return created.id;
+  } catch (err) {
+    console.error(
+      "[checkout-song] launch coupon ensure failed:",
+      err instanceof Error ? err.message : err,
+    );
+    return null;
+  }
+}
 
 export async function POST(request: Request): Promise<Response> {
   let body: {
@@ -107,6 +148,59 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ url: `${origin}/share/${shareId}?unlocked=1`, alreadyUnlocked: true });
   }
 
+  // ── Admin comp (free unlock) ────────────────────────────────────────────────
+  // Trusted team addresses unlock without paying so we can dogfood the full
+  // buyer flow. The email comes ONLY from the verified magic-link session
+  // (ownership-proven), never from the request body — a client can't forge it.
+  // We mirror the Stripe webhook's post-unlock side effects (flip to unlocked +
+  // kick the premium render, and book the AI call on Production) so a comped
+  // song is byte-for-byte the same deliverable a paying buyer gets.
+  const sessionEmail = await getUserEmail();
+  if (isCompEmail(sessionEmail)) {
+    const origin = request.headers.get("origin") ?? new URL(request.url).origin;
+    const ok = await markSharedSongUnlocked(shareId, plan);
+    if (!ok) {
+      return Response.json({ error: { message: "Song not found or expired." } }, { status: 404 });
+    }
+    console.log(`[checkout-song] comped unlock for ${sessionEmail} → ${shareId} (${plan})`);
+    after(
+      (async () => {
+        const unlocked = await loadSharedSong(shareId);
+        if (unlocked) await requestPremiumRender(unlocked);
+        // Production bundles the AI character call — create + mark the booking
+        // paid so it behaves identically to a purchased Production. Idempotent
+        // (one ai_call booking per share). Best-effort; never blocks the unlock.
+        if (plan === "production" && unlocked) {
+          try {
+            const existing = await getAiCallBookingForGift(shareId);
+            if (!existing) {
+              const booking = await createBooking({
+                giftId: shareId,
+                kind: "ai_call",
+                characterId: callCharacterId || "zoltar",
+                recipientName: unlocked.name,
+                recipientPhone: callPhone || null,
+                language: unlocked.language,
+                personalNote: unlocked.directorNote?.text ?? null,
+                scheduledAt: callWhen || null,
+                consentConfirmed: body.consent === true,
+                consentIp: getClientIp(request).slice(0, 64),
+                consentAttestation:
+                  typeof body.consentText === "string" ? body.consentText.trim().slice(0, 300) : null,
+                consentAt: new Date().toISOString(),
+                recipientTimezone: timezoneForPhone(callPhone) || null,
+              });
+              if (booking) await markBookingPaid(booking.id, `comp:${shareId}`);
+            }
+          } catch (err) {
+            console.error("[checkout-song] comp production booking failed:", err);
+          }
+        }
+      })().catch(() => undefined),
+    );
+    return Response.json({ url: `${origin}/share/${shareId}?unlocked=1&comped=1`, comped: true });
+  }
+
   // Tier the song was created at wins if present (so the price can't change
   // between preview and checkout); otherwise resolve from this request's geo.
   const tier = song.tier ?? resolveTier(request);
@@ -157,13 +251,25 @@ export async function POST(request: Request): Promise<Response> {
     // success redirect so the buyer lands on their unlocked song, not the
     // recipient countdown gate.
     const previewSuffix = song.previewToken ? `&preview=${song.previewToken}` : "";
+
+    // Launch discount: when NEXT_PUBLIC_LAUNCH_DISCOUNT_PERCENT is set we
+    // auto-apply a matching coupon so the buyer sees the lower price with zero
+    // friction. Checkout forbids `discounts` and `allow_promotion_codes`
+    // together, so we pick one: during a launch, the auto-discount; otherwise
+    // the promo-code field (which the admin ADMINCOMP fallback uses).
+    const launchPct = launchDiscountPercent();
+    const launchCoupon = launchPct > 0 ? await ensureLaunchCoupon(stripe, launchPct) : null;
+    if (launchCoupon) metadata.launch_percent = String(launchPct);
+
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: [{ price, quantity: 1 }],
       client_reference_id: shareId,
       success_url: `${origin}/share/${shareId}?unlocked=1&session_id={CHECKOUT_SESSION_ID}${previewSuffix}`,
       cancel_url: `${origin}/share/${shareId}`,
-      allow_promotion_codes: true,
+      ...(launchCoupon
+        ? { discounts: [{ coupon: launchCoupon }] }
+        : { allow_promotion_codes: true }),
       metadata,
       payment_intent_data: { metadata },
     });
