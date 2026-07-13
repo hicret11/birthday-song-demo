@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Bricolage_Grotesque, Instrument_Serif } from "next/font/google";
 import CookieConsent from "@/components/CookieConsent";
+import Attribution from "@/components/Attribution";
 import SiteFooter from "@/components/SiteFooter";
 import GlobalThemeToggle from "@/components/GlobalThemeToggle";
 import { DEFAULT_LOCALE, isRtl } from "@/lib/i18n";
@@ -111,6 +112,9 @@ export default async function RootLayout({
         {/* Vercel Analytics is mounted inside CookieConsent, behind the
             Analytics consent category — never before consent. */}
         <CookieConsent />
+        {/* Records first-touch traffic source (utm/referrer/?src=); only sent
+            via the consent-gated analytics events. */}
+        <Attribution />
       </body>
     </html>
   );

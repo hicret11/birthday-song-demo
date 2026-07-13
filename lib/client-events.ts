@@ -5,6 +5,8 @@
 // This is a plain module (no server imports) so it bundles cleanly into client
 // components. It reuses the same anonymous id the cookie banner created.
 
+import { getAttribution } from "./attribution";
+
 const ANON_ID_KEY = "smb_anon_id";
 
 export type ClientEventType = "playback_started" | "share_click" | "share_page_view";
@@ -33,9 +35,12 @@ export type ClientEventContext = {
 
 export function logClientEvent(eventType: ClientEventType, ctx: ClientEventContext = {}): void {
   try {
+    const attr = getAttribution();
     const payload: Record<string, unknown> = {
       event_type: eventType,
       anonymous_id: getAnonId(),
+      source: attr.source,
+      referrer: attr.referrer || undefined,
     };
     for (const [k, v] of Object.entries(ctx)) {
       if (v !== undefined && v !== null) payload[k] = v;

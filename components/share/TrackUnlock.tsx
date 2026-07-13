@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { track } from "@vercel/analytics";
+import { getAttribution } from "@/lib/attribution";
 
 /**
  * Fires the `song_unlocked` conversion event once, on the post-checkout landing.
@@ -27,7 +28,7 @@ export default function TrackUnlock({
     if (fired.current) return;
     fired.current = true;
     try {
-      track("song_unlocked", { plan, tier, launch_percent: launchPercent });
+      track("song_unlocked", { plan, tier, launch_percent: launchPercent, source: getAttribution().source });
     } catch {
       // Analytics is non-critical; swallow.
     }

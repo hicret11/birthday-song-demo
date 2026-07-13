@@ -42,6 +42,9 @@ export type GenerationEventContext = {
   genre?: string | null;
   country?: string | null;
   region?: string | null;
+  /** First-touch traffic source (utm/referrer/`?src=`) and raw referrer host. */
+  source?: string | null;
+  referrer?: string | null;
   policyVersion?: string | null;
   captureVersion?: string | null;
   metadata?: Record<string, unknown> | null;
@@ -117,6 +120,8 @@ export async function logGenerationEvent(
       genre: clean(ctx.genre, MAX_TEXT_LEN),
       country: clean(ctx.country, 8) ?? geo.country,
       region: clean(ctx.region, 16) ?? geo.region,
+      source: clean(ctx.source, 40),
+      referrer: clean(ctx.referrer, 80),
       policy_version: clean(ctx.policyVersion, 20),
       capture_version: clean(ctx.captureVersion, 20),
       metadata: sanitizeMetadata(ctx.metadata),

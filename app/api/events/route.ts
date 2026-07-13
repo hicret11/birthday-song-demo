@@ -31,6 +31,8 @@ type EventBody = {
   recipient_name?: unknown;
   language?: unknown;
   genre?: unknown;
+  source?: unknown;
+  referrer?: unknown;
   metadata?: unknown;
 };
 
@@ -64,6 +66,8 @@ export async function POST(request: Request): Promise<Response> {
     recipientName: str(body.recipient_name),
     language: str(body.language),
     genre: str(body.genre),
+    source: str(body.source),
+    referrer: str(body.referrer),
     metadata,
   };
 

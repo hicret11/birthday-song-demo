@@ -98,8 +98,12 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
   }
 
   async function openShareSheet(): Promise<void> {
-    const url = typeof window !== "undefined" ? window.location.href : "";
-    if (!url) return;
+    if (typeof window === "undefined") return;
+    // Share a CLEAN recipient link: the canonical /share/[id] tagged with
+    // ?src=shared (so word-of-mouth opens are attributable), NOT the buyer's
+    // current URL — that could carry session_id / unlocked / a preview token
+    // that must never leak to the recipient.
+    const url = `${window.location.origin}/share/${song.id}?src=shared`;
     logClientEvent("share_click", eventCtx);
     const text = `Listen to this birthday song for ${song.name}`;
     const nav = typeof navigator !== "undefined" ? navigator : undefined;

@@ -41,6 +41,7 @@ import {
 import { PREVIEW_SECONDS as FREE_PREVIEW_SECONDS } from "@/lib/preview-config";
 import { launchView, launchDiscountPercent } from "@/lib/launch-pricing";
 import PriceLabel from "@/components/pricing/PriceLabel";
+import { getAttribution } from "@/lib/attribution";
 import ProductionCallFields, {
   isProductionCallReady,
   consentAttestationText,
@@ -1108,6 +1109,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
         venue_slug: venue?.slug ?? "none",
         tier: shareTier ?? "unknown",
         launch_percent: launchPct,
+        source: getAttribution().source,
       });
     } catch {
       // Analytics is non-critical; swallow.
@@ -1876,7 +1878,7 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
     setUnlocking(true);
     setShareError(null);
     try {
-      track("unlock_click", { share_id: shareId, tier: shareTier ?? "unknown", plan: unlockPlan, launch_percent: launchPct });
+      track("unlock_click", { share_id: shareId, tier: shareTier ?? "unknown", plan: unlockPlan, launch_percent: launchPct, source: getAttribution().source });
       const callBody =
         unlockPlan === "production"
           ? {
