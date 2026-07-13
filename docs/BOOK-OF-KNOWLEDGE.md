@@ -225,17 +225,42 @@ Birthdays repeat — this is a **recurring occasion**, not a one-off:
 
 *A sale isn't profit. Know the unit economics or you'll scale a loss.*
 
-**Per-song variable cost (COGS)** — estimate and keep current:
+**Per-song variable cost (COGS)** — first-pass estimate (confirm Suno from invoice):
 
-| Cost item | Rough est. | Notes |
+| Cost item | Est. | Basis |
 |---|---|---|
-| Suno generation | | song gen |
-| OpenAI (lyrics + Whisper timing) | | Whisper now runs per generation |
-| Video render (Remotion/Lambda or ffmpeg) | | fires on unlock |
-| Email (Resend) | | song-ready + reminders |
-| Storage/bandwidth (Vercel Blob) | | audio + video |
-| Stripe fee | ~2.9% + 30¢ | per paid order |
-| **Total COGS/song** | **_(fill in)_** | |
+| Lyrics (Claude Haiku) | ~$0.01 | `ANTHROPIC_COST_PER_LYRICS_CENTS = 1` |
+| Style refine (Claude Haiku) | ~$0.01 | `ANTHROPIC_STYLE_REFINE_COST_CENTS = 1` |
+| Name pronunciation (gpt-audio) | ~$0.01 | short mic clip |
+| Whisper name-timing (per generation) | ~$0.02 | `whisper-1` @ $0.006/min × ~3min |
+| Video captions Whisper | $0.00 | reuses persisted captions now |
+| **Suno generation** ⚠️ | **~$0.05–0.12** | **KEY UNKNOWN — confirm from Suno invoice** |
+| Video render | ~$0.00 marginal | fixed-cost Railway worker (not per-render) |
+| Email (Resend) | ~$0.00 | free/near-free tier |
+| Storage/bandwidth (Vercel Blob) | ~$0.02 | audio + video, amortized |
+| **COGS per generation (non-Stripe)** | **≈ $0.12–0.19** | hits EVERY generation, converts or not |
+| Stripe fee | 2.9% + $0.30 | only on a *paid* order |
+
+**What this means at the 50%-off launch price:**
+
+| Tier · Standard | Charge | Stripe fee | Direct margin | Note |
+|---|---|---|---|---|
+| A | $7.50 | $0.52 | ~$6.8 (91%) | very healthy |
+| B | $5.00 | $0.45 | ~$4.4 (87%) | healthy |
+| C | $3.50 | $0.40 | ~$2.9 (84%) | still fine on the sale itself |
+
+> **The real cost isn't the sale — it's the free previews that DON'T convert.**
+> Every generation costs ~$0.15 whether or not it's bought. At 1-in-10
+> conversion, a paid order effectively carries ~10 × $0.15 = **$1.50 of
+> preview COGS** on top of its Stripe fee. Tier C then nets ≈ $3.50 − $0.40 −
+> $1.50 = **~$1.60 (still positive)**; at 1-in-20 conversion it gets thin.
+>
+> **Verdict:** 50% off is safe on margin at all tiers *today*. Two watch-items:
+> (1) confirm the real **Suno** per-song price — it's the biggest swing; (2) the
+> lever that matters most isn't price, it's **conversion rate** (it multiplies
+> the non-converting-preview cost). If conversion runs low, the cheapest fix is
+> deferring the per-generation Whisper call to convert-time (saves ~$0.02 ×
+> every non-converter).
 
 - **Contribution margin** = price − COGS. At $6.99 vs $14.99 this is very
   different — and *free previews that don't convert still cost COGS*, so trial
