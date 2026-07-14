@@ -33,6 +33,7 @@ export function SharePremiere({
   language,
   directorNote,
   isCrowd,
+  onFirstPlay,
 }: {
   recipientName: string;
   /** The director credit shown in the titles ("your partner", a name…). */
@@ -44,6 +45,8 @@ export function SharePremiere({
   directorNote?: { text?: string; voiceUrl?: string; voiceDurationSec?: number };
   /** When true, use the "a song from N people" crowd framing at the peak. */
   isCrowd?: boolean;
+  /** Fired once when the recipient first starts the premiere (playback begins). */
+  onFirstPlay?: () => void;
 }) {
   const credit = useCrowdCredit();
   const count = credit?.count ?? 0;
@@ -67,6 +70,7 @@ export function SharePremiere({
         songTitle={songTitle}
         audioSrc={audioSrc}
         directorNote={directorNote}
+        onFirstPlay={onFirstPlay}
         contributors={isCrowd ? contributors : undefined}
         labels={{
           overline: t.premiere.overline,

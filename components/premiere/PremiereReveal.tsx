@@ -83,6 +83,8 @@ export type PremiereRevealProps = {
   previewSeconds?: number;
   /** Fired once when {@link previewSeconds} is first reached. */
   onPreviewLimit?: () => void;
+  /** Fired once when the premiere first starts playing (user gesture). */
+  onFirstPlay?: () => void;
 };
 
 type Phase = "closed" | "revealing" | "open";
@@ -103,6 +105,7 @@ export default function PremiereReveal({
   labels,
   previewSeconds,
   onPreviewLimit,
+  onFirstPlay,
 }: PremiereRevealProps) {
   const [phase, setPhase] = useState<Phase>("closed");
   const [playing, setPlaying] = useState(false);
@@ -136,6 +139,7 @@ export default function PremiereReveal({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const noteAudioRef = useRef<HTMLAudioElement | null>(null);
   const previewFiredRef = useRef(false); // one-shot guard for onPreviewLimit
+  const firstPlayFiredRef = useRef(false); // one-shot guard for onFirstPlay
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const confettiRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -284,6 +288,10 @@ export default function PremiereReveal({
         await ctxRef.current.resume();
         await audio.play();
         setPlaying(true);
+        if (!firstPlayFiredRef.current) {
+          firstPlayFiredRef.current = true;
+          onFirstPlay?.();
+        }
       } catch {
         // Autoplay/CORS trouble — the reveal still runs, visualizer idles.
       }
@@ -295,7 +303,7 @@ export default function PremiereReveal({
       setPhase("open");
       burstConfetti();
     }, delay);
-  }, [audioSrc, burstConfetti]);
+  }, [audioSrc, burstConfetti, onFirstPlay]);
 
   const togglePlay = useCallback(async () => {
     const audio = audioRef.current;

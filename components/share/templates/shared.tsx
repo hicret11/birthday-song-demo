@@ -2,47 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import type { ShareTemplate, SharedSong } from "@/lib/api-types";
+import type { SharedSong } from "@/lib/api-types";
 import { toAudioProxyUrl } from "@/lib/audio-proxy";
 import { logClientEvent } from "@/lib/client-events";
-import { greetingFor } from "@/lib/greetings";
 import UnlockableAudio from "@/components/share/UnlockableAudio";
 import { SharePremiere } from "@/components/share/SharePremiere";
 
 const MAX_RETRIES = 2;
 
-const OVERLAY_STYLES: Record<ShareTemplate, React.CSSProperties> = {
-  classic: {
-    fontFamily: 'Georgia, "Times New Roman", serif',
-    color: "#fce7f3",
-    textShadow:
-      "0 0 12px rgba(236,72,153,0.55), 2px 0 0 #1a0b2e, -2px 0 0 #1a0b2e, 0 2px 0 #1a0b2e, 0 -2px 0 #1a0b2e",
-  },
-  elegant: {
-    fontFamily: 'Georgia, "Times New Roman", serif',
-    color: "#f5e070",
-    textShadow: "2px 3px 0 #000000, 0 0 8px rgba(0,0,0,0.6)",
-  },
-  neon: {
-    fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif',
-    color: "#ff66ff",
-    textShadow:
-      "0 0 10px #ff00ff, 0 0 20px #ff00ff, 2px 0 0 #3a0a3a, -2px 0 0 #3a0a3a, 0 2px 0 #3a0a3a, 0 -2px 0 #3a0a3a",
-  },
-  playful: {
-    fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif',
-    color: "#ffffff",
-    textShadow: "3px 3px 0 #000000, 0 0 12px rgba(0,0,0,0.4)",
-  },
-  corporate: {
-    fontFamily: '"Inter", system-ui, -apple-system, "Segoe UI", sans-serif',
-    color: "#ffffff",
-    textShadow: "2px 0 0 #0b1220, -2px 0 0 #0b1220, 0 2px 0 #0b1220, 0 -2px 0 #0b1220, 0 0 10px rgba(0,0,0,0.5)",
-  },
-};
-
 export function SharedSongBody({ song, className }: { song: SharedSong; className?: string }) {
-  const overlayStyle = OVERLAY_STYLES[song.template] ?? OVERLAY_STYLES.classic;
 
   // Unlocked playback = the full-length song (persisted to R2 so it doesn't
   // expire), falling back to the raw Suno track. The highlight cut is only used
@@ -232,27 +200,9 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
         {song.language} • {song.genre} • {song.lyrics.title}
       </p>
 
-      {/* Branded share video — only shown once the song is unlocked. The
-          preview-gated audio below is the paywall surface for locked songs. */}
-      {unlocked && currentVideo && (
-        <div className="relative mt-6">
-          <video
-            key={currentVideo}
-            controls
-            playsInline
-            onPlay={handlePlay}
-            src={currentVideo}
-            poster=""
-            className="w-full rounded-2xl bg-noir shadow-lg"
-          />
-          <div
-            className="pointer-events-none absolute bottom-10 left-0 right-0 px-6 text-center font-bold leading-tight"
-            style={{ ...overlayStyle, fontSize: "clamp(1.25rem, 4.5vw, 2.5rem)" }}
-          >
-            {greetingFor(song.language, song.name)}
-          </div>
-        </div>
-      )}
+      {/* No inline video player: the song IS the theatrical Premiere reveal
+          below (one player, no double audio). The rendered MP4 stays available
+          as a download only (see "Download video"). */}
 
       {/* Audio: EVERY song is delivered as the theatrical Premiere reveal (not
           just crowd songs). The premiere is the player; UnlockableAudio still
@@ -270,6 +220,7 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
         language={song.language}
         directorNote={song.directorNote}
         isCrowd={song.crowd?.status === "merged"}
+        onFirstPlay={handlePlay}
       />
       <UnlockableAudio
         shareId={song.id}
