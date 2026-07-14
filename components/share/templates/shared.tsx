@@ -7,7 +7,6 @@ import { toAudioProxyUrl } from "@/lib/audio-proxy";
 import { logClientEvent } from "@/lib/client-events";
 import UnlockableAudio from "@/components/share/UnlockableAudio";
 import { SharePremiere } from "@/components/share/SharePremiere";
-import PremiereVideo from "@/components/share/PremiereVideo";
 
 const MAX_RETRIES = 2;
 
@@ -201,30 +200,28 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
         {song.language} • {song.genre} • {song.lyrics.title}
       </p>
 
-      {/* ONE premiere player, never two:
-          • Unlocked with a rendered video → the video IS the premiere (curtain,
-            name, karaoke + credits are baked into the MP4). "Start the premiere"
-            plays it.
-          • Locked (preview) or video not ready yet → the animated SharePremiere
-            reveal, playing the gated 24s preview / full audio.
-          UnlockableAudio (player hidden) still owns the paywall CTA + MP3
-          download in both cases. */}
-      {unlocked && currentVideo ? (
-        <PremiereVideo src={currentVideo} onFirstPlay={handlePlay} />
-      ) : (
-        <SharePremiere
-          recipientName={song.name}
-          directorName={song.directorCredit || song.crowd?.directorName || song.senderName}
-          songTitle={song.lyrics.title}
-          audioSrc={
-            unlocked ? toAudioProxyUrl(currentAudio) : `/api/share/${song.id}/preview`
-          }
-          language={song.language}
-          directorNote={song.directorNote}
-          isCrowd={song.crowd?.status === "merged"}
-          onFirstPlay={handlePlay}
-        />
-      )}
+      {/* No inline video player: the song IS the theatrical Premiere reveal
+          below (one player, no double audio). The rendered MP4 stays available
+          as a download only (see "Download video"). */}
+
+      {/* Audio: EVERY song is delivered as the theatrical Premiere reveal (not
+          just crowd songs). The premiere is the player; UnlockableAudio still
+          owns the paywall CTA (locked) / MP3 download (unlocked) with its own
+          player hidden — same gate, one player. audioSrc is identical to the
+          flat player's (locked → gated 24s preview clip), so the paywall behaves
+          exactly as before. */}
+      <SharePremiere
+        recipientName={song.name}
+        directorName={song.directorCredit || song.crowd?.directorName || song.senderName}
+        songTitle={song.lyrics.title}
+        audioSrc={
+          unlocked ? toAudioProxyUrl(currentAudio) : `/api/share/${song.id}/preview`
+        }
+        language={song.language}
+        directorNote={song.directorNote}
+        isCrowd={song.crowd?.status === "merged"}
+        onFirstPlay={handlePlay}
+      />
       <UnlockableAudio
         shareId={song.id}
         audioSrc={
