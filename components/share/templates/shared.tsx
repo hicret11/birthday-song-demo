@@ -59,6 +59,29 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
     logClientEvent("playback_started", eventCtx);
   }
 
+  // Keep the two players — the rendered premiere video and the curtain-reveal
+  // audio — from ever blasting at once. A capturing "play" listener on the
+  // container catches playback from ANY descendant <video>/<audio> (media
+  // events don't bubble, but capture-phase listeners on an ancestor still see
+  // them) and pauses every other media element. Delegation means it also covers
+  // players mounted later (the reveal's audio appears after "Start the
+  // premiere"). Purely additive — nothing here changes what plays, only that
+  // starting one pauses the other.
+  const containerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const root = containerRef.current;
+    if (!root) return;
+    function pauseOthers(e: Event): void {
+      const scope = e.currentTarget as HTMLElement;
+      const started = e.target as HTMLMediaElement | null;
+      scope.querySelectorAll<HTMLMediaElement>("video, audio").forEach((el) => {
+        if (el !== started && !el.paused) el.pause();
+      });
+    }
+    root.addEventListener("play", pauseOthers, true);
+    return () => root.removeEventListener("play", pauseOthers, true);
+  }, []);
+
   function flashToast(message: string): void {
     setToast(message);
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
@@ -195,21 +218,32 @@ export function SharedSongBody({ song, className }: { song: SharedSong; classNam
     unlocked && song.plan === "deluxe" && (song.photoUrls?.length ?? 0) > 0;
 
   return (
-    <div className={className}>
+    <div ref={containerRef} className={className}>
       <p className="text-center text-sm font-medium text-ink-soft">
         {song.language} • {song.genre} • {song.lyrics.title}
       </p>
 
-      {/* No inline video player: the song IS the theatrical Premiere reveal
-          below (one player, no double audio). The rendered MP4 stays available
-          as a download only (see "Download video"). */}
+      {/* The rendered premiere VIDEO (unlocked only). Shown ABOVE the curtain
+          reveal — both are the premiere. They never blast audio at once: a
+          capturing "play" listener on the container (see effect below) pauses
+          whichever player isn't the one that just started. */}
+      {unlocked && currentVideo && (
+        <div className="mt-6">
+          <video
+            key={currentVideo}
+            controls
+            playsInline
+            onPlay={handlePlay}
+            src={currentVideo}
+            className="w-full rounded-2xl bg-black shadow-lg"
+          />
+        </div>
+      )}
 
-      {/* Audio: EVERY song is delivered as the theatrical Premiere reveal (not
-          just crowd songs). The premiere is the player; UnlockableAudio still
-          owns the paywall CTA (locked) / MP3 download (unlocked) with its own
-          player hidden — same gate, one player. audioSrc is identical to the
-          flat player's (locked → gated 24s preview clip), so the paywall behaves
-          exactly as before. */}
+      {/* The theatrical Premiere reveal — curtains part → name in lights →
+          equalizer → director's note → credits. The signature on-page magic;
+          the locked preview plays the gated 24s clip. UnlockableAudio (player
+          hidden) owns the paywall CTA (locked) / MP3 download (unlocked). */}
       <SharePremiere
         recipientName={song.name}
         directorName={song.directorCredit || song.crowd?.directorName || song.senderName}
