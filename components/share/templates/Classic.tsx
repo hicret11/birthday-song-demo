@@ -25,20 +25,6 @@ export function Classic({ song }: { song: SharedSong }) {
           </div>
         </div>
 
-        {/* Warm-gradient album-art tile — the gift reveal */}
-        <div className="mb-6 flex justify-center">
-          <div className="relative">
-            <div className="absolute -inset-3 -z-10 rounded-[1.9rem] bg-warm-gradient opacity-35 blur-2xl" />
-            <div className="grid h-20 w-20 place-items-center rounded-3xl bg-warm-gradient text-white shadow-lg">
-              <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                <path d="M9 18V5l12-2v13" />
-                <circle cx="6" cy="18" r="3" />
-                <circle cx="18" cy="16" r="3" />
-              </svg>
-            </div>
-          </div>
-        </div>
-
         <h1 className="text-center font-display text-4xl font-extrabold tracking-tight text-ink sm:text-5xl">
           Happy Birthday,{" "}
           <span className="font-serif font-normal italic text-jade">{song.name}</span>
