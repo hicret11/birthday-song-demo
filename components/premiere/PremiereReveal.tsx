@@ -56,6 +56,12 @@ export type PremiereRevealProps = {
   directorName?: string;
   /** Playable audio URL. Prefer a same-origin proxied URL for the visualizer. */
   audioSrc?: string;
+  /**
+   * Rendered premiere video (unlocked). When present, the curtains part to
+   * reveal THIS playing on the stage screen — the video is the feature, so the
+   * audio element + equalizer are skipped and the video carries its own sound.
+   */
+  videoSrc?: string;
   /** Optional song title shown under the name. */
   songTitle?: string;
   /**
@@ -103,6 +109,7 @@ export default function PremiereReveal({
   continueLabel = "Send it to them 💌",
   onContinue,
   labels,
+  videoSrc,
   previewSeconds,
   onPreviewLimit,
   onFirstPlay,
@@ -137,6 +144,7 @@ export default function PremiereReveal({
   const contributorNames = (contributors ?? []).map((n) => n.trim()).filter(Boolean);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const noteAudioRef = useRef<HTMLAudioElement | null>(null);
   const previewFiredRef = useRef(false); // one-shot guard for onPreviewLimit
   const firstPlayFiredRef = useRef(false); // one-shot guard for onFirstPlay
@@ -267,33 +275,53 @@ export default function PremiereReveal({
   const beginShow = useCallback(async () => {
     setPhase("revealing");
 
-    const audio = audioRef.current;
-    if (audio && audioSrc) {
-      try {
-        if (!ctxRef.current) {
-          const AC =
-            window.AudioContext ||
-            (window as unknown as { webkitAudioContext: typeof AudioContext })
-              .webkitAudioContext;
-          const ctx = new AC();
-          const source = ctx.createMediaElementSource(audio);
-          const analyser = ctx.createAnalyser();
-          analyser.fftSize = 128;
-          analyser.smoothingTimeConstant = 0.8;
-          source.connect(analyser);
-          analyser.connect(ctx.destination);
-          ctxRef.current = ctx;
-          analyserRef.current = analyser;
+    const fireFirstPlay = () => {
+      if (!firstPlayFiredRef.current) {
+        firstPlayFiredRef.current = true;
+        onFirstPlay?.();
+      }
+    };
+
+    if (videoSrc) {
+      // The feature presentation: the video IS the premiere. Curtains part to
+      // reveal it playing on the stage screen; it carries its own audio, so no
+      // Web Audio graph / equalizer is needed.
+      const video = videoRef.current;
+      if (video) {
+        try {
+          await video.play();
+          setPlaying(true);
+          fireFirstPlay();
+        } catch {
+          // Autoplay blocked — the video has native controls to hit play.
         }
-        await ctxRef.current.resume();
-        await audio.play();
-        setPlaying(true);
-        if (!firstPlayFiredRef.current) {
-          firstPlayFiredRef.current = true;
-          onFirstPlay?.();
+      }
+    } else {
+      const audio = audioRef.current;
+      if (audio && audioSrc) {
+        try {
+          if (!ctxRef.current) {
+            const AC =
+              window.AudioContext ||
+              (window as unknown as { webkitAudioContext: typeof AudioContext })
+                .webkitAudioContext;
+            const ctx = new AC();
+            const source = ctx.createMediaElementSource(audio);
+            const analyser = ctx.createAnalyser();
+            analyser.fftSize = 128;
+            analyser.smoothingTimeConstant = 0.8;
+            source.connect(analyser);
+            analyser.connect(ctx.destination);
+            ctxRef.current = ctx;
+            analyserRef.current = analyser;
+          }
+          await ctxRef.current.resume();
+          await audio.play();
+          setPlaying(true);
+          fireFirstPlay();
+        } catch {
+          // Autoplay/CORS trouble — the reveal still runs, visualizer idles.
         }
-      } catch {
-        // Autoplay/CORS trouble — the reveal still runs, visualizer idles.
       }
     }
 
@@ -303,9 +331,21 @@ export default function PremiereReveal({
       setPhase("open");
       burstConfetti();
     }, delay);
-  }, [audioSrc, burstConfetti, onFirstPlay]);
+  }, [audioSrc, videoSrc, burstConfetti, onFirstPlay]);
 
   const togglePlay = useCallback(async () => {
+    if (videoSrc) {
+      const v = videoRef.current;
+      if (!v) return;
+      if (v.paused) {
+        await v.play().catch(() => undefined);
+        setPlaying(true);
+      } else {
+        v.pause();
+        setPlaying(false);
+      }
+      return;
+    }
     const audio = audioRef.current;
     if (!audio) return;
     if (audio.paused) {
@@ -321,7 +361,7 @@ export default function PremiereReveal({
       audio.pause();
       setPlaying(false);
     }
-  }, [previewSeconds]);
+  }, [previewSeconds, videoSrc]);
 
   // The director's recorded closing message — a plain, separate <audio>, played
   // on demand (kept out of the Web Audio graph so it never affects the song's
@@ -330,9 +370,10 @@ export default function PremiereReveal({
     const note = noteAudioRef.current;
     if (!note) return;
     if (note.paused) {
-      const song = audioRef.current;
-      if (song && !song.paused) {
-        song.pause();
+      // Pause the feature (video or song) so the note doesn't talk over it.
+      const main = videoSrc ? videoRef.current : audioRef.current;
+      if (main && !main.paused) {
+        main.pause();
         setPlaying(false);
       }
       try {
@@ -345,7 +386,7 @@ export default function PremiereReveal({
       note.pause();
       setPlayingNote(false);
     }
-  }, []);
+  }, [videoSrc]);
 
   useEffect(() => {
     return () => {
@@ -442,21 +483,38 @@ export default function PremiereReveal({
               </p>
             )}
 
-            {/* audio-reactive equalizer */}
-            <canvas
-              ref={canvasRef}
-              className="mx-auto mt-5 h-[64px] w-[280px]"
-              aria-hidden
-            />
+            {videoSrc ? (
+              /* The feature presentation — the rendered video plays on the
+                 stage "screen", framed by the spotlight + curtains so the whole
+                 reveal stays theatrical (the video carries its own audio). */
+              <video
+                ref={videoRef}
+                src={videoSrc}
+                playsInline
+                controls
+                onPlay={() => setPlaying(true)}
+                onPause={() => setPlaying(false)}
+                className="mx-auto mt-5 w-full max-w-[440px] rounded-2xl border border-amber-300/25 shadow-[0_24px_70px_-24px_rgba(236,72,153,0.55)]"
+              />
+            ) : (
+              <>
+                {/* audio-reactive equalizer */}
+                <canvas
+                  ref={canvasRef}
+                  className="mx-auto mt-5 h-[64px] w-[280px]"
+                  aria-hidden
+                />
 
-            {audioSrc && (
-              <button
-                type="button"
-                onClick={togglePlay}
-                className="mt-1 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 py-2 text-sm font-bold text-amber-50 transition hover:border-amber-300"
-              >
-                {playing ? L.pause : L.replay}
-              </button>
+                {audioSrc && (
+                  <button
+                    type="button"
+                    onClick={togglePlay}
+                    className="mt-1 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 py-2 text-sm font-bold text-amber-50 transition hover:border-amber-300"
+                  >
+                    {playing ? L.pause : L.replay}
+                  </button>
+                )}
+              </>
             )}
 
             {director && (
@@ -510,8 +568,8 @@ export default function PremiereReveal({
         <Curtain side="left" open={phase !== "closed"} />
         <Curtain side="right" open={phase !== "closed"} />
 
-        {/* hidden audio element */}
-        {audioSrc && (
+        {/* hidden audio element — only in audio mode (video carries its own) */}
+        {audioSrc && !videoSrc && (
           <audio
             ref={audioRef}
             src={audioSrc}

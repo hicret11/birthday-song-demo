@@ -30,6 +30,7 @@ export function SharePremiere({
   directorName,
   songTitle,
   audioSrc,
+  videoSrc,
   language,
   directorNote,
   isCrowd,
@@ -40,6 +41,8 @@ export function SharePremiere({
   directorName?: string;
   songTitle: string;
   audioSrc: string;
+  /** Rendered premiere video (unlocked) — plays on the stage screen when set. */
+  videoSrc?: string;
   language: string;
   /** Closing message — text and/or a recorded voice clip. */
   directorNote?: { text?: string; voiceUrl?: string; voiceDurationSec?: number };
@@ -69,6 +72,7 @@ export function SharePremiere({
         directorName={directorName}
         songTitle={songTitle}
         audioSrc={audioSrc}
+        videoSrc={videoSrc}
         directorNote={directorNote}
         onFirstPlay={onFirstPlay}
         contributors={isCrowd ? contributors : undefined}
