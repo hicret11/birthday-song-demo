@@ -81,7 +81,12 @@ function zonedWallTimeToUtcMs(
  * UTC ISO instant of 9am local on the NEXT occurrence of the birthday month-day
  * in `timezone`, relative to `nowMs`. "Next" = this year's date if still future,
  * else next year. Leap-day (02-29) falls back to 02-28 in non-leap years.
- * Returns null when the month-day or timezone is invalid.
+ *
+ * Returns null when the month-day or timezone is invalid, OR when today (in the
+ * recipient's timezone) IS the birthday — in that case the premiere should be
+ * available immediately (a null deliverAt = no countdown gate), never scheduled
+ * a full year out. Without this, creating a song ON the birthday but after 9am
+ * local rolled the countdown to next year (the "364 days" bug).
  */
 export function computeDeliverAt(
   monthDay: string,
@@ -90,6 +95,17 @@ export function computeDeliverAt(
 ): string | null {
   const md = parseMonthDay(monthDay);
   if (!md || !isValidTimezone(timezone)) return null;
+
+  // Birthday is today (in the recipient's zone) → deliver now, no gate.
+  const todayParts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(nowMs));
+  const today: Record<string, number> = {};
+  for (const p of todayParts) if (p.type !== "literal") today[p.type] = Number(p.value);
+  if (today.month === md.month && today.day === md.day) return null;
+
   const nowYear = Number(
     new Intl.DateTimeFormat("en-US", { timeZone: timezone, year: "numeric" }).format(
       new Date(nowMs),

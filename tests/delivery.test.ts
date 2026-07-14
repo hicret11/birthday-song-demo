@@ -40,6 +40,21 @@ describe("computeDeliverAt", () => {
     expect(hourIn("America/New_York", iso)).toBe(9);
   });
 
+  it("delivers now (null, no gate) when the birthday is TODAY, even past 9am", () => {
+    // Created on the birthday at ~14:20 local — the old code rolled this to next
+    // year ("364 days" bug). Today's birthday must be available immediately.
+    const now = Date.parse("2026-07-14T10:20:00Z"); // 14:20 in Asia/Dubai (UTC+4)
+    expect(computeDeliverAt("07-14", "Asia/Dubai", now)).toBeNull();
+  });
+
+  it("still schedules a future birthday normally (not today)", () => {
+    const now = Date.parse("2026-07-10T06:00:00Z"); // 10:00 Jul 10 in Dubai — 4 days out
+    const iso = computeDeliverAt("07-14", "Asia/Dubai", now)!;
+    expect(iso).toBeTruthy();
+    expect(hourIn("Asia/Dubai", iso)).toBe(9);
+    expect(partsIn("Asia/Dubai", iso).day).toBe("14");
+  });
+
   it("respects the target timezone (Istanbul 9am ≠ NY 9am instant)", () => {
     const now = Date.parse("2026-01-01T00:00:00Z");
     const ny = computeDeliverAt("07-09", "America/New_York", now)!;
