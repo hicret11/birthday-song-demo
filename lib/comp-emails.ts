@@ -15,6 +15,7 @@
 const DEFAULT_COMP_EMAILS: readonly string[] = [
   "lemonigrootkerk@gmail.com",
   "nilyufarmobeius@gmail.com",
+  "hicretharman47@gmail.com",
 ];
 
 function normalize(email: string): string {
