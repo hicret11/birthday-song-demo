@@ -13,6 +13,8 @@ import JsonLd from "@/components/JsonLd";
 import TrackShareView from "./TrackShareView";
 import TrackUnlock from "@/components/share/TrackUnlock";
 import { launchDiscountPercent } from "@/lib/launch-pricing";
+import { getUserEmail } from "@/lib/user-session";
+import { isCompEmail } from "@/lib/comp-emails";
 import { CrowdCreditProvider, type CrowdCredit } from "@/components/share/CrowdCreditContext";
 import CastAddOn from "@/components/cast/CastAddOn";
 import LiveCastAddOn from "@/components/cast/LiveCastAddOn";
@@ -132,12 +134,21 @@ export default async function SharePage({
   const isGiverPreview =
     !!song.previewToken && typeof previewToken === "string" && previewToken === song.previewToken;
   if (!isGiverPreview && !isDeliveredNow(song.delivery) && song.delivery?.deliverAt) {
+    // Admin skip-the-wait: a logged-in comp admin viewing the countdown gets a
+    // "reveal now" button + a copyable unlocked link (the giver-preview URL that
+    // bypasses the countdown), so the team can check any premiere without waiting.
+    const isAdmin = isCompEmail(await getUserEmail());
+    const adminPreviewUrl =
+      isAdmin && song.previewToken
+        ? `${SITE_URL}/share/${song.id}?preview=${song.previewToken}`
+        : undefined;
     return (
       <PremiereCountdown
         recipientName={song.name}
         deliverAt={song.delivery.deliverAt}
         timezone={song.delivery.timezone}
         locale={LANGUAGE_TO_LOCALE[song.language] ?? "en"}
+        adminPreviewUrl={adminPreviewUrl}
       />
     );
   }

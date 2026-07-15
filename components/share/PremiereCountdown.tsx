@@ -32,16 +32,20 @@ export default function PremiereCountdown({
   deliverAt,
   timezone,
   locale = "en",
+  adminPreviewUrl,
 }: {
   recipientName: string;
   deliverAt: string;
   timezone?: string;
   locale?: Locale;
+  /** Set only for a logged-in admin: the unlocked link that skips the countdown. */
+  adminPreviewUrl?: string;
 }) {
   const t = getDictionary(locale).countdown;
   const dir = isRtl(locale) ? "rtl" : "ltr";
   // null until mounted → avoids SSR/client hydration mismatch on the live clock.
   const [remaining, setRemaining] = useState<number | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const target = Date.parse(deliverAt);
@@ -154,6 +158,51 @@ export default function PremiereCountdown({
           <p className="mt-6 text-xs" style={{ color: "#b4a498" }}>
             {t.footer}
           </p>
+
+          {/* Admin-only: skip the wait — reveal the premiere now or copy the
+              unlocked link. Shown only when the server passed adminPreviewUrl
+              (i.e. the viewer is a logged-in comp admin). */}
+          {adminPreviewUrl && (
+            <div
+              className="mt-6 pt-4"
+              style={{ borderTop: "1px dashed rgba(255,207,107,.25)" }}
+            >
+              <p
+                className="text-[10px] font-extrabold uppercase tracking-[0.24em]"
+                style={{ color: "#ffcf6b" }}
+              >
+                Admin access
+              </p>
+              <div className="mt-2.5 flex flex-wrap items-center justify-center gap-2">
+                <a
+                  href={adminPreviewUrl}
+                  className="rounded-full px-5 py-2.5 text-sm font-extrabold shadow-md transition hover:-translate-y-0.5"
+                  style={{
+                    background: "linear-gradient(120deg,#f59e0b,#ec4899)",
+                    color: "#2a0f22",
+                  }}
+                >
+                  🔓 Reveal now
+                </a>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(adminPreviewUrl);
+                      setCopied(true);
+                      window.setTimeout(() => setCopied(false), 2000);
+                    } catch {
+                      /* clipboard blocked — the Reveal now link still works */
+                    }
+                  }}
+                  className="rounded-full border px-5 py-2.5 text-sm font-bold transition hover:border-amber-300"
+                  style={{ borderColor: "rgba(255,207,107,.4)", color: "#f6ede2" }}
+                >
+                  {copied ? "Copied ✓" : "Copy unlocked link"}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </main>
