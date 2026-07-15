@@ -22,6 +22,8 @@ import {
 import { resolveTier } from "@/lib/pricing-tiers";
 import { uploadToR2 } from "@/lib/r2";
 import { getClientIp, rateLimitFixedWindow } from "@/lib/rate-limit";
+import { getUserEmail } from "@/lib/user-session";
+import { isCompEmail } from "@/lib/comp-emails";
 import { sendSongReadyEmail } from "@/lib/resend";
 import { logGenerationEvent } from "@/lib/events";
 import { generateShareId, saveSharedSong } from "@/lib/share";
@@ -182,13 +184,15 @@ function sanitizePhotoUrls(value: unknown): string[] | undefined {
 
 export async function POST(request: Request): Promise<Response> {
   const ip = getClientIp(request);
+  // Verified comp admins (logged in) create shares without the daily cap.
+  const admin = isCompEmail(await getUserEmail());
   let rate;
   try {
     rate = await rateLimitFixedWindow(
       `rate:share:${ip}`,
       RATE_LIMIT_MAX,
       RATE_LIMIT_WINDOW_SECONDS,
-      { request, ip },
+      { request, ip, admin },
     );
   } catch (err) {
     // KV unreachable — fail open. Share creation is expensive but the alternative

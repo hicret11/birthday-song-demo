@@ -15,6 +15,8 @@ export type RateLimitResult = {
 export type RateLimitBypassContext = {
   request?: Request;
   ip?: string;
+  /** True when the caller is a verified comp admin — unlimited generation. */
+  admin?: boolean;
 };
 
 export function getClientIp(request: Request): string {
@@ -45,6 +47,9 @@ export function getClientIp(request: Request): string {
  */
 export function isRateLimitBypassed(ctx?: RateLimitBypassContext): boolean {
   if (!ctx) return false;
+
+  // Comp admin (verified magic-link session) — unlimited generation.
+  if (ctx.admin) return true;
 
   // Header bypass — works from any network.
   const adminToken = process.env.ADMIN_BYPASS_TOKEN;

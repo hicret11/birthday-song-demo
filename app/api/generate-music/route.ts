@@ -20,6 +20,8 @@ import {
   noteProviderSuccess,
 } from "@/lib/music-provider";
 import { getClientIp, rateLimitFixedWindow } from "@/lib/rate-limit";
+import { getUserEmail } from "@/lib/user-session";
+import { isCompEmail } from "@/lib/comp-emails";
 import { recordSpendCents } from "@/lib/spend-cap";
 import { sunoStyleLimit } from "@/lib/suno";
 
@@ -101,13 +103,15 @@ function errorResponse(code: ApiErrorCode, message: string, status: number): Res
 
 export async function POST(request: Request): Promise<Response> {
   const ip = getClientIp(request);
+  // Verified comp admins (logged in) generate without the daily cap.
+  const admin = isCompEmail(await getUserEmail());
   let rate;
   try {
     rate = await rateLimitFixedWindow(
       `rate:music:${ip}`,
       RATE_LIMIT_MAX,
       RATE_LIMIT_WINDOW_SECONDS,
-      { request, ip },
+      { request, ip, admin },
     );
   } catch (err) {
     // KV unreachable — fail open rather than block legitimate users.
