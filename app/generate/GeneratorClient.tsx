@@ -1014,6 +1014,55 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
   // whenever new lyrics arrive (so re-generates start the animation fresh).
   const [lyricRevealChars, setLyricRevealChars] = useState(0);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
+
+  // ── Never lose a song to an accidental exit ────────────────────────────────
+  // The song is always saved server-side the moment it's shareable, but an
+  // accidental back/refresh used to strand the user with no link. On a fresh
+  // visit, offer to reopen the last recent song (resume banner); and warn before
+  // a refresh/tab-close while one is generated.
+  const [resumeSong, setResumeSong] = useState<{ url: string; name: string } | null>(null);
+  // Persist the last shareable song (client-only, in an effect so Date.now() is
+  // fine) so a later visit can reopen it.
+  useEffect(() => {
+    if (!shareUrl) return;
+    try {
+      localStorage.setItem(
+        "smb_last_song",
+        JSON.stringify({ url: shareUrl, name: name.trim() || "your song", at: Date.now() }),
+      );
+    } catch {
+      /* storage blocked — non-fatal */
+    }
+  }, [shareUrl, name]);
+  // On a fresh visit (nothing generated yet), surface the last recent song. The
+  // setState lives in a nested callback so it isn't a synchronous effect setState.
+  useEffect(() => {
+    if (audioUrl) return; // mid-flow — render guard also hides the banner
+    void (async () => {
+      try {
+        const raw = localStorage.getItem("smb_last_song");
+        if (!raw) return;
+        const v = JSON.parse(raw) as { url?: string; name?: string; at?: number };
+        if (v?.url && typeof v.at === "number" && Date.now() - v.at < 12 * 60 * 60 * 1000) {
+          setResumeSong({ url: v.url, name: v.name || "your song" });
+        }
+      } catch {
+        /* ignore malformed/blocked storage */
+      }
+    })();
+  }, [audioUrl]);
+  // Warn before a refresh / tab-close while a song is generated but not yet
+  // opened on the user's own terms.
+  useEffect(() => {
+    if (!audioUrl) return;
+    function warn(e: BeforeUnloadEvent) {
+      e.preventDefault();
+      e.returnValue = "";
+    }
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [audioUrl]);
+
   // Optional promotional-use permission, offered only after a song is shareable
   // and never on minor-recipient flows. Best-effort; never blocks anything.
   const [promoGranted, setPromoGranted] = useState(false);
@@ -2225,6 +2274,36 @@ export default function GeneratorClient({ venue, locale = "en" }: Props) {
     <main
       className={`gen-stage grain relative min-h-screen overflow-x-hidden ${theme.text} px-4 py-6 sm:py-8`}
     >
+      {/* Recovery banner — reopen the last song after an accidental exit. */}
+      {resumeSong && !audioUrl && (
+        <div className="relative z-30 mx-auto mb-4 flex max-w-xl flex-wrap items-center justify-between gap-3 rounded-2xl border border-sand bg-cream-soft px-4 py-3 shadow-sm">
+          <span className="text-sm text-ink">
+            🎵 Your last song for <b>{resumeSong.name}</b> is saved.
+          </span>
+          <span className="flex shrink-0 items-center gap-3">
+            <a
+              href={resumeSong.url}
+              className="rounded-full bg-jade px-4 py-2 text-sm font-bold text-white transition hover:bg-jade-deep"
+            >
+              Reopen it →
+            </a>
+            <button
+              type="button"
+              onClick={() => {
+                setResumeSong(null);
+                try {
+                  localStorage.removeItem("smb_last_song");
+                } catch {
+                  /* ignore */
+                }
+              }}
+              className="text-sm text-ink-soft underline"
+            >
+              Dismiss
+            </button>
+          </span>
+        </div>
+      )}
       <style>{`
         * { scrollbar-width: none; }
         *::-webkit-scrollbar { display: none; }
